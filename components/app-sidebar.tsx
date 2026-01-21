@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button"
 
-import type * as React from "react"
+import React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useSession, signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   Utensils,
@@ -51,12 +52,7 @@ const NAV_ITEMS = [
     icon: Hotel,
   },
   {
-    title: "Menu Categories",
-    url: "/dashboard/categories",
-    icon: ListTree,
-  },
-  {
-    title: "Menu Items",
+    title: "Menu Studio",
     url: "/dashboard/menu",
     icon: Utensils,
   },
@@ -74,6 +70,24 @@ const NAV_ITEMS = [
 
 export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => setMounted(true), [])
+
+  const userName = session?.user?.name || "Account"
+  const userEmail = session?.user?.email || "—"
+  const avatarFallback =
+    (userName &&
+      userName
+        .split(" ")
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()) || "ME"
+
+  // Avoid hydration mismatches between server and client (e.g., sidebar open state or Radix IDs).
+  if (!mounted) return null
 
   return (
     <SidebarProvider>
@@ -119,12 +133,12 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton size="lg" className="data-[state=open]:bg-primary/5 rounded-xl transition-colors">
                     <Avatar className="size-8 rounded-lg">
-                      <AvatarImage src="/avatar.png" alt="Owner" />
-                      <AvatarFallback className="rounded-lg">JD</AvatarFallback>
+                      <AvatarImage src={(session?.user as any)?.image || "/avatar.png"} alt={userName} />
+                      <AvatarFallback className="rounded-lg">{avatarFallback}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold text-primary-foreground">John Doe</span>
-                      <span className="truncate text-xs text-muted-foreground">owner@hotel.com</span>
+                      <span className="truncate font-semibold text-primary-foreground">{userName}</span>
+                      <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
                     </div>
                     <ChevronRight className="ml-auto size-4 text-muted-foreground" />
                   </SidebarMenuButton>
@@ -136,11 +150,15 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                     <Link href="/dashboard/settings">Settings</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="text-destructive">
-                    <Link href="/">
-                      <LogOut className="mr-2 size-4" />
-                      Log out
-                    </Link>
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      signOut({ callbackUrl: "/login" })
+                    }}
+                  >
+                    <LogOut className="mr-2 size-4" />
+                    Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

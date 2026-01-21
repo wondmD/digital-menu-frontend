@@ -1,50 +1,59 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState, FormEvent } from "react"
-import { signIn } from "next-auth/react"
 import { Coffee } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
-import { apiFetch } from "@/lib/api-client"
 
 export default function RegisterPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
-    const firstName = formData.get("first_name") as string
-    const lastName = formData.get("last_name") as string
+    const fullName = formData.get("full_name") as string
     const email = formData.get("email") as string
     const password = formData.get("password") as string
+    const phone = formData.get("phone") as string
 
     setLoading(true)
     try {
-      await apiFetch("/api/v1/auth/register", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
-        body: {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           email,
           password,
-          first_name: firstName,
-          last_name: lastName,
-        },
+          full_name: fullName.trim(),
+          role: "owner",
+          phone,
+        }),
       })
 
-      const loginResult = await signIn("credentials", {
-        email,
-        password,
-        redirect: true,
-        callbackUrl: "/dashboard",
-      })
-
-      if (loginResult?.error) {
-        toast({ title: "Registration succeeded", description: "Login failed, please sign in manually." })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        const message = data?.error || data?.message || "Could not register with those details."
+        const raw = data?.raw ? ` | raw: ${data.raw}` : ""
+        throw new Error(`${message}${data?.status ? ` (status ${data.status})` : ""}${raw}`)
       }
+
+      toast({ title: "Account created", description: "Welcome to MenuVista!" })
+
+      toast({
+        title: "Check your email",
+        description: "We sent a verification link. Activate your account to sign in.",
+      })
+
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`)
     } catch (err: any) {
       toast({
         title: "Could not register",
@@ -77,12 +86,8 @@ export default function RegisterPage() {
         <CardContent className="grid gap-4">
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <div className="grid gap-2">
-              <Label htmlFor="first_name">First Name</Label>
-              <Input id="first_name" name="first_name" placeholder="John" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="last_name">Last Name</Label>
-              <Input id="last_name" name="last_name" placeholder="Doe" required />
+              <Label htmlFor="full_name">Full Name</Label>
+              <Input id="full_name" name="full_name" placeholder="John Doe" required />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="email" className="font-medium">
@@ -100,6 +105,17 @@ export default function RegisterPage() {
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
               <Input id="password" name="password" type="password" className="bg-white/50 border-primary/10" required />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="+1234567890"
+                className="bg-white/50 border-primary/10"
+                required
+              />
             </div>
             <Button
               type="submit"

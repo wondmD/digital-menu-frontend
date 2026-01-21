@@ -1,32 +1,71 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
-import { Coffee } from "lucide-react"
+import { Coffee, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { FormEvent, useState } from "react"
+import { useToast } from "@/components/ui/use-toast"
+import { Checkbox } from "@/components/ui/checkbox"
+import { FormEvent, useEffect, useState } from "react"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [remember, setRemember] = useState(false)
+  const [savedEmail, setSavedEmail] = useState("")
+
+  useEffect(() => {
+    const storedEmail = localStorage.getItem("rememberEmail")
+    if (storedEmail) {
+      setSavedEmail(storedEmail)
+      setRemember(true)
+    }
+  }, [])
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const email = formData.get("email") as string
     const password = formData.get("password") as string
+
+    if (remember) {
+      localStorage.setItem("rememberEmail", email)
+    } else {
+      localStorage.removeItem("rememberEmail")
+    }
     setLoading(true)
     try {
       const res = await signIn("credentials", {
         email,
         password,
-        redirect: true,
+        redirect: false,
         callbackUrl: "/dashboard",
       })
-      if (res?.error) {
-        alert(res.error)
+      if (!res) {
+        throw new Error("Unable to sign in right now. Please try again.")
       }
+      if (res.error || !res.ok) {
+        const description =
+          res.error === "CredentialsSignin" || res.status === 401
+            ? "Invalid email or password."
+            : res.error || "Unable to sign in. Please try again."
+        toast({ title: "Could not sign in", description, variant: "destructive" })
+        return
+      }
+
+      toast({ title: "Welcome back", description: "Redirecting to your dashboard." })
+      router.push(res.url || "/dashboard")
+    } catch (err: any) {
+      toast({
+        title: "Sign-in error",
+        description: err?.message || "Please verify your credentials and try again.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -54,7 +93,14 @@ export default function LoginPage() {
           <form className="grid gap-5" onSubmit={handleSubmit}>
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="owner@hotel.com" required />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="owner@hotel.com"
+                defaultValue={savedEmail}
+                required
+              />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
@@ -63,7 +109,29 @@ export default function LoginPage() {
                   Forgot password?
                 </Link>
               </div>
-              <Input id="password" name="password" type="password" required />
+              <div className="relative">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="pr-12"
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Checkbox id="remember" checked={remember} onCheckedChange={(v) => setRemember(Boolean(v))} />
+              <Label htmlFor="remember" className="cursor-pointer text-sm">
+                Remember me on this device
+              </Label>
             </div>
             <Button
               type="submit"

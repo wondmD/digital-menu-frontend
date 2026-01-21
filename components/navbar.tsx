@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Coffee, Leaf } from "lucide-react"
+import { Menu, X, Coffee, Leaf, ChefHat } from "lucide-react"
 import { useState } from "react"
 
 export function Navbar() {
@@ -10,12 +10,12 @@ export function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-primary/5 bg-[#FDFCF8]/80 backdrop-blur-xl supports-[backdrop-filter]:bg-[#FDFCF8]/60 transition-all duration-300">
-      <div className="container flex h-20 items-center justify-between px-6">
-        <Link href="/" className="flex items-center space-x-2 group">
-          <div className="rounded-xl bg-primary p-2 text-white shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-            <Coffee className="h-5 w-5" />
+      <div className="container flex h-20 items-center justify-between px-6 mx-auto">
+        <Link href="/" className="flex items-center space-x-3 group">
+          <div className="rounded-xl bg-primary p-2 text-white shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform">
+            <ChefHat className="h-5 w-5" />
           </div>
-          <span className="text-2xl font-serif font-normal tracking-tight text-primary-foreground">MenuQR</span>
+          <span className="text-2xl font-serif font-normal tracking-tight text-primary">MenuQR</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -70,21 +70,21 @@ export function Navbar() {
           <div className="grid gap-4">
             <Link
               href="/#features"
-              className="flex w-full items-center py-3 text-2xl font-serif text-primary-foreground border-b border-primary/5"
+              className="flex w-full items-center py-3 text-2xl font-serif text-primary border-b border-primary/5"
               onClick={() => setIsOpen(false)}
             >
               Our Features
             </Link>
             <Link
               href="/#how-it-works"
-              className="flex w-full items-center py-3 text-2xl font-serif text-primary-foreground border-b border-primary/5"
+              className="flex w-full items-center py-3 text-2xl font-serif text-primary border-b border-primary/5"
               onClick={() => setIsOpen(false)}
             >
               The Process
             </Link>
             <Link
               href="/menu/golden-leaf"
-              className="flex w-full items-center py-3 text-2xl font-serif text-primary-foreground"
+              className="flex w-full items-center py-3 text-2xl font-serif text-primary"
               onClick={() => setIsOpen(false)}
             >
               Live Experience

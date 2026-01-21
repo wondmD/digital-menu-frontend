@@ -1,21 +1,72 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
-import { MOCK_HOTEL } from "@/lib/mock-data"
-import { Coffee, MapPin, Phone, Instagram, Facebook, ArrowRight } from "lucide-react"
+import { Coffee, MapPin, Phone, Instagram, Facebook, ArrowRight, Loader2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { use } from "react"
+import { use, useEffect, useState } from "react"
+import { apiFetch } from "@/lib/api-client"
+
+type Restaurant = {
+  id: string
+  name: string
+  slug: string
+  description?: string
+  address?: string
+  phone?: string
+  image_url?: string
+}
 
 export default function HotelMenuLandingPage({ params }: { params: Promise<{ "hotel-slug": string }> }) {
   const resolvedParams = use(params)
   const hotelSlug = resolvedParams["hotel-slug"]
+  
+  const [hotel, setHotel] = useState<Restaurant | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        const res = await apiFetch<any>(`/restaurants/${hotelSlug}`)
+        setHotel(res?.data || res)
+      } catch (err: any) {
+        setError(err.message || "Failed to load restaurant details")
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [hotelSlug])
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#FDFCF8]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  if (error || !hotel) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-[#FDFCF8] gap-4 p-6 text-center">
+        <h1 className="text-2xl font-bold text-primary">Menu Not Found</h1>
+        <p className="text-muted-foreground max-w-xs">{error || "The requested restaurant does not exist or is currently offline."}</p>
+        <Button asChild>
+          <Link href="/">Back to Home</Link>
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FDFCF8] font-sans">
       <main className="flex-1">
         <div className="relative h-[45vh] w-full overflow-hidden">
             <Image
-              src="/hotel.webp"
-              alt="Hotel exterior"
+              src={hotel.image_url || "/hotel.webp"}
+              alt={hotel.name}
               fill
               className="object-cover brightness-[0.7] scale-105"
               priority
@@ -28,7 +79,7 @@ export default function HotelMenuLandingPage({ params }: { params: Promise<{ "ho
             <div className="mb-8 h-32 w-32 overflow-hidden rounded-3xl border-[6px] border-[#FDFCF8] bg-white shadow-2xl animate-in zoom-in duration-500">
               <Image
                 src="/cafe-logo.png"
-                alt={MOCK_HOTEL.name}
+                alt={hotel.name}
                 width={128}
                 height={128}
                 className="object-contain p-2"
@@ -36,10 +87,10 @@ export default function HotelMenuLandingPage({ params }: { params: Promise<{ "ho
             </div>
 
             <h1 className="text-4xl font-serif text-primary tracking-tight sm:text-5xl mb-3">
-              {MOCK_HOTEL.name}
+              {hotel.name}
             </h1>
             <p className="max-w-md text-balance text-muted-foreground font-medium leading-relaxed">
-              {MOCK_HOTEL.description}
+              {hotel.description || "Welcome to our digital menu."}
             </p>
 
             <div className="mt-10 flex flex-col w-full gap-4">
@@ -57,17 +108,18 @@ export default function HotelMenuLandingPage({ params }: { params: Promise<{ "ho
             <div className="mt-12 grid w-full gap-5 text-sm">
               <div className="flex items-center justify-center gap-3 text-muted-foreground font-medium bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-primary/5">
                 <MapPin className="h-5 w-5 text-primary shrink-0" />
-                <span className="text-left">{MOCK_HOTEL.address}</span>
+                <span className="text-left">{hotel.address || "Location information not provided"}</span>
               </div>
               <div className="flex items-center justify-center gap-3 text-muted-foreground font-medium bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-primary/5">
                 <Phone className="h-5 w-5 text-primary shrink-0" />
-                <span>{MOCK_HOTEL.phone}</span>
+                <span>{hotel.phone || "No contact phone provided"}</span>
               </div>
             </div>
 
             <div className="mt-12 flex items-center justify-center gap-8 text-primary">
+              {/* Note: Socials are usually separate or nested in API response. Mocking them or omitting if not in basic Restaurant type */}
               <Link
-                href={`https://instagram.com/${MOCK_HOTEL.socials.instagram}`}
+                href={`#`}
                 className="group flex flex-col items-center gap-2"
               >
                 <div className="rounded-full bg-primary/5 p-4 text-primary group-hover:bg-primary/10 transition-all duration-300">
@@ -76,7 +128,7 @@ export default function HotelMenuLandingPage({ params }: { params: Promise<{ "ho
                 <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Instagram</span>
               </Link>
               <Link
-                href={`https://facebook.com/${MOCK_HOTEL.socials.facebook}`}
+                href={`#`}
                 className="group flex flex-col items-center gap-2"
               >
                 <div className="rounded-full bg-primary/5 p-4 text-primary group-hover:bg-primary/10 transition-all duration-300">
