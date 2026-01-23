@@ -6,11 +6,67 @@ import { AuthSessionProvider } from "@/components/auth-session-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "MenuQR | Elegant Digital Menus for Modern Hospitality",
+  title: {
+    default: "MenuQR | Elegant Digital Menus for Modern Hospitality",
+    template: "%s | MenuQR",
+  },
   description:
     "Transform your dining experience with nature-inspired, high-performance digital menus designed for hotels and cafés.",
-  // ... existing metadata ...
-  generator: "v0.app",
+  keywords: [
+    "digital menu",
+    "QR code menu",
+    "restaurant technology",
+    "contactless dining",
+    "hospitality software",
+    "hotel menu",
+    "café digital menu",
+  ],
+  authors: [{ name: "MenuQR Team" }],
+  creator: "MenuQR",
+  publisher: "MenuQR",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL("https://menuqr.com"), // Replace with actual domain
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "MenuQR | Elegant Digital Menus",
+    description: "Nature-inspired, high-performance digital menus for hotels and cafés.",
+    url: "https://menuqr.com",
+    siteName: "MenuQR",
+    images: [
+      {
+        url: "/hotel.webp",
+        width: 1200,
+        height: 630,
+        alt: "MenuQR Digital Menu Preview",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "MenuQR | Elegant Digital Menus",
+    description: "Nature-inspired, high-performance digital menus for hotels and cafés.",
+    images: ["/hotel.webp"],
+    creator: "@menuqr",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: [
       {

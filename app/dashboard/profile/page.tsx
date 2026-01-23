@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
 import { apiFetch } from "@/lib/api-client"
+import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Building2, 
@@ -17,7 +18,11 @@ import {
   LayoutGrid,
   UtensilsCrossed,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  Shield,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -50,8 +55,10 @@ export default function ProfilePage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [selectedId, setSelectedId] = useState("")
   const [categories, setCategories] = useState<Category[]>([])
+  const [subscription, setSubscription] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [dataLoading, setDataLoading] = useState(false)
+  const [publishing, setPublishing] = useState<string | null>(null)
 
   const ready = status === "authenticated" && !!token
 
@@ -60,17 +67,53 @@ export default function ProfilePage() {
     [restaurants, selectedId],
   )
 
+  const togglePublish = async (res: Restaurant) => {
+    if (!token) return
+    try {
+      setPublishing(res.id)
+      const newStatus = !res.is_published
+      const formData = new FormData()
+      formData.append("is_published", newStatus ? "true" : "false")
+
+      await apiFetch(`/my-restaurants/${res.id}`, {
+        method: "PATCH",
+        token,
+        body: formData,
+      })
+      setRestaurants(prev => prev.map(r => r.id === res.id ? { ...r, is_published: newStatus } : r))
+      toast({
+        title: newStatus ? "Restaurant Published" : "Restaurant Unpublished",
+        description: `${res.name} is now ${newStatus ? 'visible' : 'hidden'} to the public.`,
+      })
+    } catch (err: any) {
+      toast({ title: "Failed to update status", description: err.message, variant: "destructive" })
+    } finally {
+      setPublishing(null)
+    }
+  }
+
   useEffect(() => {
     if (!ready) return
     const load = async () => {
       try {
         setLoading(true)
+        
+        // Load Restaurants
         const res = await apiFetch<{ data: Restaurant[] }>("/my-restaurants", { token })
         const list = res?.data || []
         setRestaurants(list)
         if (list.length && !selectedId) setSelectedId(list[0].id)
+
+        // Load Subscription for usage limits
+        try {
+          const subRes = await apiFetch<any>("/subscription/me", { token })
+          setSubscription(subRes?.data || subRes)
+        } catch (subErr) {
+          console.warn("Failed to load subscription info", subErr)
+        }
+
       } catch (err: any) {
-        toast({ title: "Could not load restaurants", description: err?.message, variant: "destructive" })
+        toast({ title: "Could not load profile data", description: err?.message, variant: "destructive" })
       } finally {
         setLoading(false)
       }
@@ -113,242 +156,256 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-6xl space-y-8">
-      {/* Header Section */}
-      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <h1 className="text-4xl font-extrabold tracking-tight">{selected?.name || "Restaurant Details"}</h1>
-            <Badge variant={selected?.is_published ? "default" : "secondary"} className="mt-1">
-              {selected?.is_published ? "Live" : "Draft"}
-            </Badge>
+    <div className="max-w-7xl mx-auto space-y-10 pb-20">
+      {/* My Restaurants Header */}
+      <div className="flex flex-col md:flex-row gap-8 items-start justify-between">
+        <div className="flex gap-6 items-center">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
+            <Building2 className="h-8 w-8 text-primary" />
           </div>
-          <p className="text-muted-foreground text-lg hidden md:block">
-            {selected?.description || "A brief overview of your restaurant, categories, and menu."}
-          </p>
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-4xl font-black tracking-tight text-foreground">
+                My Restaurants
+              </h1>
+            </div>
+            <p className="text-muted-foreground text-sm font-medium">
+              Manage and monitor all your digital menu locations.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <select
-            className="h-10 rounded-md border border-primary/20 bg-background px-4 text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary/20 transition-all"
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            disabled={!restaurants.length}
-          >
-            {restaurants.map((res) => (
-              <option key={res.id} value={res.id}>
-                {res.name}
-              </option>
-            ))}
-          </select>
-          {selected?.slug && (
-            <Button variant="outline" size="icon" asChild>
-              <Link href={`/menu/${selected.slug}`} target="_blank" title="View Public Menu">
-                <ExternalLink className="h-4 w-4" />
-              </Link>
-            </Button>
-          )}
+        <div className="flex gap-3">
+          <Button className="rounded-xl shadow-lg shadow-primary/20" asChild>
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <UtensilsCrossed className="h-4 w-4" />
+              Add New
+            </Link>
+          </Button>
         </div>
       </div>
 
-      {!restaurants.length ? (
-        <Card className="border-dashed bg-muted/30">
-          <CardHeader className="text-center py-12">
-            <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <CardTitle>No restaurants found</CardTitle>
-            <CardDescription>You haven't added any restaurants to your profile yet.</CardDescription>
-            <Button className="mt-4" asChild>
-              <Link href="/dashboard">Go to Dashboard</Link>
-            </Button>
-          </CardHeader>
-        </Card>
-      ) : (
-        <div className="grid gap-8 lg:grid-cols-3">
-          {/* Left Column: Details */}
-          <div className="lg:col-span-2 space-y-8">
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="categories">Categories & Items</TabsTrigger>
-              </TabsList>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
+        <div className="lg:col-span-3 space-y-10">
+          {/* Active Workspace / Restaurant Section */}
+          <section className="space-y-6">
+            <div className="flex items-end justify-between border-b pb-4">
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold tracking-tight">Restaurant Overview</h3>
+                <p className="text-sm text-muted-foreground">Manage your active business locations.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  className="h-9 rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={selectedId}
+                  onChange={(e) => setSelectedId(e.target.value)}
+                  disabled={!restaurants.length}
+                >
+                  {restaurants.map((res) => (
+                    <option key={res.id} value={res.id}>
+                      {res.name}
+                    </option>
+                  ))}
+                </select>
+                {selected?.slug && (
+                  <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
+                    <Link href={`/menu/${selected.slug}`} target="_blank">
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </div>
 
-              <TabsContent value="overview" className="mt-6 space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="h-4 w-4" /> Location info
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-1">
-                      <p className="font-semibold text-lg">{selected?.address || "No address set"}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {selected?.city && selected?.country ? `${selected.city}, ${selected.country}` : "City/Country not specified"}
-                      </p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                        <Phone className="h-4 w-4" /> Contact
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-1">
-                      <p className="font-semibold text-lg">{selected?.phone || "No phone set"}</p>
-                      <p className="text-sm text-muted-foreground">Support & Inquiries</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                       <Clock className="h-5 w-5 text-primary" />
-                       Status & Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-6 sm:grid-cols-3">
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Web Address</p>
-                      <p className="font-medium">/menu/{selected?.slug || "pending"}</p>
+            {!restaurants.length ? (
+              <div className="rounded-3xl border border-dashed p-12 text-center bg-muted/20">
+                <Building2 className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-20" />
+                <h4 className="font-bold">No restaurants found</h4>
+                <p className="text-sm text-muted-foreground mb-6">Start by creating your first restaurant profile.</p>
+                <Button className="rounded-xl" asChild>
+                  <Link href="/dashboard">Create Restaurant</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="p-6 rounded-3xl bg-secondary/30 border border-secondary transition-all hover:bg-secondary/50">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Location</p>
+                    <p className="text-sm font-bold truncate">{selected?.address || "Address not provided"}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {selected?.city && selected?.country ? `${selected.city}, ${selected.country}` : "Global"}
+                    </p>
+                  </div>
+                  <div className="p-6 rounded-3xl bg-secondary/30 border border-secondary transition-all hover:bg-secondary/50 group relative">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Status</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2 w-2 rounded-full ${selected?.is_published ? 'bg-green-500' : 'bg-yellow-500'}`} />
+                        <p className="text-sm font-bold uppercase tracking-tight">
+                          {selected?.is_published ? "Live & Public" : "Draft Mode"}
+                        </p>
+                      </div>
+                      {selected && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={publishing === selected.id}
+                          onClick={() => togglePublish(selected)}
+                          className={cn(
+                            "h-8 w-8 rounded-xl transition-all",
+                            selected.is_published 
+                              ? "text-green-600 hover:text-green-700 hover:bg-green-50" 
+                              : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          )}
+                        >
+                          {publishing === selected.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          ) : selected.is_published ? (
+                            <Eye className="h-4 w-4" />
+                          ) : (
+                            <EyeOff className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Joined At</p>
-                      <p className="font-medium">
-                        {selected?.created_at ? new Date(selected.created_at).toLocaleDateString() : "Unknown"}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">Visibility</p>
-                      <div className="flex items-center gap-2 pt-1">
-                        {selected?.is_published ? (
-                          <>
-                            <div className="h-2 w-2 rounded-full bg-green-500" />
-                            <span className="text-sm font-medium">Published</span>
-                          </>
-                        ) : (
-                          <>
-                            <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
-                            <span className="text-sm font-medium">Under Review</span>
-                          </>
-                        )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {selected?.is_published ? "Visible to customers" : "Visible only to you"}
+                    </p>
+                  </div>
+                  
+                  {/* Quick Access Actions Directly in Grid */}
+                  <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-3">Tools</p>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" className="rounded-xl h-10 w-10 p-0" asChild>
+                           <Link href="/dashboard/menu"><UtensilsCrossed className="h-4 w-4" /></Link>
+                        </Button>
+                        <Button variant="ghost" size="sm" className="rounded-xl h-10 w-10 p-0" asChild>
+                           <Link href="/dashboard/qr"><CheckCircle2 className="h-4 w-4" /></Link>
+                        </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                    <Link href={`/dashboard/menu?restaurantId=${selectedId}`} className="text-[10px] font-bold uppercase text-primary hover:underline">
+                      Go to Menu Studio →
+                    </Link>
+                  </div>
+                </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Description</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground italic leading-relaxed">
-                      "{selected?.description || "You haven't provided a description for this restaurant yet. A good description helps customers know what to expect."}"
-                    </p>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="categories" className="mt-6">
                 <div className="space-y-4">
+                  <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60 px-1">Menu Categories</h4>
                   {dataLoading ? (
-                    <div className="py-12 text-center text-muted-foreground animate-pulse">
-                      Loading data...
-                    </div>
+                    <div className="h-20 rounded-3xl bg-muted/50 animate-pulse" />
                   ) : categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <Card key={cat.id} className="overflow-hidden hover:border-primary/50 transition-colors">
-                        <div className="flex items-center justify-between p-4 bg-muted/20">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                              <LayoutGrid className="h-5 w-5 text-primary" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {categories.map((cat) => (
+                        <div key={cat.id} className="group flex items-center justify-between p-4 rounded-2xl border bg-card hover:bg-muted/30 transition-all">
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                              <LayoutGrid className="h-5 w-5 text-orange-600" />
                             </div>
                             <div>
-                              <h3 className="font-bold">{cat.name}</h3>
-                              <p className="text-xs text-muted-foreground">{cat.description || "No description"}</p>
+                              <p className="text-sm font-bold">{cat.name}</p>
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">Category</p>
                             </div>
                           </div>
-                          <Link
-                            href={`/dashboard/menu?restaurantId=${selectedId}&category=${cat.id}`}
-                            className="text-xs flex items-center gap-1 text-primary font-semibold hover:underline"
-                          >
-                            Manage Items <ChevronRight className="h-3 w-3" />
-                          </Link>
                         </div>
-                      </Card>
-                    ))
+                      ))}
+                    </div>
                   ) : (
-                    <div className="text-center py-12 border-2 border-dashed rounded-xl">
-                      <UtensilsCrossed className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-muted-foreground text-sm">No categories found for this restaurant.</p>
-                      <Button variant="link" asChild>
-                        <Link href="/dashboard/menu">Create your first category</Link>
-                      </Button>
+                    <div className="p-8 text-center rounded-3xl border border-dashed">
+                      <UtensilsCrossed className="h-6 w-6 text-muted-foreground mx-auto mb-2 opacity-30" />
+                      <p className="text-xs text-muted-foreground">No menu categories yet.</p>
                     </div>
                   )}
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Right Sidebar: Usage Statistics */}
+        <div className="space-y-6">
+          <div className="p-6 rounded-[2rem] border bg-background space-y-6 shadow-sm">
+            <div className="space-y-1">
+              <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground/60 px-1">Resource Usage</h4>
+              <p className="text-[10px] text-muted-foreground px-1 font-medium italic">Based on your {subscription?.plan_name || 'Current'} Plan</p>
+            </div>
+
+            <div className="space-y-6">
+              {/* Restaurants Usage */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold">
+                  <span>Restaurants</span>
+                  <span>
+                    {restaurants.length} / {subscription?.features?.max_restaurants === -1 ? '∞' : (subscription?.features?.max_restaurants || '—')}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-1000" 
+                    style={{ 
+                      width: `${subscription?.features?.max_restaurants === -1 ? 0 : 
+                        Math.min(100, (restaurants.length / (subscription?.features?.max_restaurants || 1)) * 100)}%` 
+                    }} 
+                  />
+                </div>
+              </div>
+
+              {/* Categories Usage */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold">
+                  <span>Categories</span>
+                  <span>
+                    {categories.length} / {subscription?.features?.max_categories === -1 ? '∞' : (subscription?.features?.max_categories || '—')}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-orange-500 transition-all duration-1000" 
+                    style={{ 
+                      width: `${subscription?.features?.max_categories === -1 ? 0 : 
+                        Math.min(100, (categories.length / (subscription?.features?.max_categories || 1)) * 100)}%` 
+                    }} 
+                  />
+                </div>
+              </div>
+
+              {/* Workers/Staff */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-bold">
+                  <span>Staff / Workers</span>
+                  <span>
+                    Limit: {subscription?.features?.max_staff_accounts === -1 ? '∞' : (subscription?.features?.max_staff_accounts || '—')}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500 transition-all duration-1000" 
+                    style={{ 
+                      width: `${subscription?.features?.max_staff_accounts === -1 ? 0 : '10%' /* Decorative mock if unknown */}` 
+                    }} 
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Button variant="outline" className="w-full rounded-2xl h-11 text-xs font-bold border-primary/20 text-primary hover:bg-primary/5 shadow-inner" asChild>
+              <Link href="/packages">Upgrade Capacity</Link>
+            </Button>
           </div>
 
-          {/* Right Column: Mini Dashboard */}
-          <div className="space-y-6">
-            <Card className="bg-primary text-primary-foreground">
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-                <CardDescription className="text-primary-foreground/70">
-                  Direct links to frequent management tasks.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3">
-                <Button variant="secondary" className="w-full justify-start gap-2" asChild>
-                  <Link href="/dashboard/menu">
-                    <UtensilsCrossed className="h-4 w-4" /> Manage Menu Studio
-                  </Link>
-                </Button>
-                <Button variant="secondary" className="w-full justify-start gap-2" asChild>
-                  <Link href="/dashboard/qr">
-                    <CheckCircle2 className="h-4 w-4" /> QR Management
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Health Check</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Restaurant Info</span>
-                  <Badge variant="outline" className="text-green-500 border-green-200">Complete</Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Categories</span>
-                  <Badge variant="outline" className={categories.length > 0 ? "text-green-500 border-green-200" : "text-yellow-500 border-yellow-200"}>
-                    {categories.length > 0 ? "Setup" : "Missing"}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Public Page</span>
-                  <Badge variant="outline" className={selected?.is_published ? "text-green-500 border-green-200" : "text-yellow-500 border-yellow-200"}>
-                    {selected?.is_published ? "Visible" : "Draft"}
-                  </Badge>
-                </div>
-              </CardContent>
-              <CardFooter className="pt-0">
-                 <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary transition-all duration-1000" 
-                      style={{ width: `${(selected?.is_published ? 33 : 0) + (categories.length > 0 ? 33 : 0) + 34}%` }} 
-                    />
-                 </div>
-              </CardFooter>
-            </Card>
+          <div className="p-6 rounded-[2rem] bg-orange-500/5 border border-orange-200/50 space-y-3">
+             <div className="flex items-center gap-2 text-orange-700">
+                <Sparkles className="h-4 w-4" />
+                <p className="text-xs font-black uppercase tracking-tight">Pro Tip</p>
+             </div>
+             <p className="text-[11px] text-orange-800/70 font-medium leading-relaxed">
+                Unlimited categories are available in the <span className="font-bold">Gold Tier</span>. Manage multiple branches from a single dashboard.
+             </p>
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

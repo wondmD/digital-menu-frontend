@@ -25,7 +25,9 @@ import {
   Flame,
   Leaf,
   Camera,
-  UploadCloud
+  UploadCloud,
+  Eye,
+  EyeOff
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -55,9 +57,11 @@ import {
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { apiFetch } from "@/lib/api-client"
-import { cn } from "@/lib/utils"
+import { cn, getImageUrl, getImageUrls } from "@/lib/utils"
+import Link from "next/link"
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 
-type Restaurant = { id: string; name: string; slug?: string; status?: string }
+type Restaurant = { id: string; name: string; slug?: string; status?: string; is_published?: boolean }
 type Category = { id: string; name: string; description?: string }
 type MenuItem = {
   id: string
@@ -65,8 +69,10 @@ type MenuItem = {
   description?: string
   price: number
   currency?: string
-  image?: string
+  image?: any
+  images?: any[]
   image_url?: string
+  image_urls?: string[]
   is_available: boolean
   available?: boolean
   category_id: string
@@ -93,9 +99,40 @@ function MenuManagementContent() {
   
   const [loading, setLoading] = useState(true)
   const [itemsLoading, setItemsLoading] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   
   const [searchQuery, setSearchQuery] = useState("")
   const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unavailable">("all")
+
+  const selectedRestaurant = useMemo(() => 
+    restaurants.find(r => r.id === restaurantId), 
+    [restaurants, restaurantId]
+  )
+
+  const togglePublish = async () => {
+    if (!token || !selectedRestaurant) return
+    try {
+      setPublishing(true)
+      const newStatus = !selectedRestaurant.is_published
+      
+      // Use JSON for simple status updates as per Postman docs
+      await apiFetch(`/my-restaurants/${selectedRestaurant.id}`, {
+        method: "PATCH",
+        token,
+        body: { is_published: newStatus },
+      })
+      
+      setRestaurants(prev => prev.map(r => r.id === selectedRestaurant.id ? { ...r, is_published: newStatus } : r))
+      toast({
+        title: newStatus ? "Menu Published" : "Menu Unpublished",
+        description: `${selectedRestaurant.name} is now ${newStatus ? 'live' : 'in draft'}.`,
+      })
+    } catch (err: any) {
+      toast({ title: "Failed to update status", description: err.message, variant: "destructive" })
+    } finally {
+      setPublishing(false)
+    }
+  }
   
   // Dialog States
   const [addCatOpen, setAddCatOpen] = useState(false)
@@ -114,13 +151,14 @@ function MenuManagementContent() {
   const [catDraft, setCatDraft] = useState({ name: "", description: "" })
   
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null)
+  const [subscription, setSubscription] = useState<any>(null)
   const [itemDraft, setItemDraft] = useState({
     name: "",
     description: "",
     price: "",
     currency: "USD",
     is_available: true,
-    image: null as File | string | null
+    images: [] as (File | string)[]
   })
 
   // Computed Stats
@@ -163,6 +201,12 @@ function MenuManagementContent() {
           } else if (!restaurantId) {
             setRestaurantId(list[0].id)
           }
+
+          // Subscription check
+          try {
+            const subRes = await apiFetch<any>("/subscription/me", { token })
+            setSubscription(subRes?.data || subRes)
+          } catch {}
         }
       } catch (err: any) {
         toast({ title: "Failed to load restaurants", description: err?.message, variant: "destructive" })
@@ -281,11 +325,16 @@ function MenuManagementContent() {
       formData.append("description", itemDraft.description.trim())
       formData.append("price", itemDraft.price.toString())
       formData.append("currency", itemDraft.currency)
-      formData.append("is_available", String(itemDraft.is_available))
       
-      if (itemDraft.image instanceof File) {
-        formData.append("image", itemDraft.image)
-      }
+      // Items are live by default as per user request
+      formData.append("is_available", "true")
+      formData.append("is_published", "true")
+      
+      itemDraft.images.forEach((img) => {
+        if (img instanceof File) {
+          formData.append("image", img)
+        }
+      })
 
       await apiFetch(url, { method, token, body: formData })
       toast({ title: activeItem ? "Item updated" : "Item created" })
@@ -331,6 +380,45 @@ function MenuManagementContent() {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Plan Usage Banner */}
+      {subscription && (
+        <div className="bg-primary/5 border border-primary/20 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 mb-2">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white">
+              <Utensils className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-primary/60">Dishes Usage</p>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm">
+                  {stats.total} / {subscription.features?.max_menu_items === -1 ? '∞' : subscription.features?.max_menu_items} Items
+                </span>
+                <Badge variant="outline" className="text-[10px] uppercase border-primary/20 text-primary">
+                  {subscription.plan_name}
+                </Badge>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex-1 max-w-xs w-full flex flex-col gap-1.5">
+             <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
+                <span>Menu Capacity</span>
+                <span>{subscription.features?.max_menu_items === -1 ? '100' : Math.round((stats.total / subscription.features?.max_menu_items) * 100)}%</span>
+             </div>
+             <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-1000" 
+                  style={{ width: `${subscription.features?.max_menu_items === -1 ? 0 : Math.min(100, (stats.total / subscription.features?.max_menu_items) * 100)}%` }}
+                />
+             </div>
+          </div>
+
+          <Button variant="ghost" size="sm" className="rounded-xl text-primary font-bold hover:bg-primary/10" asChild>
+            <Link href="/dashboard/settings">Upgrade Plan</Link>
+          </Button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
@@ -338,30 +426,69 @@ function MenuManagementContent() {
           <p className="text-muted-foreground">Manage your categories and dishes in one place.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex flex-col gap-1">
-            <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Current Restaurant</Label>
-            <select
-              className="h-11 rounded-xl border-2 border-primary/10 bg-background px-4 text-sm font-semibold shadow-sm focus:border-primary/30 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all"
-              value={restaurantId}
-              onChange={(e) => {
-                setRestaurantId(e.target.value)
-                setCategoryId("")
+          {restaurants.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-1">
+                <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Current Restaurant</Label>
+                <select
+                  className="h-11 rounded-xl border-2 border-primary/10 bg-background px-4 text-sm font-semibold shadow-sm focus:border-primary/30 focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all"
+                  value={restaurantId}
+                  onChange={(e) => {
+                    setRestaurantId(e.target.value)
+                    setCategoryId("")
+                  }}
+                >
+                  {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
+
+              {selectedRestaurant && (
+                <div className="flex flex-col gap-1">
+                  <Label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Visibility</Label>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={publishing}
+                    onClick={togglePublish}
+                    className={cn(
+                      "h-11 w-11 rounded-xl border-2 transition-all",
+                      selectedRestaurant.is_published 
+                        ? "border-green-500/20 bg-green-50 text-green-600 hover:bg-green-100" 
+                        : "border-primary/10 bg-muted/30 text-muted-foreground hover:bg-primary/5 hover:text-primary"
+                    )}
+                  >
+                    {publishing ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : selectedRestaurant.is_published ? (
+                      <Eye className="h-5 w-5" />
+                    ) : (
+                      <EyeOff className="h-5 w-5" />
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Button asChild variant="outline" className="h-11 rounded-xl border-dashed border-2">
+              <Link href="/dashboard">
+                <Plus className="h-4 w-4 mr-2" /> Create Restaurant
+              </Link>
+            </Button>
+          )}
+
+          {restaurants.length > 0 && (
+            <Button 
+              className="h-11 rounded-xl px-6 gap-2 shadow-lg shadow-primary/20"
+              disabled={!categoryId}
+              onClick={() => {
+                setActiveItem(null)
+                setItemDraft({ name: "", description: "", price: "", currency: "USD", is_available: true, images: [] })
+                setAddItemOpen(true)
               }}
             >
-              {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
-          </div>
-          <Button 
-            className="h-11 rounded-xl px-6 gap-2 shadow-lg shadow-primary/20"
-            disabled={!categoryId}
-            onClick={() => {
-              setActiveItem(null)
-              setItemDraft({ name: "", description: "", price: "", currency: "USD", is_available: true, image: null })
-              setAddItemOpen(true)
-            }}
-          >
-            <Plus className="h-5 w-5" /> Add Dish
-          </Button>
+              <Plus className="h-5 w-5" /> Add Dish
+            </Button>
+          )}
         </div>
       </div>
 
@@ -449,9 +576,20 @@ function MenuManagementContent() {
                 </div>
               </div>
             )) : (
-              <div className="py-8 text-center border-2 border-dashed rounded-xl bg-muted/20">
-                <p className="text-xs text-muted-foreground font-medium">No categories found.</p>
-              </div>
+              <Button 
+                variant="outline" 
+                className="w-full h-32 rounded-3xl border-dashed border-2 flex flex-col gap-2 bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 transition-all shadow-inner"
+                onClick={() => {
+                  setActiveCategory(null)
+                  setCatDraft({ name: "", description: "" })
+                  setAddCatOpen(true)
+                }}
+              >
+                <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <span className="font-bold text-[10px] uppercase tracking-[0.2em]">Add Category</span>
+              </Button>
             )}
           </div>
         </aside>
@@ -493,10 +631,32 @@ function MenuManagementContent() {
             ) : filteredItems.length > 0 ? filteredItems.map((item) => {
               const available = item.available ?? item.is_available ?? true
               const categoryName = categories.find((c) => c.id === item.category_id)?.name
+              const images = getImageUrls(item.image_urls || item.images || item.image || item.image_url)
+              if (images.length === 0) images.push("/placeholder.svg")
+              
               return (
                 <Card key={item.id} className="group overflow-hidden bg-card border shadow-sm hover:shadow-xl hover:border-primary/50 transition-all duration-300 rounded-3xl">
                   <div className="relative aspect-[16/10]">
-                    <Image src={item.image_url || "/placeholder.svg"} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    {images.length > 1 ? (
+                      <Carousel className="h-full w-full group/carousel">
+                        <CarouselContent className="h-full -ml-0">
+                          {images.map((url, idx) => (
+                            <CarouselItem key={idx} className="h-full pl-0">
+                              <div className="relative h-full w-full">
+                                <Image src={url} alt={`${item.name} ${idx + 1}`} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                              </div>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+                          {images.map((_, idx) => (
+                            <div key={idx} className="h-1.5 w-1.5 rounded-full bg-white/70 shadow-sm" />
+                          ))}
+                        </div>
+                      </Carousel>
+                    ) : (
+                      <Image src={images[0]} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                    )}
                     <div className="absolute right-3 top-3">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -519,7 +679,7 @@ function MenuManagementContent() {
                                 price: item.price?.toString() || "",
                                 currency: item.currency || "USD",
                                 is_available: item.available ?? item.is_available ?? true,
-                                image: item.image || item.image_url || null
+                                images: getImageUrls(item.image_urls || item.images || item.image || item.image_url)
                               })
                               setEditItemOpen(true)
                             }}
@@ -571,10 +731,6 @@ function MenuManagementContent() {
                            <Clock className="h-4 w-4" />
                            <span className="text-xs font-bold">15m</span>
                          </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">{available ? "Live" : "Hidden"}</span>
-                        <Switch checked={available} className="data-[state=checked]:bg-green-500" disabled />
                       </div>
                     </div>
                   </CardContent>
@@ -675,39 +831,61 @@ function MenuManagementContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-8 border-y my-6">
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Dish Image</Label>
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Dish Images</Label>
                 <div 
-                   className="relative group aspect-video rounded-3xl border-4 border-dashed border-muted/50 bg-muted/20 overflow-hidden hover:border-primary/30 transition-all cursor-pointer"
-                   onClick={() => document.getElementById("item-image")?.click()}
+                   className="relative group min-h-[120px] rounded-3xl border-4 border-dashed border-muted/50 bg-muted/20 p-2 hover:border-primary/30 transition-all cursor-pointer"
+                   onClick={() => document.getElementById("item-images")?.click()}
                 >
-                  {itemDraft.image ? (
-                    <>
-                      <Image 
-                        src={itemDraft.image instanceof File ? URL.createObjectURL(itemDraft.image) : itemDraft.image} 
-                        alt="Preview" 
-                        fill 
-                        className="object-cover" 
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Camera className="h-8 w-8 text-white" />
+                  {itemDraft.images.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {itemDraft.images.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group/img">
+                          <Image 
+                            src={img instanceof File ? URL.createObjectURL(img) : img} 
+                            alt="Preview" 
+                            fill 
+                            className="object-cover" 
+                          />
+                          <button 
+                            className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setItemDraft(p => ({
+                                ...p,
+                                images: p.images.filter((_, i) => i !== idx)
+                              }));
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="aspect-square rounded-xl border-2 border-dashed border-muted flex items-center justify-center">
+                        <Plus className="h-4 w-4 text-muted-foreground" />
                       </div>
-                    </>
+                    </div>
                   ) : (
-                    <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                      <div className="h-12 w-12 rounded-2xl bg-background shadow-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <UploadCloud className="h-6 w-6 text-primary" />
+                    <div className="h-24 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                      <div className="h-10 w-10 rounded-xl bg-background shadow-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <UploadCloud className="h-5 w-5 text-primary" />
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest">Select Visual</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-center px-4">Upload Multiple Images</span>
                     </div>
                   )}
                   <input 
-                    id="item-image" 
+                    id="item-images" 
                     type="file" 
                     className="hidden" 
                     accept="image/*" 
+                    multiple
                     onChange={e => {
-                      const file = e.target.files?.[0]
-                      if (file) setItemDraft(p => ({ ...p, image: file }))
+                      const files = Array.from(e.target.files || [])
+                      if (files.length > 0) {
+                        setItemDraft(p => ({ 
+                          ...p, 
+                          images: [...p.images, ...files] 
+                        }))
+                      }
                     }}
                   />
                 </div>
@@ -779,18 +957,6 @@ function MenuManagementContent() {
                     </div>
                  </div>
               </div>
-
-               <div className="flex items-center justify-between bg-primary/5 p-4 rounded-2xl border-2 border-primary/10">
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-black">Active Status</p>
-                    <p className="text-[10px] text-muted-foreground font-bold">Visible on public menu</p>
-                  </div>
-                  <Switch 
-                    checked={itemDraft.is_available} 
-                    onCheckedChange={v => setItemDraft(p => ({ ...p, is_available: v }))} 
-                    className="data-[state=checked]:bg-primary"
-                  />
-               </div>
             </div>
           </div>
           <DialogFooter className="flex flex-row gap-4">

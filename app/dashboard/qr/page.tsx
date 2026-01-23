@@ -46,7 +46,8 @@ export default function QRPage() {
   )
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
-  const menuUrl = selected?.slug ? `${origin}/menu/${selected.slug}` : ""
+  // Updated to use the numeric/UUID ID as the primary identifier, pointing directly to the menu list
+  const menuUrl = selected?.id ? `${origin}/menu/${selected.id}/list` : ""
 
   const handleCopy = async () => {
     if (!menuUrl) return
@@ -125,7 +126,7 @@ export default function QRPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3">
-                  <span className="flex-1 truncate text-sm font-mono">{menuUrl || "No slug set"}</span>
+                  <span className="flex-1 truncate text-sm font-mono">{menuUrl || "No ID set"}</span>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -136,8 +137,8 @@ export default function QRPage() {
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-                <Button variant="link" className="h-auto p-0 text-primary" asChild disabled={!selected?.slug}>
-                  <Link href={selected?.slug ? `/menu/${selected.slug}` : "#"} target="_blank" className="flex items-center gap-2">
+                <Button variant="link" className="h-auto p-0 text-primary" asChild disabled={!selected?.id}>
+                  <Link href={selected?.id ? `/menu/${selected.id}/list` : "#"} target="_blank" className="flex items-center gap-2">
                     <ExternalLink className="h-4 w-4" /> Open live menu
                   </Link>
                 </Button>

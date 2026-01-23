@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { QrCode, Utensils, ListTree, Eye, TrendingUp, MapPin, Plus, ArrowUpRight, Loader2, Pencil, Trash } from "lucide-react"
+import { QrCode, Utensils, ListTree, Eye, EyeOff, TrendingUp, MapPin, Plus, ArrowUpRight, Loader2, Pencil, Trash } from "lucide-react"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import {
   AlertDialog,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/components/ui/use-toast"
 import { apiFetch } from "@/lib/api-client"
 import Link from "next/link"
@@ -55,6 +56,7 @@ export default function DashboardPage() {
     email: "",
     address: "",
     cuisine_type: "",
+    is_published: false,
   })
   const [creating, setCreating] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -62,6 +64,7 @@ export default function DashboardPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [activeId, setActiveId] = useState<string>("")
+  const [subscription, setSubscription] = useState<any>(null)
 
   const slugify = (value: string) =>
     value
@@ -85,6 +88,12 @@ export default function DashboardPage() {
         const list: Restaurant[] = Array.isArray(res) ? res : (res?.data ?? [])
         setRestaurants(list)
         if (list.length && !selectedId) setSelectedId(list[0].id)
+        
+        // Subscription check
+        try {
+          const subRes = await apiFetch<any>("/subscription/me", { token })
+          setSubscription(subRes?.data || subRes)
+        } catch {}
       } catch (err: any) {
         toast({
           title: "Could not load restaurants",
@@ -176,21 +185,11 @@ export default function DashboardPage() {
     if (draft.email) formData.append("email", draft.email.trim())
     if (draft.address) formData.append("address", draft.address.trim())
     if (draft.cuisine_type) formData.append("cuisine_type", draft.cuisine_type.trim())
+    formData.append("is_published", draft.is_published ? "true" : "false")
 
     try {
       setCreating(true)
       
-      const formData = new FormData()
-      formData.append("name", draft.name.trim())
-      formData.append("slug", slug)
-      formData.append("description", draft.description.trim())
-      formData.append("city", draft.city.trim())
-      formData.append("country", draft.country.trim())
-      formData.append("phone", draft.phone.trim())
-      formData.append("email", draft.email.trim())
-      formData.append("address", draft.address.trim())
-      formData.append("cuisine_type", draft.cuisine_type.trim())
-
       const res = await apiFetch<any>("/my-restaurants", {
         method: "POST",
         token,
@@ -201,7 +200,7 @@ export default function DashboardPage() {
         setRestaurants((prev) => [...prev, created])
         setSelectedId(created.id)
       }
-      setDraft({ name: "", slug: "", description: "", city: "", country: "", phone: "", email: "", address: "", cuisine_type: "" })
+      setDraft({ name: "", slug: "", description: "", city: "", country: "", phone: "", email: "", address: "", cuisine_type: "", is_published: false })
       setAddOpen(false)
       toast({ title: "Restaurant created", description: `${created?.name ?? ""} is ready to configure.` })
     } catch (err: any) {
@@ -223,6 +222,7 @@ export default function DashboardPage() {
       email: restaurant.email || "",
       address: restaurant.address || "",
       cuisine_type: restaurant.cuisine_type || "",
+      is_published: !!restaurant.is_published,
     })
     setEditOpen(true)
   }
@@ -235,22 +235,24 @@ export default function DashboardPage() {
     if (!activeId || !draft.name.trim()) return
     try {
       setCreating(true)
+      const formData = new FormData()
+      formData.append("name", draft.name.trim())
+      formData.append("slug", slugify(draft.slug || draft.name))
+      formData.append("description", draft.description.trim())
+      formData.append("city", draft.city.trim())
+      formData.append("country", draft.country.trim())
+      formData.append("phone", draft.phone.trim())
+      formData.append("email", draft.email.trim())
+      formData.append("address", draft.address.trim())
+      formData.append("cuisine_type", draft.cuisine_type.trim())
+      formData.append("is_published", draft.is_published ? "true" : "false")
+
       const res = await apiFetch<{ data: Restaurant }>(`/my-restaurants/${activeId}`, {
         method: "PATCH",
         token,
-        body: {
-          name: draft.name.trim(),
-          slug: slugify(draft.slug || draft.name),
-          description: draft.description.trim(),
-          city: draft.city.trim(),
-          country: draft.country.trim(),
-          phone: draft.phone.trim(),
-          email: draft.email.trim(),
-          address: draft.address.trim(),
-          cuisine_type: draft.cuisine_type.trim(),
-        },
+        body: formData,
       })
-      const updated = res?.data
+      const updated = res?.data || (res as any)
       if (updated) {
         setRestaurants((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)))
       }
@@ -291,6 +293,64 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Plan Usage Banner */}
+      {subscription && (
+        <div className="bg-primary/5 border border-primary/20 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white">
+                <Plus className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-primary/60">Restaurants</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm">
+                    {restaurants.length} / {subscription.features?.max_restaurants === -1 ? '∞' : subscription.features?.max_restaurants}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden sm:block h-8 w-px bg-primary/10" />
+
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary">
+                <Utensils className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-primary/60">Staff Slots</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm">
+                    Limit: {subscription.features?.max_staff_accounts === -1 ? '∞' : subscription.features?.max_staff_accounts}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <Badge variant="outline" className="text-[10px] uppercase border-primary/20 text-primary self-center">
+              {subscription.plan_name} Plan
+            </Badge>
+          </div>
+          
+          <div className="flex-1 max-w-xs w-full flex flex-col gap-1.5">
+             <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
+                <span>Network Capacity</span>
+                <span>{subscription.features?.max_restaurants === -1 ? '100' : Math.round((restaurants.length / subscription.features?.max_restaurants) * 100)}%</span>
+             </div>
+             <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-1000" 
+                  style={{ width: `${subscription.features?.max_restaurants === -1 ? 0 : Math.min(100, (restaurants.length / subscription.features?.max_restaurants) * 100)}%` }}
+                />
+             </div>
+          </div>
+
+          <Button variant="ghost" className="rounded-xl text-primary font-bold hover:bg-primary/10" asChild>
+            <Link href="/dashboard/settings">Manage Plan</Link>
+          </Button>
+        </div>
+      )}
+
       {loading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading your dashboard...
@@ -405,6 +465,16 @@ export default function DashboardPage() {
                       />
                     </div>
                   </div>
+                  <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/10 transition-all">
+                    <div className="space-y-0.5">
+                      <Label className="text-sm font-bold">Public Menu</Label>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Make this restaurant visible to customers</p>
+                    </div>
+                    <Switch
+                      checked={draft.is_published}
+                      onCheckedChange={(checked) => setDraft((d) => ({ ...d, is_published: checked }))}
+                    />
+                  </div>
                 </div>
                 <DialogFooter className="mt-4">
                   <Button variant="outline" onClick={() => setAddOpen(false)}>
@@ -496,74 +566,115 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground">Manage venues under your account.</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {restaurants.map((restaurant) => (
-            <Card key={restaurant.id} className="border-primary/5 shadow-sm hover:shadow-md transition-all">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                <div>
-                  <CardTitle className="text-lg font-semibold">{restaurant.name}</CardTitle>
-                  <CardDescription className="flex items-center gap-1 text-xs">
-                    <MapPin className="h-3.5 w-3.5 text-primary" />
-                    {restaurant.city || "City"}, {restaurant.country || "Country"}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={restaurant.is_published ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
-                    {restaurant.is_published ? "Live" : "Draft"}
-                  </Badge>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Edit restaurant"
-                    onClick={() => openEdit(restaurant)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Delete restaurant"
-                    onClick={() => {
-                      setActiveId(restaurant.id)
-                      setDeleteOpen(true)
-                    }}
-                  >
-                    <Trash className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Slug</span>
-                  <span className="font-semibold text-foreground">{restaurant.slug || "—"}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Categories</span>
-                  <span className="font-semibold text-foreground">{categoryCounts[restaurant.id] ?? "—"}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Status</span>
-                  <span className="font-semibold text-foreground">{restaurant.is_published ? "Published" : "Unpublished"}</span>
-                </div>
-                <div className="flex gap-2 pt-1">
-                  <Button asChild size="sm" variant="outline" className="gap-1">
-                    <Link href="/dashboard/categories">
-                      <ListTree className="h-4 w-4" /> Categories
-                    </Link>
-                  </Button>
-                  <Button asChild size="sm" className="gap-1">
-                    <Link href="/dashboard/menu">
-                      <Utensils className="h-4 w-4" /> Items
-                    </Link>
-                  </Button>
-                  <Button asChild size="sm" variant="ghost" className="gap-1">
-                    <Link href="/dashboard/qr">
-                      <QrCode className="h-4 w-4" /> QR
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {restaurants.length > 0 ? (
+            restaurants.map((restaurant) => (
+              <Card key={restaurant.id} className="border-primary/5 shadow-sm hover:shadow-md transition-all">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">{restaurant.name}</CardTitle>
+                    <CardDescription className="flex items-center gap-1 text-xs">
+                      <MapPin className="h-3.5 w-3.5 text-primary" />
+                      {restaurant.city || "City"}, {restaurant.country || "Country"}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge className={restaurant.is_published ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
+                      {restaurant.is_published ? "Live" : "Draft"}
+                    </Badge>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Toggle visibility"
+                      className={restaurant.is_published ? "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" : "text-amber-600 hover:text-amber-700 hover:bg-amber-50"}
+                      onClick={async () => {
+                        try {
+                          const nextStatus = !restaurant.is_published;
+                          const formData = new FormData()
+                          formData.append("is_published", nextStatus ? "true" : "false")
+                          
+                          await apiFetch(`/my-restaurants/${restaurant.id}`, {
+                            method: "PATCH",
+                            token,
+                            body: formData,
+                          });
+                          setRestaurants(prev => prev.map(r => r.id === restaurant.id ? { ...r, is_published: nextStatus } : r));
+                          toast({ title: nextStatus ? "Menu Published" : "Menu set to Draft", description: `${restaurant.name} is now ${nextStatus ? 'visible' : 'hidden'} to the public.` });
+                        } catch (err: any) {
+                          toast({ title: "Failed to update status", description: err.message, variant: "destructive" });
+                        }
+                      }}
+                    >
+                      {restaurant.is_published ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Edit restaurant"
+                      onClick={() => openEdit(restaurant)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Delete restaurant"
+                      onClick={() => {
+                        setActiveId(restaurant.id)
+                        setDeleteOpen(true)
+                      }}
+                    >
+                      <Trash className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Slug</span>
+                    <span className="font-semibold text-foreground">{restaurant.slug || "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Categories</span>
+                    <span className="font-semibold text-foreground">{categoryCounts[restaurant.id] ?? "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Status</span>
+                    <span className="font-semibold text-foreground">{restaurant.is_published ? "Published" : "Unpublished"}</span>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <Button asChild size="sm" variant="outline" className="gap-1">
+                      <Link href="/dashboard/categories">
+                        <ListTree className="h-4 w-4" /> Categories
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" className="gap-1">
+                      <Link href="/dashboard/menu">
+                        <Utensils className="h-4 w-4" /> Items
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm" variant="ghost" className="gap-1">
+                      <Link href="/dashboard/qr">
+                        <QrCode className="h-4 w-4" /> QR
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Button 
+              variant="outline" 
+              className="col-span-full h-40 rounded-[2rem] border-dashed border-2 flex flex-col gap-3 bg-primary/5 hover:bg-primary/10 transition-all border-primary/20"
+              onClick={() => setAddOpen(true)}
+            >
+              <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center">
+                 <Plus className="h-6 w-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-black uppercase tracking-widest text-xs text-primary">No Restaurants Found</p>
+                <p className="text-[10px] text-muted-foreground font-medium">Click here to launch your first digital venue</p>
+              </div>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -651,6 +762,16 @@ export default function DashboardPage() {
                   placeholder="Italian, Ethiopian, ..."
                 />
               </div>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/10 transition-all">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-bold">Public Status</Label>
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Visibility on the public discovery platform</p>
+              </div>
+              <Switch
+                checked={draft.is_published}
+                onCheckedChange={(checked) => setDraft((d) => ({ ...d, is_published: checked }))}
+              />
             </div>
           </div>
           <DialogFooter className="mt-4">

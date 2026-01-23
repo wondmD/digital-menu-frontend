@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 import React from "react"
 import Link from "next/link"
@@ -18,17 +19,17 @@ import {
   ChevronRight,
 } from "lucide-react"
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-  SidebarInset,
+import { 
+  Sidebar, 
+  SidebarContent, 
+  SidebarFooter, 
+  SidebarHeader, 
+  SidebarMenu, 
+  SidebarMenuButton, 
+  SidebarMenuItem, 
+  SidebarProvider, 
+  SidebarTrigger, 
+  SidebarInset 
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -39,6 +40,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { apiFetch } from "@/lib/api-client"
 
 const NAV_ITEMS = [
   {
@@ -47,7 +49,7 @@ const NAV_ITEMS = [
     icon: LayoutDashboard,
   },
   {
-    title: "Hotel Profile",
+    title: "My Restaurants",
     url: "/dashboard/profile",
     icon: Hotel,
   },
@@ -72,8 +74,27 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [mounted, setMounted] = React.useState(false)
+  const [subscription, setSubscription] = React.useState<any>(null)
 
-  React.useEffect(() => setMounted(true), [])
+  React.useEffect(() => {
+    setMounted(true)
+    
+    const token = (session?.user as any)?.accessToken
+    if (token) {
+      apiFetch<any>("/subscription/me", { token })
+        .then((res) => setSubscription(res?.data || res))
+        .catch(() => {})
+    }
+  }, [session])
+
+  const getPlanLabel = () => {
+    if (!subscription) return "Trial"
+    const id = subscription.plan_id || ""
+    if (id.includes("bronze")) return "Bronze"
+    if (id.includes("silver")) return "Silver"
+    if (id.includes("gold")) return "Gold"
+    return subscription.plan?.name || "Active"
+  }
 
   const userName = session?.user?.name || "Account"
   const userEmail = session?.user?.email || "—"
@@ -137,7 +158,12 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                       <AvatarFallback className="rounded-lg">{avatarFallback}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold text-primary-foreground">{userName}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="truncate font-semibold text-foreground">{userName}</span>
+                        <Badge variant="outline" className="h-4 px-1.5 text-[8px] uppercase font-bold text-primary border-primary/20 bg-primary/5">
+                          {getPlanLabel()}
+                        </Badge>
+                      </div>
                       <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
                     </div>
                     <ChevronRight className="ml-auto size-4 text-muted-foreground" />

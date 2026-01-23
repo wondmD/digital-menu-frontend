@@ -58,8 +58,9 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
   const contentType = request.headers.get("content-type") || ""
   
   let body: any = null
-  if (request.method !== "GET" && request.method !== "HEAD" && request.method !== "DELETE") {
-    const isPost = request.method === "POST"
+  const method = request.method.toUpperCase()
+  if (method !== "GET" && method !== "HEAD" && method !== "DELETE") {
+    const isPost = method === "POST"
     const lastSeg = pathSegments[pathSegments.length - 1].toLowerCase()
     const isItemsAction = lastSeg === "items"
     const isCategoriesAction = lastSeg === "categories"
@@ -72,7 +73,13 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
       for (const [key, value] of formData.entries()) {
         const k = key.toLowerCase().replace(/[^a-z0-9]/g, "")
         if (k === "restaurantid" || k === "categoryid") continue
-        newFormData.append(key, value)
+        
+        // Preserve filenames for File objects as Go backends require them in the multipart header
+        if (value instanceof File) {
+          newFormData.append(key, value, value.name)
+        } else {
+          newFormData.append(key, value)
+        }
       }
 
       // Inject snake_case IDs ONLY for creation endpoints, matching the Postman document
@@ -80,12 +87,9 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
       if (isPost) {
         if (rId && (isItemsAction || isCategoriesAction)) {
           newFormData.append("restaurant_id", rId)
-          // Also append PascalCase as a fallback for strict validators
-          newFormData.append("RestaurantID", rId)
         }
         if (cId && isItemsAction) {
           newFormData.append("category_id", cId)
-          newFormData.append("CategoryID", cId)
         }
       }
 
@@ -105,11 +109,9 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
       if (isPost) {
         if (rId && (isItemsAction || isCategoriesAction)) {
           rawBody.restaurant_id = rId
-          rawBody.RestaurantID = rId
         }
         if (cId && isItemsAction) {
           rawBody.category_id = cId
-          rawBody.CategoryID = cId
         }
       }
 
@@ -118,30 +120,53 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
   }
 
   try {
+    const upstreamHeaders: Record<string, string> = {}
+    
+    // Only send Authorization if it's a private endpoint or if the client explicitly sent it
+    const clientAuth = request.headers.get("Authorization")
+    if (clientAuth) {
+      upstreamHeaders["Authorization"] = clientAuth
+    } else if (isPrivate && token) {
+      upstreamHeaders["Authorization"] = `Bearer ${token}`
+    }
+
+    // Only send Content-Type if we have a body and it's not multipart
+    if (body && !contentType.includes("multipart/form-data")) {
+      upstreamHeaders["Content-Type"] = contentType || "application/json"
+    }
+
     const upstream = await fetch(targetUrl, {
-      method: request.method,
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(contentType && !contentType.includes("multipart/form-data") ? { "Content-Type": contentType } : {}),
-      },
+      method,
+      headers: upstreamHeaders,
       body,
     })
 
     const respText = await upstream.text()
 
+    if (!upstream.ok) {
+      console.log(`\x1b[31m[API Proxy Error]\x1b[0m ${upstream.status} from ${targetUrl}: ${respText.slice(0, 200)}`)
+    }
+
     // Enhanced Inventory Logging: Print lists to terminal when fetched
-    if (upstream.ok && request.method === "GET") {
+    if (upstream.ok && method === "GET") {
       try {
         const json = JSON.parse(respText)
         const items = Array.isArray(json) ? json : (json?.data || [])
         
-        if (path === "my-restaurants") {
-          console.log("\n\x1b[42m\x1b[30m INVENTORY: YOUR RESTAURANTS \x1b[0m")
-          items.forEach((r: any) => console.log(`\x1b[32mID:\x1b[0m ${r.id} | \x1b[32mNAME:\x1b[0m ${r.name}`))
+        if (path === "my-restaurants" || path === "restaurants") {
+          console.log(`\n\x1b[42m\x1b[30m INVENTORY: RESTAURANTS (${path}) \x1b[0m`)
+          const list = Array.isArray(items) ? items : (items.items || [])
+          list.forEach((r: any) => console.log(`\x1b[32mSlug:\x1b[0m ${r.slug} | \x1b[32mName:\x1b[0m ${r.name} | \x1b[32mID:\x1b[0m ${r.id}`))
           console.log("")
         } else if (path.endsWith("/categories")) {
-          console.log(`\n\x1b[46m\x1b[30m INVENTORY: CATEGORIES \x1b[0m`)
-          items.forEach((c: any) => console.log(`\x1b[36mID:\x1b[0m ${c.id} | \x1b[36mNAME:\x1b[0m ${c.name}`))
+          console.log(`\n\x1b[46m\x1b[30m INVENTORY: CATEGORIES (${path}) \x1b[0m`)
+          const list = Array.isArray(items) ? items : (items.items || [])
+          list.forEach((c: any) => console.log(`\x1b[36mID:\x1b[0m ${c.id} | \x1b[36mName:\x1b[0m ${c.name}`))
+          console.log("")
+        } else if (path.endsWith("/items")) {
+          console.log(`\n\x1b[45m\x1b[30m INVENTORY: ITEMS (${path}) \x1b[0m`)
+          const list = Array.isArray(items) ? items : (items.items || [])
+          list.forEach((i: any) => console.log(`\x1b[35mID:\x1b[0m ${i.id} | \x1b[35mName:\x1b[0m ${i.name} | \x1b[35mCategory:\x1b[0m ${i.category_id}`))
           console.log("")
         }
       } catch (e) { /* ignore parse errors */ }

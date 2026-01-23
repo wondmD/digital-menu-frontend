@@ -20,7 +20,9 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     ...(options.headers || {}),
   }
 
-  if (!(options.body instanceof FormData)) {
+  const method = (options.method || "GET").toUpperCase()
+
+  if (options.body && !(options.body instanceof FormData)) {
     headers["Content-Type"] = headers["Content-Type"] || "application/json"
   }
 
@@ -34,7 +36,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const res = await fetch(url, {
-        method: options.method || "GET",
+        method,
         headers,
         body:
           options.body instanceof FormData

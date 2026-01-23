@@ -305,7 +305,18 @@ export default function CategoriesPage() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground">No categories yet. Add one to get started.</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <Plus className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium text-lg">No categories found</p>
+                <p className="text-sm text-muted-foreground">Get started by creating your first category.</p>
+              </div>
+              <Button onClick={() => setAddOpen(true)} className="rounded-xl">
+                 Create Category
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
