@@ -7,6 +7,7 @@ import React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   LayoutDashboard,
   Utensils,
@@ -41,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { apiFetch } from "@/lib/api-client"
+import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
   {
@@ -89,14 +91,14 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
 
   const getPlanLabel = () => {
     if (!subscription) return "Trial"
-    const id = subscription.plan_id || ""
+    const id = (subscription.plan_id || "").toLowerCase()
     if (id.includes("bronze")) return "Bronze"
     if (id.includes("silver")) return "Silver"
     if (id.includes("gold")) return "Gold"
     return subscription.plan?.name || "Active"
   }
 
-  const userName = session?.user?.name || "Account"
+  const userName = session?.user?.name || "Proprietor"
   const userEmail = session?.user?.email || "—"
   const avatarFallback =
     (userName &&
@@ -107,106 +109,126 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
         .slice(0, 2)
         .toUpperCase()) || "ME"
 
-  // Avoid hydration mismatches between server and client (e.g., sidebar open state or Radix IDs).
   if (!mounted) return null
 
   return (
-    <SidebarProvider>
-      <Sidebar variant="inset" className="border-r-0 bg-secondary/30">
-        <SidebarHeader className="h-16 border-b border-primary/10 p-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-              <Coffee className="size-5" />
-            </div>
-            <div className="flex flex-col gap-0.5 leading-none">
-              <span className="font-serif font-bold text-primary-foreground tracking-tight">MenuQR</span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                Establishment
-              </span>
-            </div>
-          </Link>
+    <SidebarProvider className="bg-background">
+      <Sidebar className="border-r border-border bg-sidebar text-sidebar-foreground">
+        <SidebarHeader className="p-6 h-auto border-none">
+          <div className="flex items-center justify-between gap-3 px-2">
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
+                 <Coffee className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-black uppercase tracking-[0.2em] text-foreground">MenuVista</span>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-primary italic">Charter Edition</span>
+              </div>
+            </Link>
+            <ThemeToggle />
+          </div>
         </SidebarHeader>
-        <SidebarContent className="px-2 pt-4">
-          <SidebarMenu className="gap-1">
+
+        <SidebarContent className="p-4 space-y-8 h-auto overflow-visible">
+          <SidebarMenu className="gap-2">
             {NAV_ITEMS.map((item) => (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === item.url}
-                  tooltip={item.title}
-                  className="rounded-xl transition-all duration-200 hover:bg-primary/5 data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+                  className={cn(
+                    "flex h-12 w-full items-center gap-4 rounded-xl px-4 transition-all duration-300 border border-transparent",
+                    pathname === item.url 
+                      ? "bg-primary text-white shadow-lg shadow-primary/10 border-primary/20" 
+                      : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  )}
                 >
                   <Link href={item.url}>
-                    <item.icon
-                      className={`size-4 ${pathname === item.url ? "text-primary" : "text-muted-foreground"}`}
-                    />
-                    <span className="font-medium">{item.title}</span>
+                    <item.icon className={cn("h-5 w-5", pathname === item.url ? "text-white" : "text-muted-foreground")} />
+                    <span className="text-xs font-bold uppercase tracking-widest">{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
+
+          <div className="px-4 py-4 mt-auto">
+             <div className="rounded-2xl bg-muted border border-border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Registry Tier</span>
+                   <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase tracking-widest leading-none px-2 h-4">
+                      {getPlanLabel()}
+                   </Badge>
+                </div>
+                <Button variant="outline" size="sm" asChild className="w-full h-10 rounded-xl bg-background border-border text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted">
+                   <Link href="/packages">Modify Access</Link>
+                </Button>
+             </div>
+          </div>
         </SidebarContent>
-        <SidebarFooter className="border-t border-primary/10 p-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton size="lg" className="data-[state=open]:bg-primary/5 rounded-xl transition-colors">
-                    <Avatar className="size-8 rounded-lg">
-                      <AvatarImage src={(session?.user as any)?.image || "/avatar.png"} alt={userName} />
-                      <AvatarFallback className="rounded-lg">{avatarFallback}</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-semibold text-foreground">{userName}</span>
-                        <Badge variant="outline" className="h-4 px-1.5 text-[8px] uppercase font-bold text-primary border-primary/20 bg-primary/5">
-                          {getPlanLabel()}
-                        </Badge>
-                      </div>
-                      <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
-                    </div>
-                    <ChevronRight className="ml-auto size-4 text-muted-foreground" />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" side="right" align="end" sideOffset={4}>
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard/settings">Settings</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onSelect={(e) => {
-                      e.preventDefault()
-                      signOut({ callbackUrl: "/login" })
-                    }}
-                  >
-                    <LogOut className="mr-2 size-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
+
+        <SidebarFooter className="p-6 border-t border-border">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton className="h-14 rounded-xl hover:bg-sidebar-accent transition-colors group">
+                <Avatar className="h-9 w-9 border border-border shadow-lg">
+                  <AvatarImage src={(session?.user as any)?.image || ""} />
+                  <AvatarFallback className="bg-primary text-[10px] font-black text-white">{avatarFallback}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col items-start truncate text-left ml-2 text-sidebar-foreground">
+                  <span className="text-xs font-bold truncate w-24 tracking-wide">{userName}</span>
+                  <span className="text-[9px] font-medium text-muted-foreground truncate w-24">{userEmail}</span>
+                </div>
+                <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="right"
+              align="end"
+              className="w-56 bg-popover border-border text-popover-foreground rounded-2xl shadow-2xl p-2"
+            >
+              <DropdownMenuLabel className="font-serif italic text-muted-foreground px-3 py-2">Proprietor Menu</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem asChild className="rounded-lg focus:bg-muted cursor-pointer">
+                <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2">
+                  <Settings className="h-4 w-4 text-muted-foreground" /> 
+                  <span className="text-xs font-bold uppercase tracking-widest">Settings</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem 
+                onSelect={() => signOut({ callbackUrl: "/login" })}
+                className="rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer flex items-center gap-3 px-3 py-2"
+              >
+                <LogOut className="h-4 w-4" /> 
+                <span className="text-xs font-bold uppercase tracking-widest">End Session</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="bg-white">
-        <header className="flex h-16 shrink-0 items-center gap-2 px-6 transition-[width,height] ease-linear border-b border-primary/5 bg-white/50 backdrop-blur-sm sticky top-0 z-30">
-          <SidebarTrigger className="-ml-1 text-primary hover:bg-primary/5" />
-          <div className="ml-auto flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden sm:flex border-primary/20 text-primary hover:bg-primary/5 font-medium rounded-full px-4 bg-transparent"
-              asChild
-            >
-              <Link href="/menu/golden-leaf">View Live Menu</Link>
-            </Button>
+
+      <SidebarInset className="bg-background flex flex-col min-h-screen">
+        <header className="flex h-20 items-center justify-between px-8 border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+          <div className="flex items-center gap-4">
+             <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg" />
+             <div className="h-4 w-px bg-border" />
+             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+                MenuVista / <span className="text-muted-foreground font-black">{pathname.split('/').pop()?.replace('-', ' ')}</span>
+             </div>
           </div>
+          
+          <Button variant="outline" size="sm" asChild className="rounded-xl border-border bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted h-10 px-6">
+             <Link href="/menu/golden-leaf">Broadcast View</Link>
+          </Button>
         </header>
-        <main className="flex-1 overflow-auto p-6 md:p-8 bg-gradient-to-br from-white to-secondary/20">{children}</main>
+
+        <main className="flex-1 overflow-auto p-8 md:p-12 relative">
+           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
+           <div className="relative z-10">
+              {children}
+           </div>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   )

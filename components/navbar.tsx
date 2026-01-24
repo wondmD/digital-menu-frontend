@@ -3,114 +3,126 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Menu, X, Coffee, Leaf, ChefHat } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-primary/5 bg-[#FDFCF8]/80 backdrop-blur-xl supports-[backdrop-filter]:bg-[#FDFCF8]/60 transition-all duration-300">
-      <div className="container flex h-20 items-center justify-between px-6 mx-auto">
-        <Link href="/" className="flex items-center space-x-3 group">
-          <div className="rounded-xl bg-primary p-2 text-white shadow-lg shadow-primary/20 group-hover:rotate-12 transition-transform">
-            <ChefHat className="h-5 w-5" />
+    <nav 
+      className={cn(
+        "fixed top-0 z-[100] w-full transition-all duration-500",
+        isScrolled 
+          ? "py-4 bg-background/80 backdrop-blur-2xl border-b border-border" 
+          : "py-8 bg-transparent"
+      )}
+    >
+      <div className="container flex items-center justify-between px-6 mx-auto">
+        <Link href="/" className="flex items-center space-x-4 group">
+          <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-2xl shadow-primary/40 group-hover:rotate-12 transition-all duration-500">
+            <ChefHat className="h-6 w-6" />
           </div>
-          <span className="text-2xl font-serif font-normal tracking-tight text-primary">MenuQR</span>
+          <div className="flex flex-col">
+            <span className="text-2xl font-serif font-bold tracking-tighter text-foreground">MenuQR</span>
+            <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">Luxury Hub</span>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex md:items-center md:space-x-10">
-          <Link
-            href="/#features"
-            className="text-sm font-bold tracking-wide uppercase text-muted-foreground transition-all hover:text-primary hover:tracking-widest"
-          >
-            Features
-          </Link>
-          <Link
-            href="/#how-it-works"
-            className="text-sm font-bold tracking-wide uppercase text-muted-foreground transition-all hover:text-primary hover:tracking-widest"
-          >
-            Process
-          </Link>
-          <Link
-            href="/menu/golden-leaf"
-            className="text-sm font-bold tracking-wide uppercase text-muted-foreground transition-all hover:text-primary hover:tracking-widest"
-          >
-            Demo
-          </Link>
-          <div className="flex items-center space-x-5">
+        <div className="hidden md:flex md:items-center space-x-12">
+          {["Features", "Design", "Demo"].map((item) => (
+            <Link
+              key={item}
+              href={`/#${item.toLowerCase()}`}
+              className="text-[11px] font-black tracking-[0.3em] uppercase text-muted-foreground transition-all hover:text-primary relative group"
+            >
+              {item}
+              <span className="absolute -bottom-2 left-0 w-0 h-[2px] bg-primary transition-all duration-500 group-hover:w-full" />
+            </Link>
+          ))}
+          
+          <div className="flex items-center space-x-6 pl-6 border-l border-border">
+            <Link 
+              href="/login" 
+              className="text-[11px] font-black tracking-[0.3em] uppercase text-foreground hover:text-primary transition-colors"
+            >
+              Login
+            </Link>
             <Button
-              variant="ghost"
-              className="text-sm font-bold tracking-wide uppercase text-primary hover:bg-primary/5 rounded-full px-6"
+              className="h-12 px-8 text-[11px] font-black tracking-[0.3em] uppercase rounded-2xl bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 transition-all active:scale-95 text-white"
               asChild
             >
-              <Link href="/login">Login</Link>
+              <Link href="/register">Join Platform</Link>
             </Button>
-            <Button
-              className="h-11 px-8 text-sm font-bold tracking-wide uppercase rounded-full shadow-lg shadow-primary/10"
-              asChild
-            >
-              <Link href="/register">Join Us</Link>
-            </Button>
+            <ThemeToggle />
           </div>
         </div>
 
         {/* Mobile Toggle */}
-        <button
-          className="flex items-center justify-center rounded-2xl p-2.5 md:hidden bg-primary/5 text-primary"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-4 md:hidden">
+          <ThemeToggle />
+          <button
+            className="flex items-center justify-center rounded-2xl h-12 w-12 bg-muted border border-border text-foreground hover:bg-muted/80 transition-colors"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation */}
-      {isOpen && (
-        <div className="fixed inset-x-0 top-20 z-50 grid w-full gap-6 bg-[#FDFCF8] p-8 shadow-2xl animate-in slide-in-from-top-4 md:hidden border-b border-primary/10 rounded-b-[2rem]">
-          <div className="grid gap-4">
-            <Link
-              href="/#features"
-              className="flex w-full items-center py-3 text-2xl font-serif text-primary border-b border-primary/5"
-              onClick={() => setIsOpen(false)}
-            >
-              Our Features
-            </Link>
-            <Link
-              href="/#how-it-works"
-              className="flex w-full items-center py-3 text-2xl font-serif text-primary border-b border-primary/5"
-              onClick={() => setIsOpen(false)}
-            >
-              The Process
-            </Link>
-            <Link
-              href="/menu/golden-leaf"
-              className="flex w-full items-center py-3 text-2xl font-serif text-primary"
-              onClick={() => setIsOpen(false)}
-            >
-              Live Experience
-            </Link>
-          </div>
-          <div className="flex flex-col gap-4 mt-4">
-            <Button
-              variant="outline"
-              className="w-full h-14 rounded-2xl border-primary/20 text-primary text-lg font-bold bg-transparent"
-              asChild
-            >
-              <Link href="/login" onClick={() => setIsOpen(false)}>
-                Partner Login
-              </Link>
-            </Button>
-            <Button className="w-full h-14 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20" asChild>
-              <Link href="/register" onClick={() => setIsOpen(false)}>
-                Get Started
-              </Link>
-            </Button>
-          </div>
-          <div className="flex justify-center pt-4">
-            <Leaf className="h-8 w-8 text-primary/10" />
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed inset-x-0 top-0 z-[-1] pt-32 pb-12 bg-background border-b border-border px-8 shadow-2xl md:hidden flex flex-col gap-10"
+          >
+            <div className="flex flex-col gap-6">
+              {["Features", "Design", "Demo"].map((item) => (
+                <Link
+                  key={item}
+                  href={`/#${item.toLowerCase()}`}
+                  className="text-4xl font-serif text-foreground hover:text-primary transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item}
+                </Link>
+              ))}
+            </div>
+            
+            <div className="flex flex-col gap-4">
+              <Button
+                variant="outline"
+                className="w-full h-16 rounded-2xl border-border text-foreground text-lg font-bold bg-muted/50"
+                asChild
+              >
+                <Link href="/login" onClick={() => setIsOpen(false)}>
+                  Sign In
+                </Link>
+              </Button>
+              <Button className="w-full h-16 rounded-2xl text-lg font-bold bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 text-white" asChild>
+                <Link href="/register" onClick={() => setIsOpen(false)}>
+                  Get Founded
+                </Link>
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   )
 }

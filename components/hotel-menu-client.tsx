@@ -1,12 +1,19 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Coffee, MapPin, Phone, Instagram, Facebook, ArrowRight, Loader2 } from "lucide-react"
+import { Coffee, MapPin, Phone, Instagram, Facebook, ArrowRight, Loader2, Utensils, Globe } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useState } from "react"
 import { apiFetch } from "@/lib/api-client"
-import { getImageUrl } from "@/lib/utils"
+import { getImageUrl, getImageUrls } from "@/lib/utils"
+import { motion, AnimatePresence } from "framer-motion"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay"
 
 type Restaurant = {
   id: string
@@ -17,6 +24,7 @@ type Restaurant = {
   phone?: string
   image_url?: string | string[]
   is_published?: boolean
+  cuisine_type?: string
 }
 
 interface HotelMenuClientProps {
@@ -48,8 +56,19 @@ export default function HotelMenuClient({ hotelSlug, initialData }: HotelMenuCli
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#FDFCF8]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col h-screen items-center justify-center bg-background">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="relative">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <Utensils className="h-6 w-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+          </div>
+          <p className="text-xl font-serif text-foreground animate-pulse">Preparing your table...</p>
+        </motion.div>
       </div>
     )
   }
@@ -59,110 +78,164 @@ export default function HotelMenuClient({ hotelSlug, initialData }: HotelMenuCli
 
   if (error || !hotel || !isPublished) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-[#FDFCF8] gap-4 p-6 text-center">
-        <h1 className="text-2xl font-bold text-primary">
+      <div className="flex h-screen flex-col items-center justify-center bg-background gap-4 p-6 text-center">
+        <h1 className="text-3xl font-serif text-foreground">
           {!hotel || !isPublished ? "Menu Offline" : "Menu Not Found"}
         </h1>
-        <p className="text-muted-foreground max-w-xs">
+        <p className="text-slate-600 dark:text-slate-400 max-w-xs">
           {hotel && !isPublished 
             ? "This restaurant's menu is currently in draft mode and not visible to the public."
             : (error || "The requested restaurant does not exist.")}
         </p>
-        <Button asChild>
+        <Button asChild size="lg" className="rounded-full">
           <Link href="/">Back to Home</Link>
         </Button>
       </div>
     )
   }
 
+  const images = getImageUrls(hotel.image_url) || ["/hotel.webp"]
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#FDFCF8] font-sans">
-      <main className="flex-1">
-        <div className="relative h-[45vh] w-full overflow-hidden">
-            <Image
-              src={getImageUrl(hotel.image_url) || "/hotel.webp"}
-              alt={hotel.name}
-              fill
-              className="object-cover brightness-[0.7] scale-105"
-              priority
-            />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#FDFCF8] via-transparent to-black/30" />
-        </div>
-
-        <div className="container relative -mt-24 px-6 pb-24 mx-auto max-w-lg">
-          <div className="flex flex-col items-center text-center">
-            <div className="mb-8 h-32 w-32 overflow-hidden rounded-3xl border-[6px] border-[#FDFCF8] bg-white shadow-2xl animate-in zoom-in duration-500">
-              <Image
-                src="/cafe-logo.png"
-                alt={hotel.name}
-                width={128}
-                height={128}
-                className="object-contain p-2"
-              />
-            </div>
-
-            <h1 className="text-4xl font-serif text-primary tracking-tight sm:text-5xl mb-3">
+    <div className="flex min-h-screen flex-col bg-background font-sans overflow-x-hidden">
+      <main className="flex-1 pb-32">
+        {/* Hero Section with Carousel */}
+        <div className="relative h-[65vh] w-full overflow-hidden">
+          <Carousel 
+            className="h-full w-full"
+            plugins={[
+              Autoplay({
+                delay: 4000,
+              }),
+            ]}
+          >
+            <CarouselContent className="h-[65vh] ml-0">
+              {images.map((img, idx) => (
+                <CarouselItem key={idx} className="h-full w-full pl-0">
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={img}
+                      alt={`${hotel.name} - image ${idx + 1}`}
+                      fill
+                      className="object-cover"
+                      priority={idx === 0}
+                    />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+          
+          {/* Gradients for readability */}
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-background via-background/40 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-1/4 bg-gradient-to-b from-black/20 to-transparent" />
+          
+          {/* Logo Overlay - Elegant positioning */}
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="absolute bottom-6 inset-x-0 flex flex-col items-center px-6 text-center"
+          >
+            {hotel.cuisine_type && (
+              <Badge variant="outline" className="mb-3 bg-white/20 backdrop-blur-md text-white border-white/30 px-4 py-1 rounded-full text-xs uppercase tracking-widest font-bold">
+                {hotel.cuisine_type}
+              </Badge>
+            )}
+            <h1 className="text-5xl font-serif text-foreground tracking-tight sm:text-7xl mb-2 drop-shadow-sm">
               {hotel.name}
             </h1>
-            <p className="max-w-md text-balance text-muted-foreground font-medium leading-relaxed">
-              {hotel.description || "Welcome to our digital menu."}
-            </p>
+          </motion.div>
+        </div>
 
-            <div className="mt-10 flex flex-col w-full gap-4">
-              <Button
-                size="lg"
-                className="h-16 rounded-2xl text-xl font-bold shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group"
-                asChild
-              >
-                <Link href={`/menu/${hotelSlug}/list`} className="flex items-center justify-center gap-3">
-                  Explore the Menu <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
+        {/* Content Section */}
+        <div className="container px-6 py-12 mx-auto max-w-lg">
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            viewport={{ once: true }}
+            className="space-y-12"
+          >
+            {/* Description */}
+            <div className="text-center space-y-4">
+              <p className="text-lg text-slate-700 dark:text-slate-300 font-medium leading-relaxed italic">
+                "{hotel.description || "A culinary journey awaits you. Experience the finest selection of dishes prepared with passion and the freshest ingredients."}"
+              </p>
             </div>
 
-            <div className="mt-12 grid w-full gap-5 text-sm">
-              <div className="flex items-center justify-center gap-3 text-muted-foreground font-medium bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-primary/5">
-                <MapPin className="h-5 w-5 text-primary shrink-0" />
-                <span className="text-left">{hotel.address || "Location information not provided"}</span>
-              </div>
-              <div className="flex items-center justify-center gap-3 text-muted-foreground font-medium bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-primary/5">
-                <Phone className="h-5 w-5 text-primary shrink-0" />
-                <span>{hotel.phone || "No contact phone provided"}</span>
-              </div>
-            </div>
-
-            <div className="mt-12 flex items-center justify-center gap-8 text-primary">
-              <Link
-                href={`#`}
-                className="group flex flex-col items-center gap-2"
-              >
-                <div className="rounded-full bg-primary/5 p-4 text-primary group-hover:bg-primary/10 transition-all duration-300">
-                  <Instagram className="h-7 w-7" />
+            {/* Info Cards */}
+            <div className="grid gap-4">
+              <div className="flex items-start gap-4 p-5 rounded-3xl bg-secondary/30 border border-border/50 group hover:bg-secondary/50 transition-colors">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <MapPin className="h-6 w-6 text-primary" />
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Instagram</span>
-              </Link>
-              <Link
-                href={`#`}
-                className="group flex flex-col items-center gap-2"
-              >
-                <div className="rounded-full bg-primary/5 p-4 text-primary group-hover:bg-primary/10 transition-all duration-300">
-                  <Facebook className="h-7 w-7" />
+                <div className="space-y-1 pt-1 text-left">
+                  <p className="font-bold text-foreground">Our Location</p>
+                  <p className="text-sm text-muted-foreground leading-snug">
+                    {hotel.address || "Location information not provided"}
+                  </p>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Facebook</span>
+              </div>
+
+              <div className="flex items-start gap-4 p-5 rounded-3xl bg-secondary/30 border border-border/50 group hover:bg-secondary/50 transition-colors">
+                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Phone className="h-6 w-6 text-primary" />
+                </div>
+                <div className="space-y-1 pt-1 text-left">
+                  <p className="font-bold text-foreground">Contact Us</p>
+                  <p className="text-sm text-muted-foreground leading-snug">
+                    {hotel.phone || "No contact phone provided"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Links / Socials */}
+            <div className="flex items-center justify-center gap-6 pt-4">
+              <Link href="#" className="h-14 w-14 rounded-full bg-secondary flex items-center justify-center border border-border hover:bg-white dark:hover:bg-slate-800 transition-all hover:scale-110 shadow-sm">
+                <Instagram className="h-6 w-6 text-foreground" />
+              </Link>
+              <Link href="#" className="h-14 w-14 rounded-full bg-secondary flex items-center justify-center border border-border hover:bg-white dark:hover:bg-slate-800 transition-all hover:scale-110 shadow-sm">
+                <Facebook className="h-6 w-6 text-foreground" />
+              </Link>
+              <Link href="#" className="h-14 w-14 rounded-full bg-secondary flex items-center justify-center border border-border hover:bg-white dark:hover:bg-slate-800 transition-all hover:scale-110 shadow-sm">
+                <Globe className="h-6 w-6 text-foreground" />
               </Link>
             </div>
-          </div>
+          </motion.div>
         </div>
       </main>
 
-      <footer className="border-t border-primary/5 py-10 text-center bg-white/30">
-          <div className="flex items-center justify-center gap-2 text-xs text-primary font-medium uppercase tracking-widest">
-          <span>Curated by</span>
-          <div className="flex items-center gap-1.5 font-bold text-primary-foreground">
-            <Coffee className="h-4 w-4 text-primary" /> MenuQR
+      {/* Sticky CTA */}
+      <div className="fixed bottom-0 inset-x-0 p-6 z-50">
+        <div className="container max-w-lg mx-auto">
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            transition={{ delay: 0.5, type: "spring", damping: 20 }}
+          >
+            <Button
+              size="lg"
+              className="h-16 w-full rounded-2xl text-xl font-bold shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group flex items-center justify-center gap-3 bg-primary text-primary-foreground border-none"
+              asChild
+            >
+              <Link href={`/menu/${hotelSlug}/list`}>
+                Explore Menu <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
+          </motion.div>
+        </div>
+      </div>
+
+      <footer className="pb-40 text-center">
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">
+          <span>Experience by</span>
+          <div className="flex items-center gap-1 font-bold text-foreground">
+            MenuVista
           </div>
         </div>
       </footer>
     </div>
   )
 }
+

@@ -1,46 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* Rebranded to a sophisticated Forest Green and Cream palette for a fresh, high-end feel */
+/* Premium Light Mode Palette */
 :root {
-  --background: oklch(0.98 0.01 95);
-  --foreground: oklch(0.25 0.05 160);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.05 160);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.05 160);
-  /* Forest Green */
-  --primary: oklch(0.45 0.12 165);
-  --primary-foreground: oklch(0.98 0.01 95);
-  /* Cream/Sage */
-  --secondary: oklch(0.92 0.03 150);
-  --secondary-foreground: oklch(0.3 0.08 160);
-  --muted: oklch(0.94 0.02 150);
-  --muted-foreground: oklch(0.45 0.05 160);
-  --accent: oklch(0.85 0.1 165);
-  --accent-foreground: oklch(0.2 0.08 160);
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.88 0.03 160);
-  --input: oklch(0.88 0.03 160);
-  --ring: oklch(0.45 0.12 165);
-  --radius: 1rem;
+  --background: #F9FAFB;
+  --foreground: #000000;
+  --card: #FFFFFF;
+  --card-foreground: #000000;
+  --popover: #FFFFFF;
+  --popover-foreground: #000000;
+  --primary: #E63946;
+  --primary-foreground: #FFFFFF;
+  --secondary: #2A9D8F;
+  --secondary-foreground: #FFFFFF;
+  --muted: #F3F4F6;
+  --muted-foreground: #4B5563;
+  --accent: #F4A261;
+  --accent-foreground: #000000;
+  --destructive: #ef4444;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: rgba(0, 0, 0, 0.08);
+  --ring: #E63946;
+  --radius: 1.25rem;
 
-  --sidebar: oklch(0.96 0.02 150);
-  --sidebar-foreground: oklch(0.25 0.05 160);
-  --sidebar-primary: oklch(0.45 0.12 165);
-  --sidebar-primary-foreground: oklch(0.98 0.01 95);
-  --sidebar-accent: oklch(0.9 0.04 150);
-  --sidebar-accent-foreground: oklch(0.25 0.05 160);
-  --sidebar-border: oklch(0.88 0.03 160);
-  --sidebar-ring: oklch(0.45 0.12 165);
+  --sidebar: #F3F4F6;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #E63946;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFFFFF;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar-ring: #E63946;
+}
+
+/* Rebranded to Premium Dark Luxury Palette */
+.dark {
+  --background: #0F172A;
+  --foreground: #FFFFFF;
+  --card: #111827;
+  --card-foreground: #FFFFFF;
+  --popover: #111827;
+  --popover-foreground: #FFFFFF;
+  --primary: #E63946;
+  --primary-foreground: #FFFFFF;
+  --secondary: #2A9D8F;
+  --secondary-foreground: #FFFFFF;
+  --muted: #1E293B;
+  --muted-foreground: #9CA3AF;
+  --accent: #F4A261;
+  --accent-foreground: #0F172A;
+  --destructive: #ef4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #334155;
+  --input: #334155;
+  --ring: #E63946;
+  --radius: 1.25rem;
+
+  --sidebar: #111827;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #E63946;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1E293B;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #334155;
+  --sidebar-ring: #E63946;
 }
 
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-sans: "Inter", "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "DM Serif Display", "Playfair Display", ui-serif, Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* ... existing theme mappings ... */
@@ -90,29 +122,68 @@
     @apply bg-background text-foreground;
     position: relative;
     overflow-x: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   /* Soft ambient gradients and dotted texture across the site */
-  body::before,
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle at 2px 2px, var(--foreground) 1px, transparent 0);
+    background-size: 40px 40px;
+    opacity: 0.03;
+    z-index: -1;
+  }
+  
   body::after {
     content: "";
     position: fixed;
     inset: 0;
     pointer-events: none;
+    background: radial-gradient(800px circle at var(--x, 50%) var(--y, 50%), var(--primary) 0.05, transparent 100%);
+    opacity: 0.15;
     z-index: -1;
   }
 
-  body::before {
-    background:
-      radial-gradient(1200px 800px at 10% 15%, color-mix(in oklch, var(--primary) 35%, white 65%), transparent 60%),
-      radial-gradient(900px 700px at 90% 10%, color-mix(in oklch, var(--secondary) 45%, white 55%), transparent 60%),
-      radial-gradient(1100px 750px at 50% 90%, color-mix(in oklch, var(--accent) 35%, white 65%), transparent 65%);
-    opacity: 0.35;
+  .dark body::after {
+    background: radial-gradient(800px circle at var(--x, 50%) var(--y, 50%), var(--primary) 0.1, transparent 100%);
+    opacity: 0.3;
   }
 
-  body::after {
-    background-image: radial-gradient(color-mix(in oklch, var(--foreground) 8%, transparent 92%) 1px, transparent 0);
-    background-size: 40px 40px;
-    opacity: 0.08;
+  /* Table Styling */
+  table {
+    @apply w-full border-collapse;
+  }
+  
+  tr {
+    @apply transition-colors;
+  }
+  
+  tr:nth-child(even) {
+    @apply bg-muted/30;
+  }
+  
+  th {
+    @apply text-left p-4 font-black uppercase tracking-widest text-[10px] text-muted-foreground border-b border-border;
+  }
+  
+  td {
+    @apply p-4 text-sm font-medium border-b border-border/50;
+  }
+
+  /* Scrollbar Customization */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
   }
 }

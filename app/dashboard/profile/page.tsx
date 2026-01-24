@@ -8,12 +8,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from "@/components/ui/use-toast"
 import { apiFetch } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Building2, 
   MapPin, 
   Phone, 
-  Clock, 
   CheckCircle2, 
   LayoutGrid,
   UtensilsCrossed,
@@ -23,8 +21,39 @@ import {
   Shield,
   Eye,
   EyeOff,
+  Activity,
+  Layers,
+  Users,
+  Search,
+  Plus,
+  Trash2,
+  Settings,
+  Loader2
 } from "lucide-react"
 import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { motion, AnimatePresence } from "framer-motion"
 
 type Restaurant = {
   id: string
@@ -37,14 +66,8 @@ type Restaurant = {
   country?: string
   is_published?: boolean
   created_at?: string
-}
-
-type Category = {
-  id: string
-  name: string
-  description?: string
-  is_active?: boolean
-  items_count?: number
+  cuisine_type?: string
+  email?: string
 }
 
 export default function ProfilePage() {
@@ -53,19 +76,87 @@ export default function ProfilePage() {
   const { toast } = useToast()
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
-  const [selectedId, setSelectedId] = useState("")
-  const [categories, setCategories] = useState<Category[]>([])
-  const [subscription, setSubscription] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [dataLoading, setDataLoading] = useState(false)
+  const [subscription, setSubscription] = useState<any>(null)
+  
+  // Create/Edit Dialog States
+  const [open, setOpen] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
 
-  const ready = status === "authenticated" && !!token
+  const [draft, setDraft] = useState({
+    name: "",
+    slug: "",
+    description: "",
+    city: "",
+    country: "",
+    phone: "",
+    email: "",
+    address: "",
+    cuisine_type: "",
+    is_published: false,
+  })
 
-  const selected = useMemo(
-    () => restaurants.find((r) => r.id === selectedId) || restaurants[0],
-    [restaurants, selectedId],
-  )
+  useEffect(() => {
+    if (!token) return
+    const load = async () => {
+      try {
+        setLoading(true)
+        const [restRes, subRes] = await Promise.all([
+          apiFetch<any>("/my-restaurants", { token }),
+          apiFetch<any>("/subscription/me", { token }).catch(() => null)
+        ])
+        setRestaurants(Array.isArray(restRes) ? restRes : (restRes?.data || []))
+        setSubscription(subRes?.data || subRes)
+      } catch (err: any) {
+        toast({ title: "Registry Error", description: "Failed to sync unit data.", variant: "destructive" })
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [token])
+
+  const handleSave = async () => {
+    if (!token || !draft.name.trim()) return
+    try {
+      setSaving(true)
+      const url = editingId ? `/my-restaurants/${editingId}` : "/my-restaurants"
+      const method = editingId ? "PATCH" : "POST"
+      
+      const formData = new FormData()
+      Object.entries(draft).forEach(([key, val]) => {
+        formData.append(key, String(val))
+      })
+
+      await apiFetch(url, { method, token, body: formData })
+      
+      const res = await apiFetch<any>("/my-restaurants", { token })
+      setRestaurants(Array.isArray(res) ? res : (res?.data || []))
+      
+      toast({ title: editingId ? "Unit Calibrated" : "Unit Established" })
+      setOpen(false)
+      resetDraft()
+    } catch (err: any) {
+      toast({ title: "Operation Failed", description: err.message, variant: "destructive" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!token || !deletingId) return
+    try {
+      await apiFetch(`/my-restaurants/${deletingId}`, { method: "DELETE", token })
+      setRestaurants(prev => prev.filter(r => r.id !== deletingId))
+      toast({ title: "Unit Decommissioned" })
+      setDeletingId(null)
+    } catch (err: any) {
+      toast({ title: "Operation Failed", description: err.message, variant: "destructive" })
+    }
+  }
 
   const togglePublish = async (res: Restaurant) => {
     if (!token) return
@@ -73,339 +164,298 @@ export default function ProfilePage() {
       setPublishing(res.id)
       const newStatus = !res.is_published
       const formData = new FormData()
-      formData.append("is_published", newStatus ? "true" : "false")
+      formData.append("is_published", String(newStatus))
 
-      await apiFetch(`/my-restaurants/${res.id}`, {
-        method: "PATCH",
-        token,
-        body: formData,
-      })
+      await apiFetch(`/my-restaurants/${res.id}`, { method: "PATCH", token, body: formData })
       setRestaurants(prev => prev.map(r => r.id === res.id ? { ...r, is_published: newStatus } : r))
-      toast({
-        title: newStatus ? "Restaurant Published" : "Restaurant Unpublished",
-        description: `${res.name} is now ${newStatus ? 'visible' : 'hidden'} to the public.`,
-      })
+      toast({ title: newStatus ? "Broadcast Live" : "Broadcast Offline" })
     } catch (err: any) {
-      toast({ title: "Failed to update status", description: err.message, variant: "destructive" })
+      toast({ title: "Signal Error", description: err.message, variant: "destructive" })
     } finally {
       setPublishing(null)
     }
   }
 
-  useEffect(() => {
-    if (!ready) return
-    const load = async () => {
-      try {
-        setLoading(true)
-        
-        // Load Restaurants
-        const res = await apiFetch<{ data: Restaurant[] }>("/my-restaurants", { token })
-        const list = res?.data || []
-        setRestaurants(list)
-        if (list.length && !selectedId) setSelectedId(list[0].id)
+  const resetDraft = () => {
+    setDraft({
+      name: "", slug: "", description: "", city: "", country: "", phone: "", email: "", address: "", cuisine_type: "", is_published: false
+    })
+    setEditingId(null)
+  }
 
-        // Load Subscription for usage limits
-        try {
-          const subRes = await apiFetch<any>("/subscription/me", { token })
-          setSubscription(subRes?.data || subRes)
-        } catch (subErr) {
-          console.warn("Failed to load subscription info", subErr)
-        }
-
-      } catch (err: any) {
-        toast({ title: "Could not load profile data", description: err?.message, variant: "destructive" })
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [ready, token, toast, selectedId])
-
-  // Load Categories for the selected restaurant
-  useEffect(() => {
-    if (!token || !selectedId) return
-    const loadDetails = async () => {
-      try {
-        setDataLoading(true)
-        const res = await apiFetch<any>(`/my-restaurants/${selectedId}/categories`, { token })
-        setCategories(Array.isArray(res) ? res : (res?.data || []))
-      } catch (err: any) {
-        console.error("Failed to load restaurant details", err)
-      } finally {
-        setDataLoading(false)
-      }
-    }
-    loadDetails()
-  }, [selectedId, token])
-
-  if (!ready) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <Building2 className="h-12 w-12 text-muted-foreground animate-pulse" />
-        <p className="text-sm text-muted-foreground">Sign in to manage your profile.</p>
-      </div>
-    )
+  const startEdit = (res: Restaurant) => {
+    setDraft({
+      name: res.name,
+      slug: res.slug || "",
+      description: res.description || "",
+      city: res.city || "",
+      country: res.country || "",
+      phone: res.phone || "",
+      email: res.email || "",
+      address: res.address || "",
+      cuisine_type: res.cuisine_type || "",
+      is_published: res.is_published || false
+    })
+    setEditingId(res.id)
+    setOpen(true)
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Syncing Operational Matrix</p>
       </div>
     )
   }
 
+  const container = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  }
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  }
+
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-20">
-      {/* My Restaurants Header */}
+    <div className="max-w-7xl mx-auto space-y-12 pb-24">
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row gap-8 items-start justify-between">
-        <div className="flex gap-6 items-center">
-          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
-            <Building2 className="h-8 w-8 text-primary" />
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(230,57,70,0.5)]" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Establishment Command</span>
           </div>
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-4xl font-black tracking-tight text-foreground">
-                My Restaurants
-              </h1>
-            </div>
-            <p className="text-muted-foreground text-sm font-medium">
-              Manage and monitor all your digital menu locations.
-            </p>
-          </div>
+          <h1 className="text-5xl md:text-6xl font-black tracking-tight text-foreground">
+            Operational <span className="italic font-serif text-primary">Matrix.</span>
+          </h1>
+          <p className="text-muted-foreground font-medium max-w-md">
+            Coordinate and manage multiple global deployment units from a singular high-fidelity interface.
+          </p>
         </div>
 
-        <div className="flex gap-3">
-          <Button className="rounded-xl shadow-lg shadow-primary/20" asChild>
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <UtensilsCrossed className="h-4 w-4" />
-              Add New
-            </Link>
-          </Button>
-        </div>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetDraft(); }}>
+          <DialogTrigger asChild>
+            <Button className="h-14 px-10 rounded-2xl bg-primary text-white font-black uppercase text-xs tracking-widest hover:scale-105 transition-transform shadow-2xl shadow-primary/20">
+              <Plus className="h-4 w-4 mr-2" /> Establish New Unit
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-card border-border text-foreground rounded-[2.5rem] p-10 max-w-2xl">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-3xl font-black">{editingId ? "Unit Calibration" : "New Unit Formation"}</DialogTitle>
+              <DialogDescription className="text-muted-foreground font-medium italic">Define the operational parameters for your new establishment.</DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Unit Identity</Label>
+                <Input className="bg-muted border-border/50 h-12 rounded-xl focus:ring-primary/20" placeholder="e.g. Harbor View Bistro" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Slug Segment</Label>
+                <Input className="bg-muted border-border/50 h-12 rounded-xl text-primary font-bold" placeholder="harbor-view-01" value={draft.slug} onChange={e => setDraft(d => ({ ...d, slug: e.target.value }))} />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Operational Locale</Label>
+                <Input className="bg-muted border-border/50 h-12 rounded-xl" placeholder="123 Culinary Drive, Sector 7" value={draft.address} onChange={e => setDraft(d => ({ ...d, address: e.target.value }))} />
+              </div>
+              <div className="space-y-2 text-foreground">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">City</Label>
+                <Input className="bg-muted border-border/50 h-12 rounded-xl" value={draft.city} onChange={e => setDraft(d => ({ ...d, city: e.target.value }))} />
+              </div>
+              <div className="space-y-2 text-foreground">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cuisine Tag</Label>
+                <Input className="bg-muted border-border/50 h-12 rounded-xl" placeholder="e.g. Modern Italian" value={draft.cuisine_type} onChange={e => setDraft(d => ({ ...d, cuisine_type: e.target.value }))} />
+              </div>
+              <div className="col-span-2 flex items-center justify-between p-6 rounded-2xl bg-muted border border-border/50">
+                 <div className="space-y-1">
+                    <Label className="text-sm font-black text-foreground">Public Broadcast</Label>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">Visible to external search engines</p>
+                 </div>
+                 <Switch checked={draft.is_published} onCheckedChange={(val) => setDraft(d => ({ ...d, is_published: val }))} />
+              </div>
+            </div>
+            <DialogFooter className="mt-10 gap-3">
+              <Button variant="ghost" className="px-8 h-12 rounded-xl font-black uppercase text-[10px] tracking-widest text-muted-foreground" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button className="px-10 h-12 rounded-xl bg-primary text-white font-black uppercase text-[10px] tracking-widest" onClick={handleSave} disabled={saving || !draft.name}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? "Update Parameters" : "Finalize Unit"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-10">
-        <div className="lg:col-span-3 space-y-10">
-          {/* Active Workspace / Restaurant Section */}
-          <section className="space-y-6">
-            <div className="flex items-end justify-between border-b pb-4">
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold tracking-tight">Restaurant Overview</h3>
-                <p className="text-sm text-muted-foreground">Manage your active business locations.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  className="h-9 rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={selectedId}
-                  onChange={(e) => setSelectedId(e.target.value)}
-                  disabled={!restaurants.length}
-                >
-                  {restaurants.map((res) => (
-                    <option key={res.id} value={res.id}>
-                      {res.name}
-                    </option>
-                  ))}
-                </select>
-                {selected?.slug && (
-                  <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
-                    <Link href={`/menu/${selected.slug}`} target="_blank">
-                      <ExternalLink className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                )}
-              </div>
+      <div className="grid lg:grid-cols-4 gap-12">
+        {/* Unit Matrix List */}
+        <div className="lg:col-span-3 space-y-8">
+          <div className="flex items-center justify-between border-b border-border/50 pb-4 px-2">
+            <div className="flex items-center gap-3">
+              <Activity className="h-4 w-4 text-secondary" />
+              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground">Operational Matrix</h2>
             </div>
+            <div className="flex gap-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+               <span>Total: {restaurants.length} Items</span>
+               <span className="text-primary">Active: {restaurants.filter(r => r.is_published).length} Live</span>
+            </div>
+          </div>
 
-            {!restaurants.length ? (
-              <div className="rounded-3xl border border-dashed p-12 text-center bg-muted/20">
-                <Building2 className="h-10 w-10 text-muted-foreground mx-auto mb-4 opacity-20" />
-                <h4 className="font-bold">No restaurants found</h4>
-                <p className="text-sm text-muted-foreground mb-6">Start by creating your first restaurant profile.</p>
-                <Button className="rounded-xl" asChild>
-                  <Link href="/dashboard">Create Restaurant</Link>
-                </Button>
+          <motion.div 
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid gap-6"
+          >
+            {restaurants.length === 0 ? (
+              <div className="p-24 rounded-[3rem] border-2 border-dashed border-border/50 bg-card/40 text-center space-y-8">
+                 <Building2 className="h-16 w-16 text-muted-foreground/30 mx-auto" />
+                 <div className="space-y-2">
+                    <h3 className="text-2xl font-black text-foreground">No Active Deployments</h3>
+                    <p className="text-muted-foreground font-medium max-w-xs mx-auto">Establish your first operational unit to begin broadcasting your menu registry.</p>
+                 </div>
+                 <Button className="h-12 px-10 rounded-xl bg-foreground text-background font-black uppercase text-[10px] tracking-[0.3em]" onClick={() => setOpen(true)}>Initialize Command</Button>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="p-6 rounded-3xl bg-secondary/30 border border-secondary transition-all hover:bg-secondary/50">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Location</p>
-                    <p className="text-sm font-bold truncate">{selected?.address || "Address not provided"}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {selected?.city && selected?.country ? `${selected.city}, ${selected.country}` : "Global"}
-                    </p>
-                  </div>
-                  <div className="p-6 rounded-3xl bg-secondary/30 border border-secondary transition-all hover:bg-secondary/50 group relative">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Status</p>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`h-2 w-2 rounded-full ${selected?.is_published ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                        <p className="text-sm font-bold uppercase tracking-tight">
-                          {selected?.is_published ? "Live & Public" : "Draft Mode"}
-                        </p>
-                      </div>
-                      {selected && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          disabled={publishing === selected.id}
-                          onClick={() => togglePublish(selected)}
-                          className={cn(
-                            "h-8 w-8 rounded-xl transition-all",
-                            selected.is_published 
-                              ? "text-green-600 hover:text-green-700 hover:bg-green-50" 
-                              : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-                          )}
-                        >
-                          {publishing === selected.id ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                          ) : selected.is_published ? (
-                            <Eye className="h-4 w-4" />
-                          ) : (
-                            <EyeOff className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {selected?.is_published ? "Visible to customers" : "Visible only to you"}
-                    </p>
-                  </div>
-                  
-                  {/* Quick Access Actions Directly in Grid */}
-                  <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10 flex flex-col justify-between">
-                    <div>
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-3">Tools</p>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" className="rounded-xl h-10 w-10 p-0" asChild>
-                           <Link href="/dashboard/menu"><UtensilsCrossed className="h-4 w-4" /></Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" className="rounded-xl h-10 w-10 p-0" asChild>
-                           <Link href="/dashboard/qr"><CheckCircle2 className="h-4 w-4" /></Link>
-                        </Button>
-                      </div>
-                    </div>
-                    <Link href={`/dashboard/menu?restaurantId=${selectedId}`} className="text-[10px] font-bold uppercase text-primary hover:underline">
-                      Go to Menu Studio →
-                    </Link>
-                  </div>
-                </div>
+              restaurants.map((res) => (
+                <motion.div key={res.id} variants={item}>
+                   <Card className="bg-card/40 backdrop-blur-3xl border-border/50 rounded-[2.5rem] group hover:border-primary/20 transition-all duration-500 overflow-hidden relative shadow-2xl">
+                      <CardContent className="p-0">
+                        <div className="flex flex-col md:flex-row md:items-center p-8 gap-8">
+                           <div className="h-24 w-24 rounded-[2rem] bg-muted border border-border/50 flex items-center justify-center relative group-hover:bg-primary/10 transition-colors shrink-0">
+                              <Building2 className="h-10 w-10 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                              {res.is_published && (
+                                <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-secondary shadow-[0_0_10px_rgba(42,157,143,0.5)] border-4 border-background" />
+                              )}
+                           </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/60 px-1">Menu Categories</h4>
-                  {dataLoading ? (
-                    <div className="h-20 rounded-3xl bg-muted/50 animate-pulse" />
-                  ) : categories.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {categories.map((cat) => (
-                        <div key={cat.id} className="group flex items-center justify-between p-4 rounded-2xl border bg-card hover:bg-muted/30 transition-all">
-                          <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                              <LayoutGrid className="h-5 w-5 text-orange-600" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold">{cat.name}</p>
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">Category</p>
-                            </div>
-                          </div>
+                           <div className="flex-1 space-y-3 min-w-0">
+                              <div className="flex items-center gap-3 flex-wrap">
+                                 <h4 className="text-2xl font-black text-foreground truncate">{res.name}</h4>
+                                 <Badge className={cn(
+                                   "text-[9px] font-black uppercase tracking-[0.2em] border-none px-3 h-5",
+                                   res.is_published ? "bg-secondary text-white" : "bg-muted text-muted-foreground"
+                                 )}>
+                                   {res.is_published ? "Active Signal" : "Draft Buffer"}
+                                 </Badge>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-[10px] font-bold text-muted-foreground truncate">
+                                 <div className="flex items-center gap-2"><MapPin className="h-3 w-3 text-primary" /> {res.city || "Global Location"}</div>
+                                 <div className="flex items-center gap-2"><UtensilsCrossed className="h-3 w-3 text-primary" /> {res.cuisine_type || "Intl. Gastronomy"}</div>
+                                 <div className="flex items-center gap-2"><Activity className="h-3 w-3 text-primary" /> 1.2k Total Scans</div>
+                              </div>
+                           </div>
+
+                           <div className="flex gap-3 shrink-0">
+                              <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl bg-muted/50 border border-border/50 text-muted-foreground hover:text-foreground transition-all" onClick={() => startEdit(res)}>
+                                 <Settings className="h-5 w-5 font-bold" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                disabled={publishing === res.id}
+                                className={cn(
+                                   "h-14 w-14 rounded-2xl border transition-all",
+                                   res.is_published ? "bg-primary/20 border-primary/40 text-primary hover:bg-primary hover:text-white" : "bg-muted/50 border-border/50 text-muted-foreground hover:text-foreground"
+                                )}
+                                onClick={() => togglePublish(res)}
+                              >
+                                 {publishing === res.id ? <Loader2 className="animate-spin h-4 w-4" /> : res.is_published ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl bg-muted/50 border border-border/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all" onClick={() => setDeletingId(res.id)}>
+                                 <Trash2 className="h-5 w-5" />
+                              </Button>
+                              <Button className="h-14 px-6 rounded-2xl bg-foreground text-background font-black uppercase text-[10px] tracking-widest shadow-xl" asChild>
+                                 <Link href={`/dashboard/menu?hotel=${res.id}`}>Configure</Link>
+                              </Button>
+                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-8 text-center rounded-3xl border border-dashed">
-                      <UtensilsCrossed className="h-6 w-6 text-muted-foreground mx-auto mb-2 opacity-30" />
-                      <p className="text-xs text-muted-foreground">No menu categories yet.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+                      </CardContent>
+                   </Card>
+                </motion.div>
+              ))
             )}
-          </section>
+          </motion.div>
         </div>
 
-        {/* Right Sidebar: Usage Statistics */}
-        <div className="space-y-6">
-          <div className="p-6 rounded-[2rem] border bg-background space-y-6 shadow-sm">
-            <div className="space-y-1">
-              <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground/60 px-1">Resource Usage</h4>
-              <p className="text-[10px] text-muted-foreground px-1 font-medium italic">Based on your {subscription?.plan_name || 'Current'} Plan</p>
-            </div>
-
-            <div className="space-y-6">
-              {/* Restaurants Usage */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span>Restaurants</span>
-                  <span>
-                    {restaurants.length} / {subscription?.features?.max_restaurants === -1 ? '∞' : (subscription?.features?.max_restaurants || '—')}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-primary transition-all duration-1000" 
-                    style={{ 
-                      width: `${subscription?.features?.max_restaurants === -1 ? 0 : 
-                        Math.min(100, (restaurants.length / (subscription?.features?.max_restaurants || 1)) * 100)}%` 
-                    }} 
-                  />
-                </div>
+        {/* Intelligence Sidebar */}
+        <div className="space-y-8">
+           <Card className="p-10 rounded-[3rem] bg-card/40 backdrop-blur-3xl border border-border/50 space-y-8 shadow-2xl relative overflow-hidden">
+              <div className="space-y-2 relative z-10">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Registry Limits</h4>
+                <p className="text-[11px] text-muted-foreground font-medium italic underline decoration-primary/30 underline-offset-4">{subscription?.plan_name || 'Active'} Allocation Phase</p>
               </div>
 
-              {/* Categories Usage */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span>Categories</span>
-                  <span>
-                    {categories.length} / {subscription?.features?.max_categories === -1 ? '∞' : (subscription?.features?.max_categories || '—')}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-orange-500 transition-all duration-1000" 
-                    style={{ 
-                      width: `${subscription?.features?.max_categories === -1 ? 0 : 
-                        Math.min(100, (categories.length / (subscription?.features?.max_categories || 1)) * 100)}%` 
-                    }} 
-                  />
-                </div>
+              <div className="space-y-8 relative z-10">
+                 {/* Units Usage */}
+                 <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                       <div className="space-y-1">
+                          <p className="text-xs font-black text-foreground uppercase tracking-widest">Deployed Units</p>
+                          <p className="text-[10px] font-bold text-muted-foreground">{restaurants.length} OF {subscription?.features?.max_restaurants === -1 ? '∞' : (subscription?.features?.max_restaurants || '1')}</p>
+                       </div>
+                       <Sparkles className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                       <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${subscription?.features?.max_restaurants === -1 ? 0 : Math.min(100, (restaurants.length / (subscription?.features?.max_restaurants || 1)) * 100)}%` }}
+                          transition={{ duration: 1.5, ease: "easeOut" }}
+                          className="h-full bg-primary shadow-[0_0_10px_rgba(230,57,70,0.5)]" 
+                       />
+                    </div>
+                 </div>
+
+                 {/* Menu Items (Placeholder as per UX request) */}
+                 <div className="space-y-4 pt-4 border-t border-border/50">
+                    <div className="flex justify-between items-end">
+                       <div className="space-y-1">
+                          <p className="text-xs font-black text-foreground uppercase tracking-widest">Menu Registry</p>
+                          <p className="text-[10px] font-bold text-muted-foreground">1.2k ITEMS ALLOCATED</p>
+                       </div>
+                       <Layers className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                       <div className="h-full bg-foreground w-[65%]" />
+                    </div>
+                 </div>
               </div>
 
-              {/* Workers/Staff */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-bold">
-                  <span>Staff / Workers</span>
-                  <span>
-                    Limit: {subscription?.features?.max_staff_accounts === -1 ? '∞' : (subscription?.features?.max_staff_accounts || '—')}
-                  </span>
-                </div>
-                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-500 transition-all duration-1000" 
-                    style={{ 
-                      width: `${subscription?.features?.max_staff_accounts === -1 ? 0 : '10%' /* Decorative mock if unknown */}` 
-                    }} 
-                  />
-                </div>
+              <Button variant="outline" className="w-full h-14 rounded-2xl border-border/50 bg-muted/30 text-foreground font-black uppercase text-[10px] tracking-[0.2em] relative z-10 hover:bg-primary hover:text-white transition-all" asChild>
+                 <Link href="/packages">Modify Capacity Matrix</Link>
+              </Button>
+           </Card>
+
+           <div className="p-8 rounded-[2.5rem] bg-secondary/10 border border-secondary/20 space-y-4">
+              <div className="flex items-center gap-3 text-secondary">
+                 <Shield className="h-5 w-5" />
+                 <p className="text-[10px] font-black uppercase tracking-widest">Operational Security</p>
               </div>
-            </div>
-
-            <Button variant="outline" className="w-full rounded-2xl h-11 text-xs font-bold border-primary/20 text-primary hover:bg-primary/5 shadow-inner" asChild>
-              <Link href="/packages">Upgrade Capacity</Link>
-            </Button>
-          </div>
-
-          <div className="p-6 rounded-[2rem] bg-orange-500/5 border border-orange-200/50 space-y-3">
-             <div className="flex items-center gap-2 text-orange-700">
-                <Sparkles className="h-4 w-4" />
-                <p className="text-xs font-black uppercase tracking-tight">Pro Tip</p>
-             </div>
-             <p className="text-[11px] text-orange-800/70 font-medium leading-relaxed">
-                Unlimited categories are available in the <span className="font-bold">Gold Tier</span>. Manage multiple branches from a single dashboard.
-             </p>
-          </div>
+              <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                 Your unit deployments are encrypted and redundantly synchronized across our <span className="text-foreground italic">Charter Cloud</span> network. 
+              </p>
+           </div>
         </div>
       </div>
+
+      <AlertDialog open={!!deletingId} onOpenChange={val => { if(!val) setDeletingId(null); }}>
+        <AlertDialogContent className="bg-card border-border text-foreground rounded-[2.5rem] p-10">
+          <AlertDialogHeader className="mb-6">
+             <div className="h-16 w-16 bg-destructive/10 rounded-2xl flex items-center justify-center text-destructive mb-6">
+                <Trash2 className="h-8 w-8" />
+             </div>
+            <AlertDialogTitle className="text-3xl font-black italic font-serif">Decommission Unit?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground font-medium text-lg leading-relaxed">
+              Removing this establishment unit will permanently sever its menu registries and broadcast signal. This action is irreversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-4">
+            <AlertDialogCancel className="h-14 px-8 rounded-xl bg-muted border-border/50 text-foreground font-black uppercase text-[10px] tracking-widest">Keep Active</AlertDialogCancel>
+            <AlertDialogAction className="h-14 px-8 rounded-xl bg-destructive text-white font-black uppercase text-[10px] tracking-widest hover:bg-destructive/90 shadow-2xl shadow-destructive/20" onClick={handleDelete}>Decommission</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
+

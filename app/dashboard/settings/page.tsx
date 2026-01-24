@@ -19,7 +19,9 @@ import {
   Clock,
   LayoutGrid,
   Settings,
-  ChevronRight
+  ChevronRight,
+  Hotel,
+  Loader2
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -156,250 +158,224 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 pb-24">
-      {/* Header Section - Modern & Clean */}
-      <div className="space-y-4 text-center md:text-left">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-[0.2em]">
-          <Settings className="h-3 w-3" />
-          Workspace Configuration
+    <div className="max-w-6xl mx-auto space-y-16 pb-24">
+      {/* 1. OPERATIONAL CONTROL HEADER */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-8 border-b border-border/10">
+        <div className="space-y-4">
+          <Badge className="bg-primary/10 text-primary border border-primary/20 font-black text-[10px] uppercase tracking-[0.4em] px-5 py-2 rounded-full">
+            System Configuration
+          </Badge>
+          <h1 className="text-6xl font-black tracking-tighter text-foreground uppercase">
+            Command <span className="text-muted-foreground italic font-serif lowercase tracking-normal">settings</span>
+          </h1>
+          <p className="text-muted-foreground font-medium max-w-md text-lg italic serif leading-relaxed">
+            "Configure your operational identity and registry access protocols."
+          </p>
         </div>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b pb-8">
-          <div>
-            <h1 className="text-5xl font-black tracking-tighter text-foreground">Settings</h1>
-            <p className="text-muted-foreground text-lg font-medium mt-1">Manage your account preferences and billing subscription.</p>
-          </div>
-          {!isEditing && (
-            <Button 
-              onClick={() => setIsEditing(true)} 
-              className="rounded-full px-8 h-12 font-bold gap-2 transition-all hover:scale-105"
-            >
-              <Pencil className="h-4 w-4" />
-              Edit Account
-            </Button>
-          )}
-        </div>
+        
+        {!isEditing && (
+          <Button 
+            onClick={() => setIsEditing(true)} 
+            className="h-20 px-12 rounded-[2rem] bg-primary text-white font-black uppercase text-xs tracking-[0.3em] hover:scale-105 transition-all shadow-[0_25px_50px_-12px_rgba(230,57,70,0.5)]"
+          >
+            <Pencil className="h-5 w-5 mr-4" />
+            Modify Identity
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-12 lg:grid-cols-12">
-        {/* Main Content Area */}
-        <div className="lg:col-span-8 space-y-12">
-          
-          <section className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
-                <UserRound className="h-5 w-5" />
-              </div>
-              <h3 className="text-xl font-bold tracking-tight">Personal Identity</h3>
+        {/* Left Column: Personnel Identity */}
+        <div className="lg:col-span-7 space-y-16">
+          <section className="space-y-10">
+            <div className="flex items-center gap-4 px-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+              <h3 className="text-[11px] font-black uppercase tracking-[0.5em] text-muted-foreground">Operational Credentials</h3>
             </div>
 
-            <div className="grid gap-6">
-              {isEditing ? (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Full Name</Label>
+            {isEditing ? (
+              <Card className="bg-card/40 backdrop-blur-3xl border-border/10 rounded-[4rem] overflow-hidden border-2 shadow-3xl p-16 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                <div className="space-y-12">
+                  <div className="grid gap-10">
+                    <div className="space-y-4">
+                      <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Personnel Full Name</Label>
                       <Input
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="h-14 rounded-2xl border-2 focus:ring-primary/10 font-bold px-5"
-                        placeholder="Full Name"
+                        className="h-16 rounded-2xl border-border/10 bg-muted/30 font-black px-8 text-xl text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 transition-all border-2"
+                        placeholder="PROTOCOL NAME"
                         disabled={saving}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Email (Read-only)</Label>
-                      <Input value={email} disabled className="h-14 rounded-2xl bg-muted/30 border-dashed px-5 font-medium italic" />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                       <div className="space-y-4">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Comms Email</Label>
+                        <Input value={email} disabled className="h-16 rounded-2xl bg-muted/30 border-border/10 px-8 font-bold text-muted-foreground italic" />
+                      </div>
+                      <div className="space-y-4">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Signal Uplink (Phone)</Label>
+                        <Input
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="h-16 rounded-2xl border-border/10 bg-muted/30 font-black px-8 text-xl text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 transition-all border-2"
+                          placeholder="+251 ..."
+                          disabled={saving}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Phone Number</Label>
-                      <Input
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="h-14 rounded-2xl border-2 focus:ring-primary/10 font-bold px-5"
-                        placeholder="+251 ..."
-                        disabled={saving}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Role</Label>
-                      <Input value={role} disabled className="h-14 rounded-2xl bg-muted/30 border-dashed px-5 font-bold uppercase tracking-tighter" />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-end gap-3 pt-4">
-                    <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={saving} className="rounded-xl font-bold">
-                       Cancel
+
+                  <div className="flex items-center gap-6 pt-6">
+                    <Button variant="ghost" onClick={() => setIsEditing(false)} disabled={saving} className="h-16 flex-1 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
+                       Abort Changes
                     </Button>
-                    <Button onClick={handleSave} disabled={saving || !fullName.trim()} className="rounded-xl px-10 h-12 font-bold gap-2">
-                      {saving ? "Saving..." : <><Check className="h-4 w-4" /> Save Changes</>}
+                    <Button 
+                      onClick={handleSave} 
+                      disabled={saving || !fullName.trim()} 
+                      className="h-16 flex-[2] rounded-2xl bg-primary text-white font-black uppercase text-[10px] tracking-[0.3em] shadow-[0_20px_40px_-10px_rgba(230,57,70,0.4)] hover:scale-[1.02] transition-all"
+                    >
+                      {saving ? <Loader2 className="animate-spin h-5 w-5" /> : "Commit to Registry"}
                     </Button>
                   </div>
                 </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="p-6 rounded-3xl border bg-card/50 hover:bg-card transition-colors space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Legal Name</span>
-                    <p className="text-lg font-bold">{profile?.full_name || "—"}</p>
+              </Card>
+            ) : (
+              <div className="grid gap-8 md:grid-cols-2">
+                <div className="p-10 rounded-[3.5rem] border-2 border-border/10 bg-card/40 backdrop-blur-3xl hover:border-primary/30 transition-all group shadow-3xl">
+                  <div className="flex items-center gap-4 mb-6 opacity-30 group-hover:opacity-100 transition-opacity">
+                    <div className="h-1 w-12 bg-primary rounded-full" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-foreground">Full Name</span>
                   </div>
-                  <div className="p-6 rounded-3xl border bg-card/50 hover:bg-card transition-colors space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Email Address</span>
-                    <p className="text-lg font-bold truncate">{email}</p>
+                  <p className="text-3xl font-black text-foreground tracking-tighter uppercase leading-none">{profile?.full_name || "PROTOCOL ZERO"}</p>
+                </div>
+
+                <div className="p-10 rounded-[3.5rem] border-2 border-border/10 bg-card/40 backdrop-blur-3xl hover:border-primary/30 transition-all group shadow-3xl">
+                  <div className="flex items-center gap-4 mb-6 opacity-30 group-hover:opacity-100 transition-opacity">
+                    <div className="h-1 w-12 bg-primary rounded-full" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-foreground">Comms Uplink</span>
                   </div>
-                  <div className="p-6 rounded-3xl border bg-card/50 hover:bg-card transition-colors space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Phone Number</span>
-                    <p className="text-lg font-bold">{profile?.phone || "Not set"}</p>
+                  <p className="text-2xl font-black text-foreground tracking-tighter truncate leading-none">{email}</p>
+                </div>
+
+                <div className="p-10 rounded-[3.5rem] border-2 border-border/10 bg-card/40 backdrop-blur-3xl hover:border-primary/30 transition-all group shadow-3xl">
+                  <div className="flex items-center gap-4 mb-6 opacity-30 group-hover:opacity-100 transition-opacity">
+                    <div className="h-1 w-12 bg-primary rounded-full" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-foreground">Registry ID</span>
                   </div>
-                  <div className="p-6 rounded-3xl border bg-card/50 hover:bg-card transition-colors space-y-1">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Account Since</span>
-                    <p className="text-lg font-bold">
-                      {profile?.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : "—"}
-                    </p>
+                  <div className="flex items-center justify-between">
+                     <p className="text-2xl font-black text-foreground tracking-widest leading-none">#{profile?.id?.slice(0, 8).toUpperCase() || "UNASSIGNED"}</p>
+                     <Badge className="bg-primary/10 text-primary border border-primary/20 font-black text-[9px] px-3 uppercase tracking-widest">Active</Badge>
                   </div>
                 </div>
-              )}
-            </div>
+
+                <div className="p-10 rounded-[3.5rem] border-2 border-border/10 bg-card/40 backdrop-blur-3xl hover:border-primary/30 transition-all group shadow-3xl">
+                  <div className="flex items-center gap-4 mb-6 opacity-30 group-hover:opacity-100 transition-opacity">
+                    <div className="h-1 w-12 bg-primary rounded-full" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-foreground">Commencement</span>
+                  </div>
+                  <p className="text-2xl font-black text-foreground tracking-tighter leading-none italic serif lowercase">
+                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : "—"}
+                  </p>
+                </div>
+              </div>
+            )}
           </section>
 
-          <section className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <h3 className="text-xl font-bold tracking-tight">Security & Privacy</h3>
+          <section className="space-y-10">
+            <div className="flex items-center gap-4 px-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-secondary shadow-[0_0_15px_#22c55e]" />
+              <h3 className="text-[11px] font-black uppercase tracking-[0.5em] text-muted-foreground">Security Topology</h3>
             </div>
-            <div className="p-8 rounded-3xl border bg-card/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-1">
-                <p className="font-bold">Password Management</p>
-                <p className="text-sm text-muted-foreground">It is a good idea to update your password regularly.</p>
-              </div>
-              <Button variant="outline" className="rounded-2xl font-bold px-6">Change Password</Button>
-            </div>
+
+            <Card className="bg-card/40 backdrop-blur-3xl border-border/10 rounded-[4rem] p-12 border-2 shadow-2xl group hover:border-primary/20 transition-all relative overflow-hidden">
+               <div className="absolute top-0 right-0 h-48 w-48 bg-primary/5 blur-[80px] rounded-full" />
+               <div className="flex flex-col md:flex-row md:items-center justify-between gap-10 relative z-10">
+                  <div className="space-y-4">
+                     <h4 className="text-3xl font-black text-foreground uppercase tracking-tighter">Credential Rotation</h4>
+                     <p className="text-muted-foreground text-lg font-medium italic serif max-w-sm leading-relaxed">"Rotate your cryptographic access keys periodically to maintain operational security."</p>
+                  </div>
+                  <Button variant="ghost" className="h-20 px-12 rounded-[2rem] bg-muted/30 border border-border/10 font-black uppercase text-xs tracking-[0.3em] text-muted-foreground hover:bg-primary hover:text-white transition-all">
+                     Initialize Reset
+                  </Button>
+               </div>
+            </Card>
           </section>
         </div>
 
-        {/* Sidebar Info */}
-        <div className="lg:col-span-4 space-y-8">
-           <Card className="rounded-[2.5rem] border-none bg-gradient-to-b from-primary to-primary/80 text-primary-foreground shadow-2xl shadow-primary/20 overflow-hidden relative">
-              <div className="absolute top-0 right-0 p-4 opacity-10">
-                <Sparkles className="h-24 w-24" />
-              </div>
-              <CardHeader className="relative z-10">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-2xl font-black italic tracking-tight">Subscription</CardTitle>
-                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                    <Sparkles className="h-4 w-4 text-white" />
+        {/* Right Column: Tier Matrix */}
+        <div className="lg:col-span-5 space-y-16">
+          <section className="space-y-10">
+            <div className="flex items-center gap-4 px-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+              <h3 className="text-[11px] font-black uppercase tracking-[0.5em] text-muted-foreground">Operational Tier</h3>
+            </div>
+
+            <Card className="bg-card border-2 border-primary/20 rounded-[4.5rem] p-16 relative overflow-hidden shadow-3xl group">
+               <div className="absolute top-0 right-0 h-80 w-80 bg-primary/10 blur-[120px] rounded-full group-hover:bg-primary/20 transition-all duration-1000" />
+               <div className="relative z-10 text-center space-y-12">
+                  <Badge className="bg-primary text-white font-black text-[10px] uppercase tracking-[0.5em] px-10 py-3 rounded-full shadow-[0_15px_30px_rgba(230,57,70,0.5)]">
+                    {subscription?.plan_name.toUpperCase() || "TRIAL NODE"}
+                  </Badge>
+                  
+                  <div className="space-y-2">
+                     <h4 className="text-4xl font-black text-foreground uppercase leading-none tracking-tighter">System Access</h4>
+                     <div className="flex items-baseline justify-center gap-2">
+                        <span className="text-7xl font-black text-foreground italic serif">{subscription?.currency === "EUR" ? "€" : "$"}{subscription?.price || "0"}</span>
+                        <span className="text-muted-foreground font-black uppercase text-[10px] tracking-widest mb-4">/ cycle</span>
+                     </div>
                   </div>
-                </div>
-                <CardDescription className="text-primary-foreground/70 font-bold uppercase tracking-widest text-[10px]">Your Growth Engine</CardDescription>
-              </CardHeader>
-              <CardContent className="relative z-10 space-y-8">
-                 <div className="space-y-2">
-                    <p className="text-5xl font-black tracking-tighter italic">{getPlanName()}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md px-3 py-1 font-bold uppercase tracking-wider text-[10px]">
-                        {subscription?.status || (subscription ? "Active" : "Trial")}
-                      </Badge>
-                      {subscription && (
-                        <div className="text-[10px] font-bold text-white/70 uppercase tracking-widest">
-                           {subscription.days_remaining} Days Left
-                        </div>
-                      )}
-                    </div>
-                 </div>
 
-                 <div className="space-y-3">
-                   {subscription?.start_date && (
-                     <div className="flex items-center gap-3 bg-black/10 rounded-2xl p-4 transition-colors hover:bg-black/20">
-                        <CalendarDays className="h-5 w-5 text-primary-foreground/50" />
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/50">Activated On</p>
-                          <p className="text-sm font-bold">{new Date(subscription.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                        </div>
-                     </div>
-                   )}
-
-                 {subscription?.end_date && (
-                   <div className="space-y-3">
-                     <div className="flex items-center gap-3 bg-black/10 rounded-2xl p-4 transition-colors hover:bg-black/20">
-                        <Clock className="h-5 w-5 text-primary-foreground/50" />
-                        <div className="flex-1">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-primary-foreground/50">Renews on</p>
-                          <p className="text-sm font-bold">{new Date(subscription.end_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                        </div>
-                     </div>
-                     
-                     {/* Expiration Progress & Warning */}
-                     <div className="space-y-2 px-1">
-                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter text-white/50">
-                           <span>Cycle Progress</span>
-                           <span>{subscription.days_remaining} Days Remaining</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-black/20 rounded-full overflow-hidden">
-                           <div 
-                             className={`h-full transition-all duration-1000 ${subscription.days_remaining <= 5 ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-white'}`}
-                             style={{ width: `${Math.max(5, Math.min(100, (subscription.days_remaining / 31) * 100))}%` }}
-                           />
-                        </div>
-                        {subscription.days_remaining <= 5 && (
-                          <div className="mt-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex gap-3 items-start animate-pulse">
-                             <Shield className="h-4 w-4 text-red-500 mt-0.5" />
-                             <div className="space-y-1">
-                                <p className="text-xs font-black text-red-500 uppercase tracking-tight">Immediate Action Required</p>
-                                <p className="text-[10px] font-medium text-red-500/80 leading-tight">
-                                   Your subscription expires in {subscription.days_remaining} days. Renew now to avoid interruption of your digital menu services.
-                                </p>
+                  <div className="space-y-8 pt-10 border-t border-border/10">
+                     {[
+                       { icon: Hotel, label: "Registry Nodes", value: subscription?.features.max_restaurants || 1 },
+                       { icon: LayoutGrid, label: "Asset Classes", value: subscription?.features.max_categories || 10 },
+                       { icon: Sparkles, label: "Culinary Assets", value: subscription?.features.max_menu_items || 50 }
+                     ].map((stat, i) => (
+                       <div key={i} className="flex items-center justify-between group/stat">
+                          <div className="flex items-center gap-4">
+                             <div className="h-12 w-12 rounded-2xl bg-muted/30 border border-border/10 flex items-center justify-center group-hover/stat:bg-primary transition-all">
+                                <stat.icon className="h-6 w-6 text-muted-foreground group-hover/stat:text-white" />
                              </div>
+                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-hover/stat:text-foreground transition-colors">{stat.label}</span>
                           </div>
-                        )}
+                          <span className="text-2xl font-black text-foreground italic serif">{stat.value}</span>
+                       </div>
+                     ))}
+                  </div>
+
+                  <div className="pt-6 space-y-6">
+                     <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">
+                        <span>Cycle Health</span>
+                        <span className="text-secondary">{subscription?.days_remaining || 0} cycles left</span>
                      </div>
-                   </div>
-                 )}
+                     <div className="h-4 w-full bg-muted/30 rounded-full overflow-hidden border border-border/10 p-1">
+                        <div 
+                          className="h-full rounded-full bg-gradient-to-r from-primary via-orange-500 to-red-600 shadow-[0_0_20px_rgba(230,57,70,0.6)]" 
+                          style={{ width: `${Math.min(100, (subscription?.days_remaining || 0) / 30 * 100)}%` }} 
+                        />
+                     </div>
+                  </div>
+
+                  <Button className="w-full h-24 rounded-[2.5rem] border-2 border-border/10 bg-transparent text-foreground font-black uppercase text-xs tracking-[0.5em] group/btn hover:bg-foreground hover:text-background transition-all" asChild>
+                     <Link href="/packages" className="flex items-center justify-center gap-4">
+                       Scale Network <ArrowUpRight className="h-6 w-6 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-all" />
+                     </Link>
+                  </Button>
                </div>
+            </Card>
 
-               {subscription?.features && (
-                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-white/40 uppercase">Restaurants</p>
-                      <p className="text-sm font-bold">{subscription.features.max_restaurants === -1 ? 'Unlimited' : `Max ${subscription.features.max_restaurants}`}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-white/40 uppercase">Categories</p>
-                      <p className="text-sm font-bold">{subscription.features.max_categories === -1 ? 'Unlimited' : `Max ${subscription.features.max_categories}`}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-white/40 uppercase">Menu Items</p>
-                      <p className="text-sm font-bold">{subscription.features.max_menu_items === -1 ? 'Unlimited' : `Max ${subscription.features.max_menu_items}`}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-bold text-white/40 uppercase">Staff</p>
-                      <p className="text-sm font-bold">{subscription.features.max_staff_accounts === -1 ? 'Unlimited' : `Max ${subscription.features.max_staff_accounts}`}</p>
-                    </div>
-                 </div>
-               )}
-
-                 <Button className="w-full bg-white text-primary hover:bg-gray-100 rounded-2xl h-14 font-black uppercase tracking-widest text-xs shadow-xl group" asChild>
-                    <Link href="/packages" className="flex items-center justify-center gap-2">
-                      Upgrade My Tier
-                      <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-                    </Link>
-                 </Button>
-              </CardContent>
-           </Card>
-
-           <div className="p-8 rounded-[2.5rem] bg-muted/30 border border-dashed border-muted-foreground/20 space-y-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
-                <LayoutGrid className="h-6 w-6 text-primary" />
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-bold">Advanced Features</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">Unlock multi-restaurant management, staff permissions, and priority support in the Gold Tier.</p>
-              </div>
-              <Link href="/packages" className="text-sm font-black text-primary hover:underline inline-flex items-center gap-1 group">
-                View all pricing details 
-                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-           </div>
+            <div className="p-12 rounded-[4rem] bg-card/40 border border-border/10 backdrop-blur-3xl relative overflow-hidden group">
+               <div className="absolute top-0 right-0 h-32 w-32 bg-secondary/5 blur-[50px] rounded-full" />
+               <div className="flex items-center gap-4 text-secondary mb-6 relative z-10">
+                  <Clock className="h-6 w-6" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.5em]">Temporal Sync</span>
+               </div>
+               <p className="text-lg text-muted-foreground font-medium leading-relaxed relative z-10 italic serif">
+                  Your next architectural synchronization initiates on <span className="text-foreground font-bold">{subscription?.end_date ? new Date(subscription.end_date).toLocaleDateString() : 'N/A'}</span>. Maintain signal integrity.
+               </p>
+            </div>
+          </section>
         </div>
       </div>
     </div>

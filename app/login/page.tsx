@@ -3,11 +3,11 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { signIn } from "next-auth/react"
-import { Coffee, Eye, EyeOff } from "lucide-react"
+import { Coffee, Eye, EyeOff, ChefHat, Sparkles, ArrowLeft, Loader2, UtensilsCrossed } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FormEvent, useEffect, useState } from "react"
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [remember, setRemember] = useState(false)
   const [savedEmail, setSavedEmail] = useState("")
+  const [errorShake, setErrorShake] = useState(false)
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("rememberEmail")
@@ -27,6 +28,12 @@ export default function LoginPage() {
       setRemember(true)
     }
   }, [])
+
+  const triggerShake = () => {
+    setErrorShake(true)
+    setTimeout(() => setErrorShake(false), 500)
+  }
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
@@ -50,20 +57,22 @@ export default function LoginPage() {
         throw new Error("Unable to sign in right now. Please try again.")
       }
       if (res.error || !res.ok) {
+        triggerShake()
         const description =
           res.error === "CredentialsSignin" || res.status === 401
-            ? "Invalid email or password."
-            : res.error || "Unable to sign in. Please try again."
-        toast({ title: "Could not sign in", description, variant: "destructive" })
+            ? "We couldn't find a matching account. Please double-check your recipe (credentials)."
+            : res.error || "Something went wrong in the kitchen. Please try again."
+        toast({ title: "Check your ingredients", description, variant: "destructive" })
         return
       }
 
-      toast({ title: "Welcome back", description: "Redirecting to your dashboard." })
+      toast({ title: "Welcome back!", description: "We're setting your table in the dashboard." })
       router.push(res.url || "/dashboard")
     } catch (err: any) {
+      triggerShake()
       toast({
         title: "Sign-in error",
-        description: err?.message || "Please verify your credentials and try again.",
+        description: err?.message || "Please verify your details and try again.",
         variant: "destructive",
       })
     } finally {
@@ -72,86 +81,166 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary/30 p-4 font-sans relative overflow-hidden">
-      {/* Decorative background element */}
-      <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-primary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 font-sans relative overflow-hidden selection:bg-primary/30">
+      {/* LUXURY BACKGROUND RADIALS */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(230,57,70,0.08),transparent_70%)]" />
+        <div className="absolute -top-[10%] -right-[10%] w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute -bottom-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-secondary/5 blur-[120px]" />
+      </div>
 
-      <Card className="w-full max-w-md bg-white/80 backdrop-blur-md border-primary/10 shadow-xl relative z-10">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="rounded-2xl bg-primary/10 p-3 text-primary border border-primary/20">
-              <Coffee className="h-8 w-8" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ 
+          opacity: 1, 
+          scale: 1, 
+          y: 0,
+          x: errorShake ? [0, -10, 10, -10, 10, 0] : 0
+        }}
+        transition={{ 
+          duration: 0.8, 
+          ease: [0.22, 1, 0.36, 1],
+          x: { duration: 0.4, ease: "easeInOut" }
+        }}
+        className="w-full max-w-xl relative z-10"
+      >
+        <div className="mb-8 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-bold text-xs uppercase tracking-[0.2em] group">
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </Link>
+          <div className="h-px flex-1 bg-border mx-6" />
+        </div>
+
+        <div className="bg-card/40 backdrop-blur-3xl border border-border rounded-[3rem] p-8 md:p-14 shadow-2xl">
+          <header className="mb-12 text-center">
+            <motion.div 
+               initial={{ rotate: -10, scale: 0.8 }}
+               animate={{ rotate: 0, scale: 1 }}
+               className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-primary shadow-2xl shadow-primary/40 mb-8"
+            >
+              <ChefHat className="h-10 w-10 text-white" />
+            </motion.div>
+            <h1 className="text-4xl md:text-5xl font-serif text-foreground tracking-tight mb-4">Welcome back 👋</h1>
+            <p className="text-muted-foreground text-lg font-medium">
+              Good to see you again. Let’s get you back to your menus.
+            </p>
+          </header>
+
+          <form className="space-y-8" onSubmit={handleSubmit}>
+            <div className="space-y-6">
+              <div className="group relative">
+                <Label htmlFor="email" className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground group-focus-within:text-primary transition-colors ml-1 mb-3 block">
+                  Culinarian Identity (Email)
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="headchef@menuvista.com"
+                    defaultValue={savedEmail}
+                    required
+                    className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-6 text-lg transition-all"
+                  />
+                  <div className="absolute inset-y-0 right-6 flex items-center text-muted-foreground/30 group-focus-within:text-primary/10 transition-colors">
+                     <UtensilsCrossed className="h-6 w-6" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="group relative">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <Label htmlFor="password" className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground group-focus-within:text-primary transition-colors">
+                    The Secret Key (Password)
+                  </Label>
+                  <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors">
+                    Forgot Key?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-6 pr-14 text-lg transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-5 flex items-center text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-          <CardTitle className="text-3xl font-serif text-primary tracking-tight">Welcome back</CardTitle>
-          <CardDescription className="text-muted-foreground/80 font-medium">
-            Enter your credentials to manage your digital oasis
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-5">
-          <form className="grid gap-5" onSubmit={handleSubmit}>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="owner@hotel.com"
-                defaultValue={savedEmail}
-                required
+
+            <div className="flex items-center gap-3 px-1">
+              <Checkbox 
+                id="remember" 
+                checked={remember} 
+                onCheckedChange={(v) => setRemember(Boolean(v))}
+                className="h-5 w-5 rounded-md border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
               />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link href="#" className="text-xs text-primary hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  className="pr-12"
-                />
-                <button
-                  type="button"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute inset-y-0 right-3 flex items-center text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Checkbox id="remember" checked={remember} onCheckedChange={(v) => setRemember(Boolean(v))} />
-              <Label htmlFor="remember" className="cursor-pointer text-sm">
-                Remember me on this device
+              <Label htmlFor="remember" className="cursor-pointer text-sm font-bold text-muted-foreground hover:text-foreground transition-colors">
+                Keep me at this station
               </Label>
             </div>
+
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 text-lg font-medium shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-[0.98]"
+              className="w-full h-18 rounded-2xl bg-primary text-xl font-bold text-white shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 border-none group overflow-hidden relative"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              <AnimatePresence mode="wait">
+                {loading ? (
+                  <motion.div 
+                    key="loading"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center gap-3"
+                  >
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    Preparing your table...
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="ready"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex items-center gap-3"
+                  >
+                    Enter Main Kitchen
+                    <Sparkles className="h-5 w-5 fill-white group-hover:rotate-12 transition-transform" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </Button>
           </form>
-        </CardContent>
-        <CardFooter className="flex flex-wrap items-center justify-center gap-1 text-sm text-muted-foreground pt-2">
-          New here?{" "}
-          <Link
-            href="/register"
-            className="text-primary font-semibold hover:text-primary/80 transition-colors underline-offset-4 hover:underline"
-          >
-            Create an establishment account
-          </Link>
-        </CardFooter>
-      </Card>
+
+          <footer className="mt-12 text-center space-y-4">
+             <div className="text-muted-foreground text-sm font-medium">
+               First time in our kitchen?{" "}
+               <Link
+                 href="/register"
+                 className="text-primary font-black uppercase tracking-widest text-[11px] hover:underline underline-offset-8 transition-all"
+               >
+                 Register Your Establishment account
+               </Link>
+             </div>
+          </footer>
+        </div>
+
+        <div className="mt-12 flex justify-center gap-8 opacity-20 hover:opacity-100 transition-opacity">
+           <div className="h-1.5 w-1.5 rounded-full bg-white" />
+           <div className="h-1.5 w-1.5 rounded-full bg-white" />
+           <div className="h-1.5 w-1.5 rounded-full bg-white" />
+        </div>
+      </motion.div>
     </div>
   )
 }

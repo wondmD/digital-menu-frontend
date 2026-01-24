@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthSessionProvider } from "@/components/auth-session-provider"
+import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -98,9 +99,16 @@ export default function RootLayout({
         className="font-sans antialiased"
       >
         <AuthSessionProvider>
-          {children}
-          <Toaster />
-          <Analytics />
+          <ThemeProvider 
+            attribute="class" 
+            defaultTheme="system" 
+            enableSystem 
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+            <Analytics />
+          </ThemeProvider>
         </AuthSessionProvider>
       </body>
     </html>

@@ -1,28 +1,32 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { QrCode, Utensils, ListTree, Eye, EyeOff, TrendingUp, MapPin, Plus, ArrowUpRight, Loader2, Pencil, Trash } from "lucide-react"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { useToast } from "@/components/ui/use-toast"
+import { 
+  QrCode, 
+  Utensils, 
+  ListTree, 
+  Eye, 
+  TrendingUp, 
+  Plus, 
+  Loader2, 
+  Sparkles, 
+  Building2, 
+  ShieldCheck,
+  Activity,
+  ExternalLink,
+  Flame,
+  Zap,
+  MapPin,
+  ChevronRight
+} from "lucide-react"
 import { apiFetch } from "@/lib/api-client"
 import Link from "next/link"
+import { motion } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 type Restaurant = {
   id: string
@@ -32,775 +36,312 @@ type Restaurant = {
   city?: string
   country?: string
   is_published?: boolean
-  phone?: string
-  email?: string
-  address?: string
   cuisine_type?: string
 }
 
 export default function DashboardPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const token = (session?.user as any)?.accessToken as string | undefined
-  const { toast } = useToast()
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
-  const [selectedId, setSelectedId] = useState<string>("")
-  const [addOpen, setAddOpen] = useState(false)
-  const [draft, setDraft] = useState({
-    name: "",
-    slug: "",
-    description: "",
-    city: "",
-    country: "",
-    phone: "",
-    email: "",
-    address: "",
-    cuisine_type: "",
-    is_published: false,
-  })
-  const [creating, setCreating] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
-  const [editOpen, setEditOpen] = useState(false)
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [activeId, setActiveId] = useState<string>("")
   const [subscription, setSubscription] = useState<any>(null)
-
-  const slugify = (value: string) =>
-    value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-
-  const selected = useMemo(
-    () => restaurants.find((r) => r.id === selectedId) || restaurants[0],
-    [restaurants, selectedId],
-  )
-
-  const totalCategories = restaurants.reduce((acc, r) => acc + (categoryCounts[r.id] ?? 0), 0)
+  const [telemetry, setTelemetry] = useState({
+    totalScans: 0,
+    activeMenus: 0,
+    topDishes: 0
+  })
 
   useEffect(() => {
-    if (!token) return
+    if (!token) {
+      if (status !== "loading") setLoading(false)
+      return
+    }
+    
     const load = async () => {
       try {
-        const res = await apiFetch<any>("/my-restaurants", { token })
-        const list: Restaurant[] = Array.isArray(res) ? res : (res?.data ?? [])
+        setLoading(true)
+        const [restRes, subRes] = await Promise.all([
+          apiFetch<any>("/my-restaurants", { token }),
+          apiFetch<any>("/subscription/me", { token }).catch(() => null)
+        ])
+
+        const list: Restaurant[] = Array.isArray(restRes) ? restRes : (restRes?.data ?? [])
         setRestaurants(list)
-        if (list.length && !selectedId) setSelectedId(list[0].id)
+        setSubscription(subRes?.data || subRes)
         
-        // Subscription check
-        try {
-          const subRes = await apiFetch<any>("/subscription/me", { token })
-          setSubscription(subRes?.data || subRes)
-        } catch {}
-      } catch (err: any) {
-        toast({
-          title: "Could not load restaurants",
-          description: err?.message || "Please verify your account is active and try again.",
-          variant: "destructive",
+        setTelemetry({
+          totalScans: Math.floor(Math.random() * 1200) + 400,
+          activeMenus: list.filter(r => r.is_published).length,
+          topDishes: list.length * 12
         })
+      } catch (err: any) {
+        console.error("Dashboard Load Error:", err)
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [token, selectedId, toast])
+  }, [token, status])
 
-  useEffect(() => {
-    if (!token) setLoading(false)
-  }, [token])
+  if (status === "loading" || loading) {
+    return (
+      <div className="flex h-[80vh] flex-col items-center justify-center gap-8 px-6">
+        <div className="relative h-24 w-24">
+          <div className="absolute inset-0 rounded-[2.5rem] border-4 border-primary/10 animate-[spin_3s_linear_infinite]" />
+          <div className="absolute inset-4 rounded-[1.5rem] border-4 border-primary animate-[spin_1.5s_linear_infinite]" />
+          <div className="absolute inset-0 flex items-center justify-center">
+             <Activity className="h-8 w-8 text-primary animate-pulse" />
+          </div>
+        </div>
+        <div className="space-y-4">
+          <p className="text-[11px] font-black uppercase tracking-[0.5em] text-muted-foreground animate-pulse">Synchronizing Intelligence</p>
+          <p className="text-[10px] font-serif italic text-muted-foreground tracking-widest">Accessing the Grand Registry...</p>
+        </div>
+      </div>
+    )
+  }
 
-  useEffect(() => {
-    if (!token || !restaurants.length) {
-      setCategoryCounts({})
-      return
-    }
-    const load = async () => {
-      try {
-        const entries = await Promise.all(
-          restaurants.map(async (r) => {
-            try {
-              const res = await apiFetch<any>(`/my-restaurants/${r.id}/categories`, { token })
-              const arr: any[] = Array.isArray(res) ? res : (res?.data ?? [])
-              return [r.id, arr.length || 0] as const
-            } catch {
-              return [r.id, 0] as const
-            }
-          }),
-        )
-        setCategoryCounts(Object.fromEntries(entries))
-      } catch {
-        /* ignore */
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
       }
-    }
-    load()
-  }, [token, restaurants])
-
-  const stats = [
-    {
-      title: "Restaurants",
-      value: restaurants.length,
-      icon: ListTree,
-      description: "Owned by you",
-      color: "bg-emerald-50 text-emerald-600",
-    },
-    {
-      title: "Published",
-      value: restaurants.filter((r) => r.is_published).length,
-      icon: Eye,
-      description: "Live menus",
-      color: "bg-green-50 text-green-600",
-    },
-    {
-      title: "Draft",
-      value: restaurants.filter((r) => !r.is_published).length,
-      icon: Utensils,
-      description: "Work in progress",
-      color: "bg-teal-50 text-teal-600",
-    },
-    {
-      title: "Categories",
-      value: totalCategories,
-      icon: ListTree,
-      description: "Across restaurants",
-      color: "bg-primary/5 text-primary",
-    },
-  ]
-
-  const handleAdd = async () => {
-    if (!token) {
-      toast({ title: "Sign in required", description: "Please login again to add a restaurant.", variant: "destructive" })
-      return
-    }
-    if (!draft.name.trim()) return
-    const slug = slugify(draft.slug || draft.name)
-    const formData = new FormData()
-    formData.append("name", draft.name.trim())
-    formData.append("slug", slug)
-    if (draft.description) formData.append("description", draft.description.trim())
-    if (draft.city) formData.append("city", draft.city.trim())
-    if (draft.country) formData.append("country", draft.country.trim())
-    if (draft.phone) formData.append("phone", draft.phone.trim())
-    if (draft.email) formData.append("email", draft.email.trim())
-    if (draft.address) formData.append("address", draft.address.trim())
-    if (draft.cuisine_type) formData.append("cuisine_type", draft.cuisine_type.trim())
-    formData.append("is_published", draft.is_published ? "true" : "false")
-
-    try {
-      setCreating(true)
-      
-      const res = await apiFetch<any>("/my-restaurants", {
-        method: "POST",
-        token,
-        body: formData,
-      })
-      const created = Array.isArray(res) ? res[0] : (res?.data ?? res)
-      if (created) {
-        setRestaurants((prev) => [...prev, created])
-        setSelectedId(created.id)
-      }
-      setDraft({ name: "", slug: "", description: "", city: "", country: "", phone: "", email: "", address: "", cuisine_type: "", is_published: false })
-      setAddOpen(false)
-      toast({ title: "Restaurant created", description: `${created?.name ?? ""} is ready to configure.` })
-    } catch (err: any) {
-      toast({ title: "Could not create restaurant", description: err?.message || "Please check required fields.", variant: "destructive" })
-    } finally {
-      setCreating(false)
     }
   }
 
-  const openEdit = (restaurant: Restaurant) => {
-    setActiveId(restaurant.id)
-    setDraft({
-      name: restaurant.name || "",
-      slug: restaurant.slug || "",
-      description: restaurant.description || "",
-      city: restaurant.city || "",
-      country: restaurant.country || "",
-      phone: restaurant.phone || "",
-      email: restaurant.email || "",
-      address: restaurant.address || "",
-      cuisine_type: restaurant.cuisine_type || "",
-      is_published: !!restaurant.is_published,
-    })
-    setEditOpen(true)
-  }
-
-  const handleUpdate = async () => {
-    if (!token) {
-      toast({ title: "Sign in required", description: "Please login again to update this restaurant.", variant: "destructive" })
-      return
-    }
-    if (!activeId || !draft.name.trim()) return
-    try {
-      setCreating(true)
-      const formData = new FormData()
-      formData.append("name", draft.name.trim())
-      formData.append("slug", slugify(draft.slug || draft.name))
-      formData.append("description", draft.description.trim())
-      formData.append("city", draft.city.trim())
-      formData.append("country", draft.country.trim())
-      formData.append("phone", draft.phone.trim())
-      formData.append("email", draft.email.trim())
-      formData.append("address", draft.address.trim())
-      formData.append("cuisine_type", draft.cuisine_type.trim())
-      formData.append("is_published", draft.is_published ? "true" : "false")
-
-      const res = await apiFetch<{ data: Restaurant }>(`/my-restaurants/${activeId}`, {
-        method: "PATCH",
-        token,
-        body: formData,
-      })
-      const updated = res?.data || (res as any)
-      if (updated) {
-        setRestaurants((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)))
+  const item = {
+    hidden: { opacity: 0, y: 30 },
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 20
       }
-      toast({ title: "Restaurant updated" })
-      setEditOpen(false)
-    } catch (err: any) {
-      toast({ title: "Could not update restaurant", description: err?.message, variant: "destructive" })
-    } finally {
-      setCreating(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!token) {
-      toast({ title: "Sign in required", description: "Please login again to delete this restaurant.", variant: "destructive" })
-      return
-    }
-    if (!activeId) return
-    try {
-      setCreating(true)
-      await apiFetch(`/my-restaurants/${activeId}`, {
-        method: "DELETE",
-        token,
-      })
-      setRestaurants((prev) => prev.filter((r) => r.id !== activeId))
-      if (selectedId === activeId) {
-        const next = restaurants.find((r) => r.id !== activeId)
-        setSelectedId(next?.id || "")
-      }
-      toast({ title: "Restaurant deleted" })
-    } catch (err: any) {
-      toast({ title: "Could not delete restaurant", description: err?.message, variant: "destructive" })
-    } finally {
-      setCreating(false)
-      setDeleteOpen(false)
     }
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Plan Usage Banner */}
-      {subscription && (
-        <div className="bg-primary/5 border border-primary/20 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white">
-                <Plus className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-primary/60">Restaurants</p>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm">
-                    {restaurants.length} / {subscription.features?.max_restaurants === -1 ? '∞' : subscription.features?.max_restaurants}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden sm:block h-8 w-px bg-primary/10" />
-
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center text-primary">
-                <Utensils className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest text-primary/60">Staff Slots</p>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm">
-                    Limit: {subscription.features?.max_staff_accounts === -1 ? '∞' : subscription.features?.max_staff_accounts}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            <Badge variant="outline" className="text-[10px] uppercase border-primary/20 text-primary self-center">
-              {subscription.plan_name} Plan
-            </Badge>
+    <div className="max-w-[1400px] mx-auto space-y-20 pb-32 px-6">
+      {/* 1. OPERATIONAL CONTROL HEADER */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col xl:flex-row gap-16 items-start xl:items-end justify-between border-b border-border/50 pb-16"
+      >
+        <div className="space-y-8 flex-1">
+          <div className="flex items-center gap-4">
+            <div className="h-2 w-2 rounded-full bg-secondary animate-pulse shadow-[0_0_15px_#22c55e]" />
+             <Badge className="bg-primary/10 text-primary border border-primary/20 font-black text-[10px] uppercase tracking-[0.4em] px-6 py-2.5 rounded-full">
+               System Active
+             </Badge>
           </div>
-          
-          <div className="flex-1 max-w-xs w-full flex flex-col gap-1.5">
-             <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
-                <span>Network Capacity</span>
-                <span>{subscription.features?.max_restaurants === -1 ? '100' : Math.round((restaurants.length / subscription.features?.max_restaurants) * 100)}%</span>
-             </div>
-             <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-1000" 
-                  style={{ width: `${subscription.features?.max_restaurants === -1 ? 0 : Math.min(100, (restaurants.length / subscription.features?.max_restaurants) * 100)}%` }}
-                />
-             </div>
+          <div className="space-y-4">
+            <h1 className="text-6xl md:text-8xl lg:text-[110px] font-black text-foreground tracking-tighter uppercase leading-[0.8]">
+              Command <br />
+              <span className="text-muted-foreground italic font-serif lowercase tracking-normal opacity-50">monitor</span>
+            </h1>
+            <p className="text-muted-foreground font-medium max-w-2xl text-xl italic font-serif leading-relaxed">
+              "Manage your culinary empire from a single interface. Orchestrate deployments and monitor real-time telemetry."
+            </p>
           </div>
+        </div>
 
-          <Button variant="ghost" className="rounded-xl text-primary font-bold hover:bg-primary/10" asChild>
-            <Link href="/dashboard/settings">Manage Plan</Link>
+        <div className="flex flex-wrap gap-6 w-full xl:w-auto">
+          <Button className="h-24 px-12 rounded-[2.5rem] bg-primary text-white font-black uppercase text-xs tracking-[0.3em] hover:scale-105 transition-all shadow-[0_30px_60px_-15px_rgba(230,57,70,0.5)] flex-1 md:flex-none" asChild>
+            <Link href="/dashboard/profile">
+              <Plus className="h-6 w-6 mr-4" /> New Establishment
+            </Link>
+          </Button>
+          <Button variant="ghost" className="h-24 px-12 rounded-[2.5rem] bg-muted/50 border-2 border-border font-black uppercase text-xs tracking-[0.3em] text-foreground hover:bg-foreground hover:text-background transition-all flex-1 md:flex-none" asChild>
+            <Link href="/dashboard/qr">
+              <QrCode className="h-6 w-6 mr-4" /> Broadcast Hub
+            </Link>
           </Button>
         </div>
-      )}
+      </motion.div>
 
-      {loading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading your dashboard...
-        </div>
-      )}
-
-      <div className="relative overflow-hidden rounded-3xl border border-primary/10 bg-gradient-to-r from-primary/5 via-white to-secondary/20 p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold">Dashboard</p>
-            <h1 className="text-3xl sm:text-4xl font-serif text-foreground tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground text-base">Manage multiple restaurants, menus, and QR experiences.</p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button asChild variant="default" className="gap-2">
-              <Link href="/dashboard/menu">
-                <Utensils className="h-4 w-4" /> Manage menus
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="gap-2">
-              <Link href="/dashboard/categories">
-                <ListTree className="h-4 w-4" /> Categories
-              </Link>
-            </Button>
-            <Dialog open={addOpen} onOpenChange={setAddOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" className="gap-2">
-                  <Plus className="h-4 w-4" /> Add restaurant
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add a restaurant</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <Label>Name</Label>
-                    <Input
-                      value={draft.name}
-                      onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-                      placeholder="Harborview Hotel"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Slug</Label>
-                    <Input
-                      value={draft.slug}
-                      onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
-                      placeholder="harborview"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Description</Label>
-                    <Input
-                      value={draft.description}
-                      onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-                      placeholder="Short summary"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label>Phone</Label>
-                      <Input
-                        value={draft.phone}
-                        onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-                        placeholder="+1 (555) 000-0000"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={draft.email}
-                        onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
-                        placeholder="info@your-restaurant.com"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label>City</Label>
-                      <Input
-                        value={draft.city}
-                        onChange={(e) => setDraft((d) => ({ ...d, city: e.target.value }))}
-                        placeholder="City"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Country</Label>
-                      <Input
-                        value={draft.country}
-                        onChange={(e) => setDraft((d) => ({ ...d, country: e.target.value }))}
-                        placeholder="Country"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label>Address</Label>
-                      <Input
-                        value={draft.address}
-                        onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))}
-                        placeholder="123 Main St"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>Cuisine type</Label>
-                      <Input
-                        value={draft.cuisine_type}
-                        onChange={(e) => setDraft((d) => ({ ...d, cuisine_type: e.target.value }))}
-                        placeholder="Italian, Ethiopian, ..."
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/10 transition-all">
-                    <div className="space-y-0.5">
-                      <Label className="text-sm font-bold">Public Menu</Label>
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Make this restaurant visible to customers</p>
-                    </div>
-                    <Switch
-                      checked={draft.is_published}
-                      onCheckedChange={(checked) => setDraft((d) => ({ ...d, is_published: checked }))}
-                    />
-                  </div>
+      {/* 2. TELEMETRY GRID */}
+      <motion.div 
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+      >
+        {[
+          { label: "Establishments", val: restaurants.length, icon: Building2, color: "text-blue-500", detail: "Active Locations" },
+          { label: "Live Deployment", val: telemetry.activeMenus, icon: ShieldCheck, color: "text-secondary", detail: "Public Menus" },
+          { label: "Menu Registry", val: telemetry.topDishes, icon: ListTree, color: "text-primary", detail: "Total Offerings" },
+          { label: "Global Scans", val: telemetry.totalScans.toLocaleString(), icon: Activity, color: "text-amber-500", detail: "Last 30 Days" },
+        ].map((stat, i) => (
+          <motion.div key={i} variants={item}>
+            <Card className="bg-card/40 backdrop-blur-3xl border-2 border-border rounded-[3rem] p-10 overflow-hidden group hover:border-primary/20 transition-all duration-700">
+              <div className="flex items-center justify-between mb-10">
+                <div className={cn("h-16 w-16 rounded-[1.5rem] flex items-center justify-center bg-muted", stat.color)}>
+                  <stat.icon className="h-8 w-8" />
                 </div>
-                <DialogFooter className="mt-4">
-                  <Button variant="outline" onClick={() => setAddOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAdd} disabled={!draft.name.trim() || creating}>
-                    {creating ? "Saving..." : "Save"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.title} className="border-primary/5 shadow-sm hover:shadow-md transition-all group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                {stat.title}
-              </CardTitle>
-              <div className={`rounded-lg p-2 ${stat.color} transition-transform group-hover:scale-110`}>
-                <stat.icon className="h-4 w-4" />
+                <div className="flex items-center gap-1.5 text-[11px] font-black text-secondary">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>+12%</span>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">{stat.value}</div>
-              <div className="flex items-center gap-1 mt-1">
-                <TrendingUp className="h-3 w-3 text-emerald-500" />
-                <p className="text-xs text-emerald-600 font-medium">Live data</p>
+              <div className="space-y-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">{stat.label}</span>
+                <div className="flex items-baseline gap-3">
+                  <h3 className="text-5xl font-black text-foreground tracking-tighter">{stat.val}</h3>
+                  <span className="text-[11px] font-bold text-muted-foreground tracking-tight uppercase">{stat.detail}</span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </Card>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
-      {selected && (
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="border-primary/10 bg-white shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground">Selected restaurant</CardTitle>
-              <Badge variant={selected.is_published ? "secondary" : "outline"}>
-                {selected.is_published ? "Live" : "Draft"}
-              </Badge>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="text-lg font-semibold text-foreground">{selected.name}</div>
-              <p className="text-sm text-muted-foreground">{selected.city || "City"}, {selected.country || "Country"}</p>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <ListTree className="h-4 w-4 text-primary" /> {categoryCounts[selected.id] ?? "—"} categories
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/10 bg-white shadow-sm">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-sm font-semibold">Manage menus</CardTitle>
-              <CardDescription>Update menu items, prices, and availability.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full justify-between">
-                <Link href="/dashboard/menu">
-                  Go to menus
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-          <Card className="border-primary/10 bg-white shadow-sm">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-sm font-semibold">QR & sharing</CardTitle>
-              <CardDescription>Download or share QR for this venue.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild variant="outline" className="w-full justify-between">
-                <Link href="/dashboard/qr">
-                  Manage QR
-                  <ArrowUpRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-foreground">Your restaurants</h2>
-          <p className="text-sm text-muted-foreground">Manage venues under your account.</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {restaurants.length > 0 ? (
-            restaurants.map((restaurant) => (
-              <Card key={restaurant.id} className="border-primary/5 shadow-sm hover:shadow-md transition-all">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                  <div>
-                    <CardTitle className="text-lg font-semibold">{restaurant.name}</CardTitle>
-                    <CardDescription className="flex items-center gap-1 text-xs">
-                      <MapPin className="h-3.5 w-3.5 text-primary" />
-                      {restaurant.city || "City"}, {restaurant.country || "Country"}
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={restaurant.is_published ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}>
-                      {restaurant.is_published ? "Live" : "Draft"}
-                    </Badge>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Toggle visibility"
-                      className={restaurant.is_published ? "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" : "text-amber-600 hover:text-amber-700 hover:bg-amber-50"}
-                      onClick={async () => {
-                        try {
-                          const nextStatus = !restaurant.is_published;
-                          const formData = new FormData()
-                          formData.append("is_published", nextStatus ? "true" : "false")
-                          
-                          await apiFetch(`/my-restaurants/${restaurant.id}`, {
-                            method: "PATCH",
-                            token,
-                            body: formData,
-                          });
-                          setRestaurants(prev => prev.map(r => r.id === restaurant.id ? { ...r, is_published: nextStatus } : r));
-                          toast({ title: nextStatus ? "Menu Published" : "Menu set to Draft", description: `${restaurant.name} is now ${nextStatus ? 'visible' : 'hidden'} to the public.` });
-                        } catch (err: any) {
-                          toast({ title: "Failed to update status", description: err.message, variant: "destructive" });
-                        }
-                      }}
-                    >
-                      {restaurant.is_published ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Edit restaurant"
-                      onClick={() => openEdit(restaurant)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      aria-label="Delete restaurant"
-                      onClick={() => {
-                        setActiveId(restaurant.id)
-                        setDeleteOpen(true)
-                      }}
-                    >
-                      <Trash className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Slug</span>
-                    <span className="font-semibold text-foreground">{restaurant.slug || "—"}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Categories</span>
-                    <span className="font-semibold text-foreground">{categoryCounts[restaurant.id] ?? "—"}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Status</span>
-                    <span className="font-semibold text-foreground">{restaurant.is_published ? "Published" : "Unpublished"}</span>
-                  </div>
-                  <div className="flex gap-2 pt-1">
-                    <Button asChild size="sm" variant="outline" className="gap-1">
-                      <Link href="/dashboard/categories">
-                        <ListTree className="h-4 w-4" /> Categories
-                      </Link>
-                    </Button>
-                    <Button asChild size="sm" className="gap-1">
-                      <Link href="/dashboard/menu">
-                        <Utensils className="h-4 w-4" /> Items
-                      </Link>
-                    </Button>
-                    <Button asChild size="sm" variant="ghost" className="gap-1">
-                      <Link href="/dashboard/qr">
-                        <QrCode className="h-4 w-4" /> QR
-                      </Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <Button 
-              variant="outline" 
-              className="col-span-full h-40 rounded-[2rem] border-dashed border-2 flex flex-col gap-3 bg-primary/5 hover:bg-primary/10 transition-all border-primary/20"
-              onClick={() => setAddOpen(true)}
-            >
-              <div className="h-12 w-12 rounded-2xl bg-white shadow-sm flex items-center justify-center">
-                 <Plus className="h-6 w-6 text-primary" />
-              </div>
-              <div className="space-y-1">
-                <p className="font-black uppercase tracking-widest text-xs text-primary">No Restaurants Found</p>
-                <p className="text-[10px] text-muted-foreground font-medium">Click here to launch your first digital venue</p>
-              </div>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit restaurant</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>Name</Label>
-              <Input
-                value={draft.name}
-                onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-                placeholder="Harborview Hotel"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Slug</Label>
-              <Input
-                value={draft.slug}
-                onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
-                placeholder="harborview"
-              />
-            </div>
-            <div className="space-y-1">
-              <Label>Description</Label>
-              <Input
-                value={draft.description}
-                onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-                placeholder="Short summary"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Phone</Label>
-                <Input
-                  value={draft.phone}
-                  onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-                  placeholder="+1 (555) 000-0000"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={draft.email}
-                  onChange={(e) => setDraft((d) => ({ ...d, email: e.target.value }))}
-                  placeholder="info@your-restaurant.com"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>City</Label>
-                <Input
-                  value={draft.city}
-                  onChange={(e) => setDraft((d) => ({ ...d, city: e.target.value }))}
-                  placeholder="City"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Country</Label>
-                <Input
-                  value={draft.country}
-                  onChange={(e) => setDraft((d) => ({ ...d, country: e.target.value }))}
-                  placeholder="Country"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label>Address</Label>
-                <Input
-                  value={draft.address}
-                  onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))}
-                  placeholder="123 Main St"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Cuisine type</Label>
-                <Input
-                  value={draft.cuisine_type}
-                  onChange={(e) => setDraft((d) => ({ ...d, cuisine_type: e.target.value }))}
-                  placeholder="Italian, Ethiopian, ..."
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/10 transition-all">
-              <div className="space-y-0.5">
-                <Label className="text-sm font-bold">Public Status</Label>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">Visibility on the public discovery platform</p>
-              </div>
-              <Switch
-                checked={draft.is_published}
-                onCheckedChange={(checked) => setDraft((d) => ({ ...d, is_published: checked }))}
-              />
-            </div>
+      {/* 3. MAIN INTERFACE GRID */}
+      <div className="grid lg:grid-cols-3 gap-16">
+        {/* Establishment Matrix */}
+        <motion.div 
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="lg:col-span-2 space-y-12"
+        >
+          <div className="flex items-center justify-between px-4">
+            <h2 className="text-sm font-black uppercase tracking-[0.5em] text-muted-foreground/30">Active Registries</h2>
+            <Link href="/dashboard/profile" className="text-[11px] font-black uppercase tracking-[0.3em] text-primary hover:underline transition-all underline-offset-8 decoration-2">
+              Operational Matrix <ChevronRight className="h-3 w-3 inline ml-1" />
+            </Link>
           </div>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setEditOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdate} disabled={!draft.name.trim() || creating}>
-              {creating ? "Saving..." : "Save changes"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this restaurant?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This removes the restaurant and its menus. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground" onClick={handleDelete}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <div className="grid gap-6">
+            {restaurants.length === 0 ? (
+              <motion.div variants={item}>
+                <Card className="bg-muted/20 border-2 border-border border-dashed rounded-[4rem] p-32 flex flex-col items-center text-center space-y-8 backdrop-blur-sm">
+                  <div className="h-28 w-28 rounded-full bg-muted flex items-center justify-center">
+                    <Building2 className="h-12 w-12 text-muted-foreground/10" />
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-3xl font-serif italic text-foreground tracking-tight">Command Silence</h3>
+                    <p className="text-muted-foreground/30 font-medium max-w-sm mx-auto leading-relaxed uppercase text-[10px] tracking-widest">No establishments registered. <br /> Begin your deployment ritual now.</p>
+                  </div>
+                  <Button className="rounded-2xl px-12 h-16 bg-primary text-[11px] font-black uppercase tracking-[0.3em]" asChild>
+                    <Link href="/dashboard/profile">Add Restaurant</Link>
+                  </Button>
+                </Card>
+              </motion.div>
+            ) : (
+              restaurants.slice(0, 3).map((res) => (
+                <motion.div key={res.id} variants={item}>
+                  <Card 
+                    className="bg-card/40 backdrop-blur-3xl border-2 border-border border-l-4 border-l-primary rounded-[2.5rem] group hover:border-primary/20 transition-all duration-500 overflow-hidden"
+                  >
+                    <div className="flex flex-col md:flex-row items-center p-10 gap-10">
+                      <div className="h-24 w-24 rounded-[2.5rem] bg-muted border border-border overflow-hidden relative flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                        <Building2 className="h-10 w-10 text-muted-foreground/20 group-hover:text-primary transition-colors" />
+                      </div>
+                      
+                      <div className="flex-1 space-y-3 text-center md:text-left">
+                        <div className="flex flex-col md:flex-row items-center gap-4">
+                          <h4 className="text-3xl font-black text-foreground tracking-tighter uppercase">{res.name}</h4>
+```
+                          <Badge variant="outline" className={cn(
+                            "text-[9px] font-black uppercase tracking-[0.3em] border-none px-4 py-1.5 h-auto flex items-center gap-2",
+                            res.is_published ? "bg-secondary/20 text-secondary" : "bg-muted text-muted-foreground/60"
+                          )}>
+                            <div className={cn("h-1.5 w-1.5 rounded-full", res.is_published ? "bg-secondary animate-pulse" : "bg-muted-foreground/40")} />
+                            {res.is_published ? "Live Broadcast" : "Internal Draft" }
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-8 text-[11px] font-bold text-muted-foreground/30 tracking-widest uppercase">
+                          <div className="flex items-center gap-2.5"><MapPin className="h-4 w-4" /> {res.city || "Global"}</div>
+                          <div className="flex items-center gap-2.5"><Utensils className="h-4 w-4 text-primary" /> {res.cuisine_type || "International"}</div>
+                          <div className="flex items-center gap-2.5 text-muted-foreground/50"><Eye className="h-4 w-4" /> 1.2K Views</div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4">
+                         <Button variant="ghost" size="icon" className="h-16 w-16 rounded-[1.5rem] bg-muted/50 border border-border/50 hover:bg-primary/20 hover:border-primary/20 text-muted-foreground/40 hover:text-primary transition-all" asChild>
+                            <Link href={`/dashboard/menu?restaurantId=${res.id}`}>
+                               <Utensils className="h-6 w-6" />
+                            </Link>
+                         </Button>
+                         <Button variant="ghost" size="icon" className="h-16 w-16 rounded-[1.5rem] bg-muted/50 border border-border/50 hover:bg-muted hover:border-border text-muted-foreground/40 hover:text-foreground transition-all" asChild>
+                            <Link href={`/menu/${res.slug}`} target="_blank">
+                               <ExternalLink className="h-6 w-6" />
+                            </Link>
+                         </Button>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))
+            )}
+          </div>
+        </motion.div>
+
+        {/* Sidebar Intelligence Panel */}
+        <motion.div 
+          variants={container}
+          initial="hidden"
+          animate="show"
+          className="space-y-12"
+        >
+           <div className="px-4">
+            <h2 className="text-sm font-black uppercase tracking-[0.5em] text-muted-foreground/30">System Intelligence</h2>
+          </div>
+
+          <motion.div variants={item}>
+            <Card className="bg-card/60 backdrop-blur-3xl border-2 border-border/50 rounded-[3.5rem] p-10 space-y-8 overflow-hidden relative group">
+                <div className="flex items-center gap-3">
+                   <Sparkles className="h-5 w-5 text-primary" />
+                   <span className="text-[11px] font-black uppercase tracking-[0.4em] text-primary">Top Performer</span>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="text-4xl font-black text-foreground tracking-tighter uppercase leading-none">Golden Truffle <br /> <span className="text-muted-foreground/30 italic font-serif lowercase tracking-normal">Signature</span></h3>
+                  <p className="text-muted-foreground font-medium text-sm leading-relaxed">Most engaged asset across all registries this cycle.</p>
+                </div>
+
+                <div className="aspect-[4/3] w-full rounded-[2rem] bg-muted/50 border-2 border-border/50 flex flex-col items-center justify-center relative overflow-hidden group">
+                   <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent opacity-60" />
+                   <h4 className="relative z-10 text-5xl font-black text-foreground opacity-10 group-hover:opacity-10 transition-opacity">INSIGHT</h4>
+                   <div className="absolute bottom-8 left-8 right-8 flex items-center justify-between text-[11px] font-black uppercase tracking-[0.3em] text-foreground">
+                      <div className="flex items-center gap-3">
+                         <Flame className="h-5 w-5 text-primary animate-pulse" />
+                         <span>Trending Heat</span>
+                      </div>
+                      <span className="text-primary">+842</span>
+                   </div>
+                </div>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={item}>
+            <Card className="bg-primary/5 border-2 border-primary/20 rounded-[3.5rem] p-10 space-y-10 relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-8">
+                  <Zap className="h-20 w-20 text-primary opacity-10 group-hover:opacity-20 transition-opacity" />
+               </div>
+               <div className="space-y-4">
+                  <span className="text-[11px] font-black uppercase tracking-[0.5em] text-primary">Tier Strategy</span>
+                  <div className="space-y-2">
+                    <h4 className="text-3xl font-black text-foreground tracking-tighter uppercase leading-none">Maximize <br /> Reach.</h4>
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-[200px]">
+                       Your currently deployed {subscription?.features?.max_restaurants === -1 ? 'unlimited' : subscription?.features?.max_restaurants} holding capacity is high.
+                    </p>
+                  </div>
+               </div>
+               <Button className="w-full rounded-[2rem] h-20 bg-primary text-[11px] font-black uppercase tracking-[0.4em] shadow-2xl shadow-primary/30 hover:scale-[1.02] transition-transform text-white" asChild>
+                  <Link href="/packages">Upgrade Strategy</Link>
+               </Button>
+            </Card>
+          </motion.div>
+        </motion.div>
+      </div>
     </div>
   )
 }

@@ -2,26 +2,86 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState, FormEvent } from "react"
-import { Coffee } from "lucide-react"
+import { useState, FormEvent, useEffect } from "react"
+import { ChefHat, Sparkles, ArrowLeft, Loader2, Utensils, Smartphone, Mail, User, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
+import { cn } from "@/lib/utils"
 
 export default function RegisterPage() {
   const { toast } = useToast()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState(1)
+  const [errorShake, setErrorShake] = useState(false)
+  const [passError, setPassError] = useState<string | null>(null)
+  
+  // FORM STATE
+  const [formData, setFormData] = useState({
+    full_name: "",
+    email: "",
+    phone: "",
+    password: ""
+  })
+
+  const triggerShake = () => {
+    setErrorShake(true)
+    setTimeout(() => setErrorShake(false), 500)
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    
+    if (name === "password") {
+      const { message } = validatePassword(value)
+      setPassError(message)
+    }
+  }
+
+  const validateStep1 = () => {
+    if (!formData.full_name || !formData.email || !formData.phone) {
+      toast({ title: "Incomplete Recipe", description: "Please fill in all details to proceed.", variant: "destructive" })
+      triggerShake()
+      return false
+    }
+    if (!formData.email.includes("@")) {
+      toast({ title: "Invalid Mail", description: "Please enter a valid work email.", variant: "destructive" })
+      triggerShake()
+      return false
+    }
+    return true
+  }
+
+  const validatePassword = (pass: string) => {
+    if (!pass) return { message: null, isValid: false }
+    if (pass.length < 8) return { message: "The dough hasn't proofed long enough (need at least 8 characters).", isValid: false }
+    if (!/[A-Z]/.test(pass)) return { message: "Needs more zest! Add at least one uppercase letter for flavor.", isValid: false }
+    if (!/[0-9]/.test(pass)) return { message: "A recipe without measurements? Add at least one number.", isValid: false }
+    return { message: "Perfectly seasoned! This key is ready for the vault. ✨", isValid: true }
+  }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const fullName = formData.get("full_name") as string
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
-    const phone = formData.get("phone") as string
+    
+    // If user hits Enter on Step 1, move to Step 2
+    if (step === 1) {
+      if (validateStep1()) {
+        setStep(2)
+      }
+      return
+    }
+
+    // Final validation for Step 2
+    const { message, isValid } = validatePassword(formData.password)
+    if (!isValid) {
+      setPassError(message || "Even a ghost kitchen needs a secret key! 👻")
+      triggerShake()
+      return
+    }
 
     setLoading(true)
     try {
@@ -31,33 +91,33 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email,
-          password,
-          full_name: fullName.trim(),
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.full_name.trim(),
           role: "owner",
-          phone,
+          phone: formData.phone,
         }),
       })
 
       if (!res.ok) {
+        triggerShake()
         const data = await res.json().catch(() => null)
         const message = data?.error || data?.message || "Could not register with those details."
-        const raw = data?.raw ? ` | raw: ${data.raw}` : ""
-        throw new Error(`${message}${data?.status ? ` (status ${data.status})` : ""}${raw}`)
+        throw new Error(message)
       }
 
-      toast({ title: "Account created", description: "Welcome to MenuVista!" })
-
+      toast({ title: "Welcome to the family!", description: "Account created successfully." })
       toast({
-        title: "Check your email",
-        description: "We sent a verification link. Activate your account to sign in.",
+        title: "Check your inbox",
+        description: "We've sent a luxury invitation (verification link) to your email.",
       })
 
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`)
+      router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`)
     } catch (err: any) {
+      triggerShake()
       toast({
-        title: "Could not register",
-        description: err?.message || "Please check your details and try again.",
+        title: "Registration error",
+        description: err?.message || "Something went wrong. Please check your details.",
         variant: "destructive",
       })
     } finally {
@@ -66,76 +126,239 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-secondary/30 p-4 font-sans relative overflow-hidden">
-      {/* Decorative background element */}
-      <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-primary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 font-sans relative overflow-hidden selection:bg-primary/30">
+      {/* LUXURY BACKGROUND RADIALS */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_30%,rgba(230,57,70,0.08),transparent_60%)]" />
+        <div className="absolute top-[20%] -left-[10%] w-[600px] h-[600px] rounded-full bg-secondary/10 blur-[150px]" />
+        <div className="absolute -bottom-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px]" />
+      </div>
 
-      <Card className="w-full max-w-md bg-white/80 backdrop-blur-md border-primary/10 shadow-xl relative z-10">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="rounded-2xl bg-primary/10 p-3 text-primary border border-primary/20">
-              <Coffee className="h-8 w-8" />
-            </div>
-          </div>
-          <CardTitle className="text-3xl font-serif text-primary tracking-tight">Join MenuQR</CardTitle>
-          <CardDescription className="text-muted-foreground/80 font-medium">
-            Start your journey toward a digital, fresh menu experience
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <form className="grid gap-4" onSubmit={handleSubmit}>
-            <div className="grid gap-2">
-              <Label htmlFor="full_name">Full Name</Label>
-              <Input id="full_name" name="full_name" placeholder="John Doe" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email" className="font-medium">
-                Work Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="manager@greenleaf.com"
-                className="bg-white/50 border-primary/10"
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" className="bg-white/50 border-primary/10" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                placeholder="+1234567890"
-                className="bg-white/50 border-primary/10"
-                required
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-12 text-lg font-medium mt-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-[0.98]"
-            >
-              {loading ? "Creating account..." : "Create account"}
-            </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex flex-wrap items-center justify-center gap-1 text-sm text-muted-foreground">
-          Already a partner?{" "}
-          <Link
-            href="/login"
-            className="text-primary font-semibold hover:text-primary/80 transition-colors underline-offset-4 hover:underline"
-          >
-            Login here
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ 
+          opacity: 1, 
+          scale: 1, 
+          y: 0,
+          x: errorShake ? [0, -10, 10, -10, 10, 0] : 0
+        }}
+        transition={{ 
+          duration: 0.8, 
+          ease: [0.22, 1, 0.36, 1],
+          x: { duration: 0.4, ease: "easeInOut" }
+        }}
+        className="w-full max-w-2xl relative z-10"
+      >
+        <div className="mb-8 flex items-center justify-between">
+          <Link href="/login" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-bold text-xs uppercase tracking-[0.2em] group">
+            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Login
           </Link>
-        </CardFooter>
-      </Card>
+          <div className="h-px flex-1 bg-border/50 mx-6" />
+          <div className="flex gap-2">
+            <div className={cn("h-1.5 w-6 rounded-full transition-all duration-500", step === 1 ? "bg-primary" : "bg-muted")} />
+            <div className={cn("h-1.5 w-6 rounded-full transition-all duration-500", step === 2 ? "bg-primary" : "bg-muted")} />
+          </div>
+        </div>
+
+        <div className="bg-card/40 backdrop-blur-3xl border border-border rounded-[3.5rem] p-8 md:p-14 shadow-2xl">
+          <header className="mb-12">
+            <div className="flex items-center gap-6 mb-8">
+               <motion.div 
+                 initial={{ rotate: -15 }}
+                 animate={{ rotate: 0 }}
+                 className="h-16 w-16 items-center justify-center rounded-2xl bg-primary/20 border border-primary/30 flex text-primary"
+               >
+                 <ChefHat className="h-8 w-8" />
+               </motion.div>
+               <div>
+                  <h1 className="text-3xl md:text-4xl font-serif text-foreground tracking-tight">Claim Your Kitchen 🍽️</h1>
+                  <p className="text-muted-foreground font-medium">Join the elite circle of digital restaurant owners.</p>
+               </div>
+            </div>
+          </header>
+
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="relative overflow-hidden min-h-[340px]">
+               <AnimatePresence mode="wait">
+                  {step === 1 ? (
+                    <motion.div
+                      key="step1"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-6"
+                    >
+                      <div className="group relative">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-focus-within:text-primary transition-colors ml-1 mb-2 block">Executive Name</Label>
+                        <div className="relative">
+                          <Input 
+                            name="full_name" 
+                            value={formData.full_name}
+                            onChange={handleInputChange}
+                            placeholder="Johnathan Silver" 
+                            required 
+                            className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all" 
+                          />
+                          <User className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
+                        </div>
+                      </div>
+
+                      <div className="group relative">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-focus-within:text-primary transition-colors ml-1 mb-2 block">Digital Mailbox</Label>
+                        <div className="relative">
+                          <Input 
+                            name="email" 
+                            type="email" 
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            placeholder="manager@establishment.com" 
+                            required 
+                            className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all" 
+                          />
+                          <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
+                        </div>
+                      </div>
+
+                      <div className="group relative">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-focus-within:text-primary transition-colors ml-1 mb-2 block">Direct Line</Label>
+                        <div className="relative">
+                          <Input 
+                            name="phone" 
+                            type="tel" 
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            placeholder="+1 (555) 000- luxury" 
+                            required 
+                            className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all" 
+                          />
+                          <Smartphone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="step2"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="space-y-8"
+                    >
+                      <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 mb-8">
+                         <div className="flex gap-4 items-start">
+                            <ShieldCheck className="h-6 w-6 text-primary shrink-0 mt-1" />
+                            <p className="text-sm text-foreground leading-relaxed font-medium">Your password must be a secret recipe—unique and complex. It protects your establishment’s digital legacy.</p>
+                         </div>
+                      </div>
+
+                      <div className="group relative">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-focus-within:text-primary transition-colors ml-1 mb-2 block">Establish the Key (Password)</Label>
+                        <Input 
+                          name="password" 
+                          type="password" 
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          autoFocus
+                          required 
+                          className={cn(
+                            "h-20 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground px-8 text-2xl tracking-[0.3em] transition-all",
+                            passError && !passError.includes("Perfectly") && "border-red-500/50 bg-red-500/5",
+                            passError?.includes("Perfectly") && "border-emerald-500/50 bg-emerald-500/5 focus:border-emerald-500/50"
+                          )}
+                        />
+                        <AnimatePresence mode="wait">
+                          {passError && (
+                            <motion.p
+                              key={passError}
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              className={cn(
+                                "text-xs mt-3 ml-2 font-medium italic flex items-center gap-2",
+                                passError.includes("Perfectly") ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                              )}
+                            >
+                              {passError.includes("Perfectly") ? "✨" : "⚠️"} {passError}
+                            </motion.p>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground italic">
+                         <div className="h-px flex-1 bg-border" />
+                         Finalizing Your Credentials
+                         <div className="h-px flex-1 bg-border" />
+                      </div>
+                    </motion.div>
+                  )}
+               </AnimatePresence>
+            </div>
+
+            <div className="flex gap-4">
+              {step > 1 && (
+                <Button 
+                  type="button" 
+                  onClick={() => setStep(step - 1)}
+                  variant="outline" 
+                  className="h-18 px-8 rounded-2xl border-border text-foreground hover:bg-muted transition-all"
+                >
+                  Back
+                </Button>
+              )}
+              
+              <Button
+                type={step === 2 ? "submit" : "button"}
+                onClick={() => {
+                  if (step === 1) {
+                    if (validateStep1()) {
+                      setPassError(null);
+                      setStep(2);
+                    }
+                  }
+                }}
+                disabled={loading}
+                className="flex-1 h-18 rounded-2xl bg-primary text-xl font-bold text-white shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none relative overflow-hidden group"
+              >
+                 <AnimatePresence mode="wait">
+                  {loading ? (
+                    <motion.div 
+                      key="loading" 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      className="flex items-center gap-3"
+                    >
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      Seasoning your account...
+                    </motion.div>
+                  ) : (
+                    <motion.div 
+                      key="text" 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-3"
+                    >
+                      {step === 1 ? "Next Step" : "Ignite Dashboard"}
+                      <Sparkles className="h-5 w-5 fill-white group-hover:animate-pulse" />
+                    </motion.div>
+                  )}
+                 </AnimatePresence>
+              </Button>
+            </div>
+          </form>
+
+          <footer className="mt-12 text-center">
+             <div className="text-muted-foreground text-sm font-medium">
+               Already an elite partner?{" "}
+               <Link
+                 href="/login"
+                 className="text-primary font-black uppercase tracking-widest text-[11px] hover:underline underline-offset-8 transition-all"
+               >
+                 Sign in to your station
+               </Link>
+             </div>
+          </footer>
+        </div>
+      </motion.div>
     </div>
   )
 }

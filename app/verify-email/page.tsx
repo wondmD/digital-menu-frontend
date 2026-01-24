@@ -3,9 +3,9 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { MailCheck, ArrowLeft, LogIn } from "lucide-react"
+import { MailCheck, ArrowLeft, LogIn, ChefHat, Sparkles, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { motion } from "framer-motion"
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
@@ -15,57 +15,90 @@ function VerifyEmailContent() {
   const isSuccess = status === "success"
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-secondary/30 p-4 font-sans">
-      <Card className="w-full max-w-lg bg-white/80 backdrop-blur-md border-primary/10 shadow-xl overflow-hidden">
-        {isSuccess && <div className="h-2 w-full bg-green-500" />}
-        <CardHeader className="text-center space-y-3 pt-10">
-          <div className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 shadow-sm ${
-            isSuccess ? "bg-green-50 text-green-600 border-green-200" : "bg-primary/10 text-primary border-primary/20"
-          }`}>
-            {isSuccess ? <MailCheck className="h-8 w-8" /> : <MailCheck className="h-7 w-7" />}
-          </div>
-          <CardTitle className="text-2xl font-serif text-foreground">
-            {isSuccess ? "Email Verified!" : "Verify your email"}
-          </CardTitle>
-          <CardDescription className="text-base text-muted-foreground">
-            {isSuccess ? (
-              <span>Your email has been successfully verified. You can now access your dashboard.</span>
-            ) : email ? (
-              <span>
-                We sent a verification link to <strong>{email}</strong>. Click it to activate your account, then return to log in.
-              </span>
-            ) : (
-              <span>We sent you a verification link. Open your inbox, click the link, and then sign in.</span>
-            )}
-          </CardDescription>
-        </CardHeader>
-        {!isSuccess && (
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>Didn&apos;t get the email?</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Check your spam or promotions folder.</li>
-              <li>Make sure you entered the correct address.</li>
-              <li>Wait a minute—some providers delay delivery.</li>
-            </ul>
-          </CardContent>
-        )}
-        <CardFooter className="flex flex-col gap-3 sm:flex-row sm:justify-between pb-8">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 font-sans relative overflow-hidden selection:bg-primary/30">
+      {/* LUXURY BACKGROUND RADIALS */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(230,57,70,0.08),transparent_70%)]" />
+        <div className="absolute -top-[10%] -right-[10%] w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute -bottom-[10%] -left-[10%] w-[500px] h-[500px] rounded-full bg-secondary/5 blur-[120px]" />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-2xl relative z-10"
+      >
+        <div className="bg-card/40 backdrop-blur-3xl border border-border rounded-[3.5rem] p-8 md:p-14 shadow-[0_60px_120px_-30px_rgba(0,0,0,0.6)] text-center">
+          <header className="mb-12">
+            <motion.div 
+              initial={{ rotate: -15, scale: 0.8 }}
+              animate={{ rotate: 0, scale: 1 }}
+              className={`mx-auto mb-10 flex h-24 w-24 items-center justify-center rounded-[2rem] border-2 shadow-2xl ${
+                isSuccess 
+                ? "bg-secondary text-white border-secondary/30 shadow-secondary/20" 
+                : "bg-primary text-white border-primary/30 shadow-primary/20"
+              }`}
+            >
+              {isSuccess ? <MailCheck className="h-12 w-12" /> : <Send className="h-10 w-10" />}
+            </motion.div>
+            
+            <h1 className="text-4xl md:text-5xl font-serif text-foreground tracking-tight mb-6">
+              {isSuccess ? "Ritual Complete! ✨" : "Awaiting Verification"}
+            </h1>
+            
+            <p className="text-muted-foreground text-lg font-medium max-w-md mx-auto leading-relaxed italic">
+              {isSuccess ? (
+                "Your identity has been forged. Your luxury establishment is ready to go live."
+              ) : email ? (
+                <span>
+                  We've sent a luxury invitation to <strong>{email}</strong>. Please follow the instructions to secure your station.
+                </span>
+              ) : (
+                "We've sent a verification link to your inbox. Open it to activate your chef profile."
+              )}
+            </p>
+          </header>
+
           {!isSuccess && (
-            <Button variant="ghost" asChild className="w-full sm:w-auto">
-              <Link href="/register" className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Go back
-              </Link>
-            </Button>
+            <div className="bg-muted/30 border border-border rounded-3xl p-8 mb-12 text-left space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-[0.2em] text-primary">In case of delivery delays:</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground font-medium">
+                <li className="flex items-center gap-3">
+                   <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                   Check your spam or promotions cellar.
+                </li>
+                <li className="flex items-center gap-3">
+                   <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                   Verify the address was typed correctly.
+                </li>
+                <li className="flex items-center gap-3">
+                   <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                   Give the digital waiter a moment to deliver.
+                </li>
+              </ul>
+            </div>
           )}
-          <Button asChild className={`w-full ${!isSuccess ? "sm:w-auto" : ""}`}>
-            <Link href="/login" className="flex items-center justify-center gap-2">
-              <LogIn className="h-4 w-4" />
-              {isSuccess ? "Go to Login" : "Continue to login"}
-            </Link>
-          </Button>
-        </CardFooter>
-      </Card>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+             {!isSuccess && (
+               <Button variant="outline" asChild className="h-16 px-8 rounded-2xl border-border text-foreground hover:bg-muted/30 transition-all text-xs font-black uppercase tracking-widest flex-1">
+                 <Link href="/register">
+                   <ArrowLeft className="mr-2 h-4 w-4" />
+                   Restart Enrollment
+                 </Link>
+               </Button>
+             )}
+             <Button asChild className="h-16 px-10 rounded-2xl bg-primary text-white text-lg font-bold shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none flex-1 group">
+               <Link href="/login">
+                 <LogIn className="mr-3 h-5 w-5" />
+                 {isSuccess ? "Enter Dashboard" : "Go to Login"}
+                 <Sparkles className="ml-2 h-4 w-4 fill-white group-hover:rotate-12 transition-transform" />
+               </Link>
+             </Button>
+          </div>
+        </div>
+      </motion.div>
     </div>
   )
 }
