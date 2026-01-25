@@ -19,7 +19,7 @@ const DEFAULT_PLANS = [
     price: "0",
     currency: "ETB",
     cadence: "7 days",
-    description: "Sample the registry. 7 days of full-access ritual trial.",
+    description: "Experience all features. No credit card required for trial.",
     features: ["1 restaurant", "20 items", "5 categories", "Basic analytics"],
     limits: { restaurants: 1, items: 20, staff: 0 },
     icon: Zap
@@ -30,7 +30,7 @@ const DEFAULT_PLANS = [
     price: "500",
     currency: "ETB",
     cadence: "per month",
-    description: "For the boutique cafe seeking digital elegance.",
+    description: "Ideal for boutique cafes and small bistros.",
     features: ["Up to 2 restaurants", "50 menu items", "10 categories", "1 staff account", "Basic analytics"],
     limits: { restaurants: 2, items: 50, staff: 1 },
     icon: Star
@@ -41,7 +41,7 @@ const DEFAULT_PLANS = [
     price: "1,500",
     currency: "ETB",
     cadence: "per month",
-    description: "The golden mean for growing culinary empires.",
+    description: "Built for scaling restaurant groups and busy venues.",
     features: ["Up to 3 restaurants", "200 menu items", "Unlimited categories", "5 staff accounts", "Advanced analytics"],
     highlighted: true,
     limits: { restaurants: 3, items: 200, staff: 5 },
@@ -53,7 +53,7 @@ const DEFAULT_PLANS = [
     price: "3,000",
     currency: "ETB",
     cadence: "per month",
-    description: "Pure sovereign power for enterprises and chains.",
+    description: "Complete control and unlimited scale for enterprise chains.",
     features: ["Unlimited restaurants", "Unlimited menu items", "Unlimited categories", "10 staff accounts", "Custom branding", "Full analytics"],
     limits: { restaurants: -1, items: -1, staff: 10 },
     icon: Crown
@@ -67,56 +67,140 @@ export default function PackageSelectionPage() {
   const [processing, setProcessing] = useState(false)
   const [usage, setUsage] = useState({ restaurants: 0, items: 0, staff: 0 })
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
+  const [currentPlanSlug, setCurrentPlanSlug] = useState<string | null>(null)
+  const [hasUsedTrial, setHasUsedTrial] = useState(false)
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null)
   const router = useRouter()
   const { data: session, status } = useSession()
   const { toast } = useToast()
+
+  const trialPlan = useMemo(() => plans.find(p => p.slug === 'free-trial' || p.name.toLowerCase().includes('trial')), [plans])
+  const paidPlans = useMemo(() => plans.filter(p => !p.slug?.includes('trial') && !p.id?.includes('trial')), [plans])
+
+  const hasActivePaidPlan = useMemo(() => {
+    if (!currentPlanId && !currentPlanSlug) return false
+    return paidPlans.some(p => p.id === currentPlanId || p.slug === currentPlanSlug)
+  }, [currentPlanId, currentPlanSlug, paidPlans])
+
+  const isCurrentlyTrialling = useMemo(() => {
+    if (currentPlanSlug === 'free-trial') return true;
+    if (!currentPlanId && !currentPlanSlug) return false;
+    return (trialPlan && (currentPlanId === trialPlan.id || currentPlanSlug === trialPlan.slug));
+  }, [currentPlanId, currentPlanSlug, trialPlan]);
+
+  const showTrialButton = !hasActivePaidPlan
 
   const token = (session?.user as any)?.accessToken
 
   // Load current usage, subscription and plans
   useEffect(() => {
     const loadData = async () => {
+      console.log("PackageSelectionPage: Loading data...")
       try {
         setLoading(true)
         const endpoints = [
-          token ? apiFetch<any>("/subscription/me", { token }).catch(() => null) : Promise.resolve(null),
-          token ? apiFetch<any>("/my-restaurants", { token }).catch(() => []) : Promise.resolve([]),
-          apiFetch<any>("/subscription/plans", { token }).catch(() => null)
+          token ? apiFetch<any>("/subscription/me", { token }).catch(err => {
+            console.error("Failed to fetch /subscription/me", err)
+            return null
+          }) : Promise.resolve(null),
+          token ? apiFetch<any>("/my-restaurants", { token }).catch(err => {
+            console.error("Failed to fetch /my-restaurants", err)
+            return []
+          }) : Promise.resolve([]),
+          apiFetch<any>("/subscription/plans").catch(err => {
+            console.error("Failed to fetch /subscription/plans", err)
+            return null
+          })
         ]
 
         const [subRes, restRes, plansRes] = await Promise.all(endpoints)
+        console.log("API Responses:", { subRes, restRes, plansRes })
         
         if (subRes) {
           const sub = subRes?.data || subRes
+          console.log("Subscription metadata check:", sub)
           setCurrentPlanId(sub?.plan_id || null)
+          setCurrentPlanSlug(sub?.plan_slug || null)
+          
+          // Check if trial has been used or if they are currently on a trial/expired trial
+          const trialUsed = sub?.has_trialed === true || 
+                           sub?.trial_used === true || 
+                           sub?.status === "expired" || 
+                           sub?.plan_slug === "free-trial";
+          setHasUsedTrial(trialUsed)
+
+          // Calculate trial days left if currently trialling
+          if (sub?.plan_slug === "free-trial" && sub?.expires_at) {
+             const expiry = new Date(sub.expires_at)
+             const now = new Date()
+             const diff = expiry.getTime() - now.getTime()
+             const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+             setTrialDaysLeft(days > 0 ? days : 0)
+          } else {
+             setTrialDaysLeft(null)
+          }
         }
 
         const restaurants = restRes?.data || restRes || []
         setUsage({ restaurants: restaurants.length, items: 0, staff: 0 })
 
-        if (plansRes?.data && Array.isArray(plansRes.data)) {
-          const fetchedPlans = plansRes.data.map((p: any) => ({
-             id: p.slug || p.id,
-             name: p.name,
-             price: p.price?.toString() || "0",
-             currency: p.currency || "ETB",
-             cadence: p.cadence || (p.billing_cycle === 'monthly' ? 'per month' : p.billing_cycle) || "per month",
-             description: p.description,
-             features: Array.isArray(p.features) ? p.features : [],
-             limits: p.limits || { restaurants: -1, items: -1, staff: -1 },
-             highlighted: p.name.toLowerCase() === 'silver' || p.is_popular || p.highlighted || false,
-             icon: p.name.toLowerCase().includes('gold') ? Crown : 
-                   p.name.toLowerCase().includes('silver') ? Gem : 
-                   p.name.toLowerCase().includes('trial') ? Zap : Star
-          }))
+        const rawPlans = plansRes?.data || plansRes
+        console.log("Raw Plans:", rawPlans)
+        
+        if (rawPlans && Array.isArray(rawPlans)) {
+          const fetchedPlans = rawPlans.map((p: any) => {
+            // Transform backend features object into a readable display array
+            const displayFeatures = []
+            if (p.features && typeof p.features === 'object') {
+              const f = p.features
+              if (f.max_restaurants === -1) displayFeatures.push("Unlimited restaurants")
+              else if (typeof f.max_restaurants === 'number') displayFeatures.push(`${f.max_restaurants} restaurant${f.max_restaurants !== 1 ? 's' : ''}`)
+              
+              if (f.max_menu_items === -1) displayFeatures.push("Unlimited items")
+              else if (typeof f.max_menu_items === 'number') displayFeatures.push(`${f.max_menu_items} items`)
+
+              if (typeof f.max_staff_accounts === 'number') {
+                if (f.max_staff_accounts > 0) displayFeatures.push(`${f.max_staff_accounts} staff accounts`)
+                else if (f.max_staff_accounts === -1) displayFeatures.push("Unlimited staff")
+              }
+              
+              if (f.analytics_enabled) displayFeatures.push("Advanced analytics")
+              if (f.activity_log_enabled) displayFeatures.push("Activity logs")
+            }
+
+            return {
+               id: p.id,
+               slug: p.slug || p.id,
+               name: p.name,
+               price: (p.price_monthly ?? p.price ?? 0).toLocaleString(),
+               currency: p.currency || "ETB",
+               cadence: p.cadence || (p.billing_cycle === 'monthly' ? 'per month' : p.billing_cycle) || "per month",
+               description: p.description,
+               features: displayFeatures.length > 0 ? displayFeatures : (Array.isArray(p.features) ? p.features : []),
+               limits: {
+                 restaurants: p.features?.max_restaurants ?? p.limits?.restaurants ?? -1,
+                 items: p.features?.max_menu_items ?? p.limits?.items ?? -1,
+                 staff: p.features?.max_staff_accounts ?? p.limits?.staff ?? -1
+               },
+               highlighted: p.name.toLowerCase() === 'silver' || p.is_popular || p.highlighted || false,
+               icon: p.name.toLowerCase().includes('gold') ? Crown : 
+                     p.name.toLowerCase().includes('silver') ? Gem : 
+                     p.name.toLowerCase().includes('trial') ? Zap : Star
+            }
+          })
+          console.log("Successfully Mapped Plans:", fetchedPlans)
           setPlans(fetchedPlans)
           
-          if (!fetchedPlans.find((p: any) => p.id === selectedPlan)) {
-            setSelectedPlan(fetchedPlans.find((p: any) => p.highlighted)?.id || fetchedPlans[0]?.id || "silver-monthly")
+          const filteredForSelection = fetchedPlans.filter(p => p.slug !== 'free-trial' && !p.name.toLowerCase().includes('trial'))
+          if (!filteredForSelection.find((p: any) => p.slug === selectedPlan)) {
+            setSelectedPlan(filteredForSelection.find((p: any) => p.highlighted)?.slug || filteredForSelection[0]?.slug || "silver-monthly")
           }
+        } else {
+          console.warn("No plans found or invalid format:", plansRes)
+          // Don't overwrite DEFAULT_PLANS if fetch failed
         }
       } catch (err) {
-        console.error("Failed to load data", err)
+        console.error("Major failure in loadData", err)
       } finally {
         setLoading(false)
       }
@@ -124,8 +208,8 @@ export default function PackageSelectionPage() {
     loadData()
   }, [token])
 
-  const isDowngradePossible = (planId: string) => {
-    const targetPlan = plans.find(p => p.id === planId)
+  const isDowngradePossible = (planSlug: string) => {
+    const targetPlan = plans.find(p => p.slug === planSlug)
     if (!targetPlan) return true
     if (targetPlan.limits.restaurants !== -1 && usage.restaurants > targetPlan.limits.restaurants) {
       return false
@@ -133,16 +217,16 @@ export default function PackageSelectionPage() {
     return true
   }
 
-  const handlePlanClick = (planId: string) => {
-    if (!isDowngradePossible(planId)) {
+  const handlePlanClick = (planSlug: string) => {
+    if (!isDowngradePossible(planSlug)) {
       toast({
-        title: "Empire Too Large",
-        description: `Your empire spans ${usage.restaurants} locations. This tier only accommodates ${plans.find(p => p.id === planId)?.limits.restaurants}. Consolidate your holdings first.`,
+        title: "Location Limit Reached",
+        description: `Your account has ${usage.restaurants} locations. This tier only accommodates ${plans.find(p => p.slug === planSlug)?.limits.restaurants}. Please upgrade to a higher tier to add more restaurants.`,
         variant: "destructive"
       })
       return
     }
-    setSelectedPlan(planId)
+    setSelectedPlan(planSlug)
   }
 
   const handleContinue = async (planIdOverride?: string) => {
@@ -154,26 +238,47 @@ export default function PackageSelectionPage() {
       return
     }
 
+    // Prevent re-using trial if already marked as trialed
+    if (planToProcess === "free-trial" && hasUsedTrial) {
+       toast({
+         title: "Free Trial Used",
+         description: "Your free trial has already been claimed or has expired. Please upgrade to a membership plan to continue.",
+         variant: "destructive"
+       })
+       return
+    }
+
     setProcessing(true)
     try {
+      console.log(`Initiating selection for plan: ${planToProcess}`)
       const res = await apiFetch<any>("/payment/initiate", {
         method: "POST",
         token,
-        body: { plan: planToProcess }
+        body: { 
+          plan: planToProcess,
+          // If free trial, the backend might handle it differently
+          type: planToProcess === "free-trial" ? "trial" : "upgrade"
+        }
       })
 
       const checkoutUrl = res?.data?.checkout_url || res?.checkout_url
       
+      // If it's a free trial OR if there's no checkout URL returned (implicit activation)
       if (planToProcess === "free-trial" || !checkoutUrl) {
-         toast({ title: "Portal Opened", description: "Your digital kitchen ritual has begun." })
-         router.push("/dashboard")
+         console.log("Plan activated successfully (implicit or trial)")
+         toast({ title: "Welcome to MenuVista!", description: "Your membership has been activated successfully." })
+         
+         // Give the backend a moment to process the update before redirecting
+         setTimeout(() => {
+           router.push("/dashboard")
+         }, 1000)
          return
       }
 
       window.location.href = checkoutUrl
     } catch (err: any) {
       toast({
-        title: "Conjunction Failed",
+        title: "Payment Error",
         description: err?.message || "The payment gateway is currently undergoing maintenance. Please try again soon.",
         variant: "destructive",
       })
@@ -186,7 +291,7 @@ export default function PackageSelectionPage() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-foreground">
         <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground font-serif italic">Consulting the Registry...</p>
+        <p className="text-muted-foreground font-serif italic">Loading plans...</p>
       </div>
     )
   }
@@ -208,21 +313,71 @@ export default function PackageSelectionPage() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-8"
           >
             <Shield className="h-3 w-3" />
-            Establishment Selection
+            Membership Plans
           </motion.div>
           <h1 className="text-5xl md:text-7xl font-serif tracking-tight leading-none mb-8">
-            Choose Your <span className="italic text-primary">Ambition.</span>
+            Choose Your <span className="italic text-primary">Plan.</span>
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium max-w-2xl mx-auto">
-            Select a tier that reflects the scale of your culinary empire. All deployments include our signature concierge support.
+            Select the plan that fits your business needs. All plans include 24/7 priority support.
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 items-stretch mb-16">
+        {showTrialButton && (
+           <motion.div 
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             className={cn(
+               "max-w-3xl mx-auto mb-16 p-1 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 rounded-[2.5rem]",
+               hasUsedTrial && !isCurrentlyTrialling && "opacity-50 grayscale"
+             )}
+           >
+             <div className="p-8 rounded-[2.4rem] bg-card/60 backdrop-blur-3xl flex flex-col md:flex-row items-center justify-between gap-8 group transition-all duration-500">
+                <div className="flex items-center gap-6 text-left w-full">
+                   <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner border border-primary/20 shrink-0">
+                      <Zap className={cn("h-8 w-8", !hasUsedTrial && "animate-pulse")} />
+                   </div>
+                   <div className="text-left">
+                      <h3 className="text-2xl font-serif font-bold text-foreground">
+                        {isCurrentlyTrialling ? "You are on Free Trial" : "Begin Your Journey"}
+                      </h3>
+                      <p className="text-muted-foreground font-medium leading-relaxed">
+                        {isCurrentlyTrialling 
+                          ? `You have ${trialDaysLeft !== null ? `${trialDaysLeft} day${trialDaysLeft !== 1 ? 's' : ''}` : 'some time'} remaining on your trial. Access your dashboard or upgrade to keep your data.`
+                          : "Experience MenuVista with a 7-day free trial. No commitment, cancel anytime."}
+                      </p>
+                   </div>
+                </div>
+                <Button 
+                  onClick={() => {
+                    if (isCurrentlyTrialling) router.push("/dashboard");
+                    else handleContinue('free-trial');
+                  }}
+                  disabled={processing || (hasUsedTrial && !isCurrentlyTrialling)}
+                  size="lg"
+                  className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+                >
+                   {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                     <>
+                       {isCurrentlyTrialling ? "Continue to Dashboard" : 
+                        (hasUsedTrial ? "Trial Used" : "Start Free Trial")}
+                       <ArrowRight className="ml-2 h-5 w-5" />
+                     </>
+                   )}
+                </Button>
+             </div>
+           </motion.div>
+        )}
+
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-stretch mb-16">
           <AnimatePresence>
-            {plans.map((plan, idx) => {
-              const possible = isDowngradePossible(plan.id)
-              const isSelected = selectedPlan === plan.id
+            {paidPlans.map((plan, idx) => {
+              const isMatchesCurrent = currentPlanId === plan.id || currentPlanId === plan.slug
+              const isTrialPlan = plan.slug === 'free-trial' || plan.name.toLowerCase().includes('trial')
+              const isTrialUnavailable = isTrialPlan && hasUsedTrial && !isMatchesCurrent
+              
+              const possible = isDowngradePossible(plan.slug) && !isTrialUnavailable
+              const isSelected = selectedPlan === plan.slug
               const PlanIcon = plan.icon || Star
 
               return (
@@ -237,9 +392,9 @@ export default function PackageSelectionPage() {
                     className={cn(
                       "relative h-full flex flex-col bg-card/40 backdrop-blur-2xl border border-border/10 rounded-[2.5rem] p-3 transition-all duration-500 overflow-hidden group cursor-pointer",
                       isSelected && "border-primary/50 shadow-[0_30px_60px_-15px_rgba(230,57,70,0.25)] bg-card/60",
-                      !possible && "opacity-50 grayscale cursor-not-allowed"
+                      (!possible || isTrialUnavailable) && "opacity-50 grayscale cursor-not-allowed pointer-events-none"
                     )}
-                    onClick={() => possible && handlePlanClick(plan.id)}
+                    onClick={() => possible && handlePlanClick(plan.slug)}
                   >
                     {plan.highlighted && (
                       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
@@ -253,14 +408,20 @@ export default function PackageSelectionPage() {
                         )}>
                           <PlanIcon className="h-6 w-6" />
                         </div>
-                        {plan.highlighted && (
-                          <Badge className="bg-primary text-[10px] font-black uppercase tracking-widest px-3">Most Regal</Badge>
+                        {isMatchesCurrent && (
+                          <Badge className="bg-green-500 text-[10px] font-black uppercase tracking-widest px-3">Current</Badge>
+                        )}
+                        {plan.highlighted && !isMatchesCurrent && (
+                          <Badge className="bg-primary text-[10px] font-black uppercase tracking-widest px-3">Most Popular</Badge>
                         )}
                       </div>
                       
                       <CardTitle className="text-3xl font-serif text-foreground mb-2 tracking-tight">{plan.name}</CardTitle>
                       <CardDescription className="text-muted-foreground text-sm font-medium leading-relaxed min-h-[40px]">
                         {plan.description}
+                        {isTrialUnavailable && (
+                          <span className="block mt-2 text-destructive font-bold text-[10px] uppercase">Trial no longer available</span>
+                        )}
                       </CardDescription>
 
                       <div className="pt-6 flex items-baseline gap-2">
@@ -288,28 +449,31 @@ export default function PackageSelectionPage() {
 
                       <Button
                         size="lg"
-                        disabled={processing || !possible}
+                        disabled={processing || !possible || isMatchesCurrent}
                         onClick={(e) => {
                           e.stopPropagation()
                           if (possible) {
-                            setSelectedPlan(plan.id)
-                            handleContinue(plan.id)
+                            setSelectedPlan(plan.slug)
+                            handleContinue(plan.slug)
                           }
                         }}
                         className={cn(
                           "w-full h-14 mt-8 rounded-2xl text-md font-bold transition-all border-none relative overflow-hidden group/btn",
-                          isSelected ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-muted/30 border border-border/10 text-foreground hover:bg-muted/50"
+                          isSelected ? "bg-primary text-white shadow-xl shadow-primary/20" : "bg-muted/30 border border-border/10 text-foreground hover:bg-muted/50",
+                          isMatchesCurrent && "bg-green-500/10 text-green-500 cursor-default"
                         )}
                       >
                          <AnimatePresence mode="wait">
-                            {processing && isSelected ? (
+                            {processing && isMatchesCurrent ? (
                               <motion.div key="loading" className="flex items-center gap-2">
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 Processing...
                               </motion.div>
                             ) : (
                               <motion.div key="text" className="flex items-center gap-2">
-                                {plan.price === "0" ? "Initiate Trial" : "Secure Tier"}
+                                {isMatchesCurrent ? "Active Plan" : 
+                                 (isTrialUnavailable ? "Already Used" : 
+                                  (plan.price === "0" ? "Start Free Trial" : "Select Plan"))}
                                 <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                               </motion.div>
                             )}
@@ -327,7 +491,7 @@ export default function PackageSelectionPage() {
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-12 py-8 border-t border-border/10">
            <div className="flex items-center gap-3">
               <Zap className="h-4 w-4 text-primary" />
-              <p className="text-xs font-bold uppercase tracking-widest leading-none mt-1 text-muted-foreground">7-Day Free Ritual</p>
+              <p className="text-xs font-bold uppercase tracking-widest leading-none mt-1 text-muted-foreground">7-Day Free Trial</p>
            </div>
            <div className="h-4 w-px bg-border/10 hidden md:block" />
            <div className="flex items-center gap-3">

@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { apiFetch } from "@/lib/api-client"
 import { cn } from "@/lib/utils"
+import { Logo } from "@/components/logo"
+import { Zap, AlertTriangle, ArrowRight } from "lucide-react"
 
 const NAV_ITEMS = [
   {
@@ -51,17 +53,17 @@ const NAV_ITEMS = [
     icon: LayoutDashboard,
   },
   {
-    title: "My Restaurants",
+    title: "Restaurants",
     url: "/dashboard/profile",
     icon: Hotel,
   },
   {
-    title: "Menu Studio",
+    title: "Menus",
     url: "/dashboard/menu",
     icon: Utensils,
   },
   {
-    title: "QR Code",
+    title: "QR Codes",
     url: "/dashboard/qr",
     icon: QrCode,
   },
@@ -89,13 +91,26 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
     }
   }, [session])
 
+  const getDaysLeft = () => {
+    if (!subscription || !subscription.expires_at) return null
+    if (subscription.plan_slug !== 'free-trial' && !subscription.plan?.name?.toLowerCase().includes('trial')) return null
+    
+    const expiry = new Date(subscription.expires_at)
+    const now = new Date()
+    const diff = expiry.getTime() - now.getTime()
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
+    return days > 0 ? days : 0
+  }
+
   const getPlanLabel = () => {
     if (!subscription) return "Trial"
     const id = (subscription.plan_id || "").toLowerCase()
-    if (id.includes("bronze")) return "Bronze"
-    if (id.includes("silver")) return "Silver"
-    if (id.includes("gold")) return "Gold"
-    return subscription.plan?.name || "Active"
+    const slug = (subscription.plan_slug || "").toLowerCase()
+    
+    if (id.includes("bronze") || slug.includes("bronze")) return "Bronze"
+    if (id.includes("silver") || slug.includes("silver")) return "Silver"
+    if (id.includes("gold") || slug.includes("gold")) return "Gold"
+    return subscription.plan?.name || (slug === 'free-trial' ? 'Free Trial' : "Active")
   }
 
   const userName = session?.user?.name || "Proprietor"
@@ -117,13 +132,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
         <SidebarHeader className="p-6 h-auto border-none">
           <div className="flex items-center justify-between gap-3 px-2">
             <Link href="/dashboard" className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-lg shadow-primary/20">
-                 <Coffee className="h-5 w-5 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-black uppercase tracking-[0.2em] text-foreground">MenuVista</span>
-                <span className="text-[9px] font-bold uppercase tracking-widest text-primary italic">Charter Edition</span>
-              </div>
+              <Logo width={115} height={36} />
             </Link>
             <ThemeToggle />
           </div>
@@ -139,7 +148,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                   className={cn(
                     "flex h-12 w-full items-center gap-4 rounded-xl px-4 transition-all duration-300 border border-transparent",
                     pathname === item.url 
-                      ? "bg-primary text-white shadow-lg shadow-primary/10 border-primary/20" 
+                      ? "bg-primary text-white shadow-lg shadow-primary/10 border-primary/40" 
                       : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   )}
                 >
@@ -155,13 +164,20 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
           <div className="px-4 py-4 mt-auto">
              <div className="rounded-2xl bg-muted border border-border p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                   <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Registry Tier</span>
-                   <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase tracking-widest leading-none px-2 h-4">
+                   <div className="flex flex-col gap-1">
+                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Current plan</span>
+                      {getDaysLeft() !== null && (
+                         <span className="text-[10px] font-bold text-primary italic leading-none">
+                            {getDaysLeft()} days left
+                         </span>
+                      )}
+                   </div>
+                   <Badge className="bg-primary/20 text-primary border-none text-[8px] font-black uppercase tracking-widest leading-none px-2 h-4 self-start">
                       {getPlanLabel()}
                    </Badge>
                 </div>
                 <Button variant="outline" size="sm" asChild className="w-full h-10 rounded-xl bg-background border-border text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted">
-                   <Link href="/packages">Modify Access</Link>
+                   <Link href="/packages">Change plan</Link>
                 </Button>
              </div>
           </div>
@@ -187,7 +203,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
               align="end"
               className="w-56 bg-popover border-border text-popover-foreground rounded-2xl shadow-2xl p-2"
             >
-              <DropdownMenuLabel className="font-serif italic text-muted-foreground px-3 py-2">Proprietor Menu</DropdownMenuLabel>
+              <DropdownMenuLabel className="font-serif italic text-muted-foreground px-3 py-2">Account options</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border" />
               <DropdownMenuItem asChild className="rounded-lg focus:bg-muted cursor-pointer">
                 <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2">
@@ -201,31 +217,45 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
                 className="rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer flex items-center gap-3 px-3 py-2"
               >
                 <LogOut className="h-4 w-4" /> 
-                <span className="text-xs font-bold uppercase tracking-widest">End Session</span>
+                <span className="text-xs font-bold uppercase tracking-widest">Log out</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="bg-background flex flex-col min-h-screen">
-        <header className="flex h-20 items-center justify-between px-8 border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-          <div className="flex items-center gap-4">
+      <SidebarInset className="bg-background flex flex-col min-h-screen transition-all duration-300">
+        {getDaysLeft() !== null && (
+          <div className="w-full bg-primary py-1.5 px-6 flex items-center justify-between shadow-lg relative z-[60]">
+             <div className="flex items-center gap-2">
+                <Zap className="h-3 w-3 text-white animate-pulse" />
+                <span className="text-[9px] font-black uppercase tracking-widest text-white">
+                  Free Trial: <span className="underline decoration-white/30 underline-offset-4">{getDaysLeft()} Days Left</span>
+                </span>
+             </div>
+             <Link href="/packages" className="text-[8px] font-black uppercase tracking-widest text-white/90 hover:text-white flex items-center gap-1 transition-colors group">
+                Upgrade Plan <ArrowRight className="h-2.5 w-2.5 group-hover:translate-x-0.5 transition-transform" />
+             </Link>
+          </div>
+        )}
+        <header className="flex h-16 md:h-20 items-center justify-between px-4 md:px-8 border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
+          <div className="flex items-center gap-2 md:gap-4">
              <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg" />
-             <div className="h-4 w-px bg-border" />
-             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-                MenuVista / <span className="text-muted-foreground font-black">{pathname.split('/').pop()?.replace('-', ' ')}</span>
+             <div className="h-4 w-px bg-border hidden sm:block" />
+             <div className="flex items-center gap-2 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em] text-muted-foreground truncate max-w-[150px] sm:max-w-none">
+                <span className="hidden sm:inline">Dashboard / </span>
+                <span className="text-muted-foreground font-black uppercase">{pathname.split('/').pop()?.replace('-', ' ')}</span>
              </div>
           </div>
           
-          <Button variant="outline" size="sm" asChild className="rounded-xl border-border bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted h-10 px-6">
-             <Link href="/menu/golden-leaf">Broadcast View</Link>
+          <Button variant="outline" size="sm" asChild className="rounded-xl border-border bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted h-8 md:h-10 px-4 md:px-6">
+             <Link href="/menu/golden-leaf">View site</Link>
           </Button>
         </header>
 
-        <main className="flex-1 overflow-auto p-8 md:p-12 relative">
-           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
-           <div className="relative z-10">
+        <main className="flex-1 overflow-auto p-4 md:p-12 relative">
+           <div className="absolute top-0 right-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-primary/5 blur-[80px] md:blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
+           <div className="relative z-10 h-full">
               {children}
            </div>
         </main>

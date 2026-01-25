@@ -7,6 +7,7 @@ import { CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { apiFetch } from "@/lib/api-client"
+import { Logo } from "@/components/logo"
 
 function ActivateContent() {
   const searchParams = useSearchParams()
@@ -41,7 +42,8 @@ function ActivateContent() {
   }, [token])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-secondary/30 p-4 font-sans">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-secondary/30 p-4 font-sans gap-8">
+      <Logo width={180} height={60} />
       <Card className="w-full max-w-lg bg-white/80 backdrop-blur-md border-primary/10 shadow-xl overflow-hidden">
         <div className="h-2 w-full bg-primary/20">
           {status === "loading" && <div className="h-full bg-primary animate-progress-flow" style={{ width: "40%" }} />}

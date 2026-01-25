@@ -37,8 +37,14 @@ export function SubscriptionWatcher({ children }: { children: React.ReactNode })
         // We'll be lenient: if the API returns a successful response with an active subscription, we're good.
         const subscription = res?.data || res
         
-        if (!subscription || subscription.status !== "active") {
-          // No active subscription, redirect to packages
+        // If data is null or status is not 'active', they need to subscribe.
+        // We'll allow active subscriptions AND active free trials.
+        const isActive = subscription?.status === "active"
+        const isTrial = subscription?.plan_slug === "free-trial" || subscription?.name?.toLowerCase().includes("trial")
+        const isExpired = subscription?.status === "expired" || (subscription?.expires_at && new Date(subscription.expires_at) < new Date())
+        
+        if (!subscription || (!isActive && !isTrial) || isExpired) {
+          // No active subscription or trial, redirect to packages
           // But only if we're not already on the packages or payment pages
           if (!pathname.startsWith("/packages") && !pathname.startsWith("/payment")) {
              router.push("/packages")

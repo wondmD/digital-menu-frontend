@@ -3,6 +3,7 @@
 import { MenuItem, TemplateProps } from "./types"
 import { motion } from "framer-motion"
 import Image from "next/image"
+import { Logo } from "@/components/logo"
 import { getImageUrl } from "@/lib/utils"
 import { Search, Loader2, Zap } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -120,8 +121,11 @@ export default function Template3({
          </div>
       </main>
 
-      <footer className="mt-12 mb-8 text-center text-[10px] font-black uppercase tracking-widest text-slate-400">
-        MenuVista Express
+      <footer className="mt-12 mb-12 flex flex-col items-center justify-center gap-3">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+          Powered by
+        </span>
+        <Logo width={100} height={32} />
       </footer>
     </div>
   )

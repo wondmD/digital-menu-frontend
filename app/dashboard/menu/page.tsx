@@ -131,7 +131,7 @@ function MenuManagementContent() {
         body: { is_published: newStatus },
       })
       setRestaurants(prev => prev.map(r => r.id === selectedRestaurant.id ? { ...r, is_published: newStatus } : r))
-      toast({ title: newStatus ? "Signal Broadcast Active" : "Signal Broadcast Offline" })
+      toast({ title: newStatus ? "Menu published" : "Menu unpublished" })
     } catch (err: any) {
       toast({ title: "Failed to update status", description: err.message, variant: "destructive" })
     } finally {
@@ -471,42 +471,42 @@ function MenuManagementContent() {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">Initializing menu management...</p>
+        <p className="text-muted-foreground animate-pulse">Loading menu...</p>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-8 pb-20">
-       {/* Charter Command Banner */}
-       <div className="bg-card/40 backdrop-blur-3xl border border-border/10 rounded-[3rem] p-8 flex flex-col lg:flex-row items-center justify-between gap-10 shadow-3xl relative overflow-hidden group">
+    <div className="flex flex-col gap-6 md:gap-8 pb-20 px-4 md:px-0">
+       {/* Menu management */}
+       <div className="bg-card/40 backdrop-blur-3xl border border-border/60 rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 md:gap-10 shadow-3xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px] -mr-48 -mt-48 transition-all group-hover:bg-primary/10" />
           
-          <div className="flex items-center gap-6 z-10">
-            <div className="h-20 w-20 rounded-[2.5rem] bg-muted border border-border/10 flex items-center justify-center shadow-inner relative group/icon">
-              <Utensils className="h-10 w-10 text-primary group-hover/icon:scale-110 transition-transform" />
+          <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 z-10 text-center sm:text-left w-full sm:w-auto">
+            <div className="h-16 w-16 md:h-20 md:w-20 rounded-[1.5rem] md:rounded-[2.5rem] bg-muted border border-border/60 flex items-center justify-center shadow-inner relative group/icon">
+              <Utensils className="h-8 w-8 md:h-10 md:w-10 text-primary group-hover/icon:scale-110 transition-transform" />
               <div className="absolute inset-0 bg-primary/20 blur-2xl opacity-0 group-hover/icon:opacity-100 transition-opacity" />
             </div>
             <div className="space-y-1">
-              <div className="flex items-center gap-3">
-                 <div className="h-1 w-8 bg-primary rounded-full" />
-                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Operational Limits</p>
+              <div className="flex items-center justify-center sm:justify-start gap-3">
+                 <div className="h-1 w-6 md:w-8 bg-primary rounded-full" />
+                 <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-primary">Menu limits</p>
               </div>
-              <h2 className="text-4xl font-black text-foreground">Registry <span className="italic font-serif text-primary">Capacity.</span></h2>
-              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">{subscription?.plan_name || 'Charter Standard'} Allocation Phase</p>
+              <h2 className="text-3xl md:text-4xl font-black text-foreground uppercase">Menu <span className="italic font-serif text-primary">items.</span></h2>
+              <p className="text-muted-foreground text-[10px] md:text-xs font-bold uppercase tracking-widest">{subscription?.plan_name || 'Standard'} Allocation</p>
             </div>
           </div>
 
-          <div className="flex-1 max-w-lg w-full z-10">
-             <div className="flex justify-between items-end mb-4">
+          <div className="flex-1 max-w-lg w-full z-10 space-y-4">
+             <div className="flex justify-between items-end mb-2 md:mb-4">
                 <div className="space-y-1">
-                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Registry Occupancy</p>
-                   <p className="text-xl font-black text-foreground">
-                     {stats.total} <span className="text-muted-foreground font-medium">/</span> {subscription?.features?.max_menu_items === -1 ? '∞' : (subscription?.features?.max_menu_items || '—')} <span className="text-xs font-medium text-muted-foreground lowercase ml-2">item units</span>
+                   <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Total items</p>
+                   <p className="text-lg md:text-xl font-black text-foreground">
+                     {stats.total} <span className="text-muted-foreground font-medium">/</span> {subscription?.features?.max_menu_items === -1 ? '∞' : (subscription?.features?.max_menu_items || '—')} <span className="text-[10px] md:text-xs font-medium text-muted-foreground lowercase ml-2">items</span>
                    </p>
                 </div>
                 {subscription?.features?.max_menu_items !== -1 && (
-                   <span className="text-[10px] font-black text-primary p-2 bg-primary/10 rounded-lg">{(stats.total / (subscription?.features?.max_menu_items || 1) * 100).toFixed(0)}% LOAD</span>
+                   <span className="text-[9px] md:text-[10px] font-black text-primary p-2 bg-primary/10 rounded-lg">{(stats.total / (subscription?.features?.max_menu_items || 1) * 100).toFixed(0)}% USED</span>
                 )}
              </div>
              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
@@ -519,30 +519,30 @@ function MenuManagementContent() {
              </div>
           </div>
 
-          <Button variant="outline" className="h-14 px-10 rounded-[1.5rem] border-border/10 bg-muted/30 text-foreground font-black uppercase text-[10px] tracking-[0.3em] z-10 hover:bg-primary hover:text-white transition-all shadow-xl" asChild>
-            <Link href="/packages">Extend Matrix</Link>
+          <Button variant="outline" className="w-full md:w-auto h-12 md:h-14 px-8 md:px-10 rounded-xl md:rounded-[1.5rem] border-border/60 bg-muted/30 text-foreground font-black uppercase text-[9px] md:text-[10px] tracking-[0.3em] z-10 hover:bg-primary hover:text-white transition-all shadow-xl" asChild>
+            <Link href="/packages">Upgrade plan</Link>
           </Button>
        </div>
 
-      <div className="flex flex-col gap-10 md:flex-row md:items-end md:justify-between px-2">
+      <div className="flex flex-col gap-8 md:gap-10 md:flex-row md:items-end md:justify-between px-2">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
              <Activity className="h-4 w-4 text-primary animate-pulse" />
-             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Registry Control Center</span>
+             <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Management</span>
           </div>
-          <h1 className="text-6xl md:text-7xl font-black tracking-tighter text-foreground">
-            Menu <span className="italic font-serif text-primary">Studio.</span>
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tighter text-foreground uppercase leading-none">
+            Menu <br className="sm:hidden" /> <span className="italic font-serif text-primary">management.</span>
           </h1>
-          <p className="text-muted-foreground font-medium text-xl max-w-lg">Unified command interface for culinary asset deployments and taxonomic structures.</p>
+          <p className="text-muted-foreground font-medium text-lg md:text-xl max-w-lg">Manage your menu items, categories, and availability from a single interface.</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-5">
+        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-5 w-full md:w-auto">
            {restaurants.length > 0 && (
-             <div className="flex items-center gap-3 bg-card/60 p-2 rounded-[2rem] border border-border/5 shadow-2xl">
-               <div className="flex flex-col gap-1.5 px-4">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">Target Establishment</span>
+             <div className="flex items-center gap-3 bg-card/60 p-2 rounded-[1.5rem] md:rounded-[2rem] border border-border/50 shadow-2xl w-full sm:w-auto">
+               <div className="flex flex-col gap-1.5 px-3 md:px-4 flex-1 sm:flex-none">
+                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-primary/60">Select restaurant</span>
                   <select
-                    className="bg-transparent text-sm font-black text-foreground focus:outline-none appearance-none cursor-pointer pr-6"
+                    className="bg-transparent text-xs md:text-sm font-black text-foreground focus:outline-none appearance-none cursor-pointer pr-6"
                     value={restaurantId}
                     onChange={(e) => {
                       setRestaurantId(e.target.value)
@@ -552,30 +552,30 @@ function MenuManagementContent() {
                     {restaurants.map(r => <option key={r.id} value={r.id} className="bg-card">{r.name.toUpperCase()}</option>)}
                   </select>
                </div>
-               <div className="h-10 w-px bg-border/10 mx-2" />
-               <Button variant="ghost" size="icon" disabled={publishing} onClick={togglePublish} className={cn("h-14 w-14 rounded-2xl transition-all", selectedRestaurant?.is_published ? "bg-primary/10 text-primary hover:bg-primary hover:text-white" : "bg-muted text-muted-foreground hover:text-foreground")}>
-                 {publishing ? <Loader2 className="animate-spin" /> : selectedRestaurant?.is_published ? <Eye className="h-6 w-6" /> : <EyeOff className="h-6 w-6" />}
+               <div className="h-8 md:h-10 w-px bg-border/10 mx-1 md:mx-2" />
+               <Button variant="ghost" size="icon" disabled={publishing} onClick={togglePublish} className={cn("h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl transition-all", selectedRestaurant?.is_published ? "bg-primary/10 text-primary hover:bg-primary hover:text-white" : "bg-muted text-muted-foreground hover:text-foreground")}>
+                 {publishing ? <Loader2 className="animate-spin" /> : selectedRestaurant?.is_published ? <Eye className="h-5 w-5 md:h-6 md:w-6" /> : <EyeOff className="h-5 w-5 md:h-6 md:w-6" />}
                </Button>
              </div>
            )}
-           <Button className="h-16 rounded-[2rem] px-10 gap-4 shadow-[0_25px_50px_-12px_rgba(230,57,70,0.4)] bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs tracking-[0.2em] transition-all hover:scale-105 active:scale-95" disabled={!categoryId} onClick={() => { setActiveItem(null); setItemDraft({ name: "", description: "", price: "", currency: "USD", is_available: true, images: [] }); setItemPanelOpen(true); }}>
-            <Plus className="h-5 w-5" /> Initialize Dish
+           <Button className="w-full sm:w-auto h-14 md:h-16 rounded-xl md:rounded-[2rem] px-8 md:px-10 gap-4 shadow-[0_25px_50px_-12px_rgba(230,57,70,0.4)] bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] md:text-xs tracking-[0.2em] transition-all hover:scale-105 active:scale-95" disabled={!categoryId} onClick={() => { setActiveItem(null); setItemDraft({ name: "", description: "", price: "", currency: "USD", is_available: true, images: [] }); setItemPanelOpen(true); }}>
+            <Plus className="h-5 w-5" /> Add item
           </Button>
         </div>
       </div>
 
       {/* Stats Quick View */}
-      <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Dishes", val: stats.total, icon: Utensils, color: "text-blue-400", bg: "bg-blue-400/10" },
-          { label: "Live on Menu", val: stats.available, icon: CheckCircle2, color: "text-green-400", bg: "bg-green-400/10" },
-          { label: "Out of Stock", val: stats.unavailable, icon: XCircle, color: "text-red-400", bg: "bg-red-400/10" },
+          { label: "Total items", val: stats.total, icon: Utensils, color: "text-blue-400", bg: "bg-blue-400/10" },
+          { label: "Available", val: stats.available, icon: CheckCircle2, color: "text-green-400", bg: "bg-green-400/10" },
+          { label: "Unavailable", val: stats.unavailable, icon: XCircle, color: "text-red-400", bg: "bg-red-400/10" },
           { label: "Avg. Price", val: `${stats.avgPrice.toFixed(2)}`, icon: DollarSign, color: "text-orange-400", bg: "bg-orange-400/10" },
         ].map((s, i) => (
-          <div key={i} className="group relative p-6 rounded-[2rem] bg-card/40 backdrop-blur-3xl border border-border/10 shadow-2xl transition-all duration-500 hover:border-primary/20">
+          <div key={i} className="group relative p-6 rounded-[2rem] bg-card/40 backdrop-blur-3xl border border-border/60 shadow-2xl transition-all duration-500 hover:border-primary/20">
             <div className="flex flex-row items-center justify-between mb-4">
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{s.label}</span>
-              <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border border-border/10", s.bg)}>
+              <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center border border-border/60", s.bg)}>
                 <s.icon className={cn("h-5 w-5", s.color)} />
               </div>
             </div>
@@ -587,71 +587,71 @@ function MenuManagementContent() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-        <aside className="lg:col-span-3 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-start">
+        <aside className="lg:col-span-3 space-y-6 md:space-y-8">
           <div className="flex items-center justify-between px-4">
             <div className="flex items-center gap-3">
                <Layers className="h-4 w-4 text-muted-foreground" />
-               <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Taxonomy</h2>
+               <h2 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Categories</h2>
             </div>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-all border border-border/10" onClick={() => { setActiveCategory(null); setCatDraft({ name: "", description: "" }); setAddCatOpen(true); }}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 md:h-10 md:w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-all border border-border/60" onClick={() => { setActiveCategory(null); setCatDraft({ name: "", description: "" }); setAddCatOpen(true); }}>
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex flex-col gap-3 px-2">
+          <div className="flex flex-row lg:flex-col gap-3 px-2 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide">
             {categories.length > 0 ? categories.map((cat) => (
-              <div key={cat.id} className={cn("group flex items-center justify-between p-5 rounded-[1.5rem] transition-all cursor-pointer border shadow-2xl hover:scale-[1.02]", categoryId === cat.id ? "bg-primary text-white border-primary shadow-[0_20px_40px_-10px_rgba(230,57,70,0.5)]" : "bg-card/40 backdrop-blur-md border-border/10 hover:border-primary/20")} onClick={() => setCategoryId(cat.id)}>
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", categoryId === cat.id ? "bg-white/20" : "bg-muted")}>
-                    <LayoutGrid className={cn("h-4 w-4", categoryId === cat.id ? "text-white" : "text-muted-foreground")} />
+              <div key={cat.id} className={cn("group flex items-center justify-between p-4 md:p-5 rounded-xl md:rounded-[1.5rem] transition-all cursor-pointer border shadow-xl hover:scale-[1.02] shrink-0 min-w-[160px] lg:min-w-0", categoryId === cat.id ? "bg-primary text-white border-primary shadow-[0_20px_40px_-10px_rgba(230,57,70,0.5)]" : "bg-card/40 backdrop-blur-md border-border/60 hover:border-primary/20")} onClick={() => setCategoryId(cat.id)}>
+                <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                  <div className={cn("h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl flex items-center justify-center shrink-0", categoryId === cat.id ? "bg-white/20" : "bg-muted")}>
+                    <LayoutGrid className={cn("h-3.5 w-3.5 md:h-4 md:w-4", categoryId === cat.id ? "text-white" : "text-muted-foreground")} />
                   </div>
-                  <span className="font-black text-xs tracking-widest uppercase truncate">{cat.name}</span>
+                  <span className="font-black text-[10px] md:text-xs tracking-widest uppercase truncate">{cat.name}</span>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-lg", categoryId === cat.id ? "hover:bg-white/20 text-white" : "hover:bg-muted text-muted-foreground")} onClick={(e) => { e.stopPropagation(); setActiveCategory(cat); setCatDraft({ name: cat.name, description: cat.description || "" }); setEditCatOpen(true); }}>
-                    <Edit2 className="h-3.5 w-3.5" />
+                  <Button variant="ghost" size="icon" className={cn("h-7 w-7 md:h-8 md:w-8 rounded-lg", categoryId === cat.id ? "hover:bg-white/20 text-white" : "hover:bg-muted text-muted-foreground")} onClick={(e) => { e.stopPropagation(); setActiveCategory(cat); setCatDraft({ name: cat.name, description: cat.description || "" }); setEditCatOpen(true); }}>
+                    <Edit2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
             )) : (
-              <div className="p-10 rounded-[2.5rem] border-2 border-dashed border-border/10 bg-muted/20 text-center space-y-4">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">No categories defined</p>
-                 <Button variant="ghost" className="text-primary text-[10px] font-black uppercase tracking-widest" onClick={() => setAddCatOpen(true)}>Initialize Taxonomy</Button>
+              <div className="p-8 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border-2 border-dashed border-border/60 bg-muted/20 text-center space-y-4 w-full">
+                 <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-muted-foreground">No categories defined</p>
+                 <Button variant="ghost" className="text-primary text-[9px] md:text-[10px] font-black uppercase tracking-widest" onClick={() => setAddCatOpen(true)}>Add first category</Button>
               </div>
             )}
           </div>
         </aside>
 
-        <section className="lg:col-span-9 space-y-10">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center bg-card/60 backdrop-blur-3xl p-4 rounded-[2.5rem] border border-border/10 shadow-3xl">
+        <section className="lg:col-span-9 space-y-8 md:space-y-10">
+          <div className="flex flex-col gap-4 md:gap-6 md:flex-row md:items-center bg-card/60 backdrop-blur-3xl p-3 md:p-4 rounded-2xl md:rounded-[2.5rem] border border-border/60 shadow-3xl">
             <div className="relative flex-1">
-              <Search className="absolute left-6 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Synchronize with registry search..." className="pl-14 border-none bg-transparent h-14 focus-visible:ring-0 text-lg font-bold placeholder:text-muted-foreground/30 text-foreground" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Search className="absolute left-4 md:left-6 top-1/2 h-4 w-4 md:h-5 md:w-5 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder="Search menu items..." className="pl-12 md:pl-14 border-none bg-transparent h-12 md:h-14 focus-visible:ring-0 text-base md:text-lg font-bold placeholder:text-muted-foreground/30 text-foreground" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <div className="flex items-center gap-4 pr-2">
-              <select className="h-12 rounded-[1.25rem] border border-border/5 bg-muted/30 px-6 text-[10px] font-black uppercase tracking-[0.2em] focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all appearance-none cursor-pointer pr-12 hover:bg-muted/50 text-foreground" style={{ backgroundImage: `url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }} value={availabilityFilter} onChange={(e) => setAvailabilityFilter(e.target.value as any)}>
-                <option value="all" className="bg-card text-foreground">Full Archive</option>
-                <option value="available" className="bg-card text-foreground">Live Signal</option>
-                <option value="unavailable" className="bg-card text-foreground">Archived</option>
+            <div className="flex items-center gap-4 pr-1 md:pr-2">
+              <select className="h-10 md:h-12 w-full md:w-auto rounded-lg md:rounded-[1.25rem] border border-border/50 bg-muted/30 px-4 md:px-6 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all appearance-none cursor-pointer pr-10 md:pr-12 hover:bg-muted/50 text-foreground" style={{ backgroundImage: `url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.8rem center', backgroundSize: '1em' }} value={availabilityFilter} onChange={(e) => setAvailabilityFilter(e.target.value as any)}>
+                <option value="all" className="bg-card text-foreground">All items</option>
+                <option value="available" className="bg-card text-foreground">Available</option>
+                <option value="unavailable" className="bg-card text-foreground">Unavailable</option>
               </select>
             </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
             {itemsLoading ? (
                <div className="col-span-full py-48 flex flex-col items-center justify-center gap-8">
                   <div className="relative">
                     <Loader2 className="h-16 w-16 animate-spin text-primary" />
                     <div className="absolute inset-0 bg-primary/20 blur-3xl animate-pulse" />
                   </div>
-                  <p className="font-black tracking-[0.4em] text-[10px] uppercase text-muted-foreground">Synchronizing Culinary Registry...</p>
+                  <p className="font-black tracking-[0.4em] text-[10px] uppercase text-muted-foreground">Loading items...</p>
                </div>
             ) : filteredItems.length > 0 ? (
               filteredItems.map((item) => {
                 const isAvailable = item.available ?? item.is_available ?? true
                 // Robust category lookup
                 const category = categories.find((c) => String(c.id) === String(item.category_id))
-                const categoryName = category?.name || "MASTER"
+                const categoryName = category?.name || "Uncategorized"
                 
                 const rawImages = item.image_urls || item.images || item.image || item.image_url
                 const images = getImageUrls(rawImages)
@@ -661,12 +661,12 @@ function MenuManagementContent() {
                 
                 return (
                   <div key={item.id} className="h-full">
-                    <Card className="group h-full overflow-hidden bg-card/40 backdrop-blur-3xl border-border/10 shadow-2xl hover:shadow-[0_30px_60px_-15px_rgba(230,57,70,0.3)] hover:border-primary/40 transition-all duration-700 rounded-[3rem] border-2 flex flex-col">
+                    <Card className="group h-full overflow-hidden bg-card/40 backdrop-blur-3xl border-border/60 shadow-2xl hover:shadow-[0_30px_60px_-15px_rgba(230,57,70,0.3)] hover:border-primary/40 transition-all duration-700 rounded-[3rem] border-2 flex flex-col">
                       <div className="relative aspect-[16/10] overflow-hidden shrink-0">
                         {images[0] && (
                           <Image 
                             src={images[0]} 
-                            alt={item.name || "Asset"} 
+                            alt={item.name || "Item"} 
                             fill 
                             className="object-cover group-hover:scale-110 transition-transform duration-1000"
                             unoptimized={images[0].startsWith('http')}
@@ -674,20 +674,20 @@ function MenuManagementContent() {
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
                         <div className="absolute top-5 left-5 flex flex-col gap-2">
-                           <Badge className="bg-card/80 backdrop-blur-xl border border-border/10 text-primary font-black uppercase text-[10px] tracking-widest px-4 h-8 rounded-xl shadow-2xl">{categoryName.toUpperCase()}</Badge>
+                           <Badge className="bg-card/80 backdrop-blur-xl border border-border/60 text-primary font-black uppercase text-[10px] tracking-widest px-4 h-8 rounded-xl shadow-2xl">{categoryName.toUpperCase()}</Badge>
                            {isAvailable ? (
                              <div className="flex items-center gap-2 px-3 h-6 bg-secondary/10 backdrop-blur-md rounded-lg border border-secondary/20">
                                <div className="h-1.5 w-1.5 rounded-full bg-secondary animate-pulse" />
-                               <span className="text-[8px] font-black text-secondary tracking-widest uppercase">Live Signal</span>
+                               <span className="text-[8px] font-black text-secondary tracking-widest uppercase">Available</span>
                              </div>
                            ) : (
-                             <div className="flex items-center gap-2 px-3 h-6 bg-muted/50 backdrop-blur-md rounded-lg border border-border/10">
-                               <span className="text-[8px] font-black text-muted-foreground tracking-widest uppercase">Archived</span>
+                             <div className="flex items-center gap-2 px-3 h-6 bg-muted/50 backdrop-blur-md rounded-lg border border-border/60">
+                               <span className="text-[8px] font-black text-muted-foreground tracking-widest uppercase">Unavailable</span>
                              </div>
                            )}
                         </div>
                         <div className="absolute top-5 right-5 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-x-4 group-hover:translate-x-0">
-                          <Button variant="secondary" size="icon" className="h-12 w-12 rounded-2xl shadow-3xl bg-background border border-border/10 hover:bg-primary hover:text-white transition-all" onClick={() => { setActiveItem(item); setItemDraft({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "0", currency: item.currency || "USD", is_available: isAvailable, images: getImageUrls(rawImages) }); setItemPanelOpen(true); }}>
+                          <Button variant="secondary" size="icon" className="h-12 w-12 rounded-2xl shadow-3xl bg-background border border-border/60 hover:bg-primary hover:text-white transition-all" onClick={() => { setActiveItem(item); setItemDraft({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "0", currency: item.currency || "USD", is_available: isAvailable, images: getImageUrls(rawImages) }); setItemPanelOpen(true); }}>
                             <Edit2 className="h-5 w-5" />
                           </Button>
                         </div>
@@ -708,14 +708,14 @@ function MenuManagementContent() {
                       </div>
                       <CardHeader className="p-8 pb-4">
                         <CardDescription className="line-clamp-2 h-12 text-sm font-medium text-muted-foreground leading-relaxed group-hover:text-foreground transition-colors">
-                          {item.description || "No registry description provided for this culinary asset."}
+                          {item.description || "No description provided for this item."}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="p-8 pt-0 mt-auto">
-                        <div className="flex items-center justify-between border-t border-border/5 pt-6 mt-2">
+                        <div className="flex items-center justify-between border-t border-border/50 pt-6 mt-2">
                           <div className="flex items-center gap-6">
                              <div className="flex flex-col">
-                                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Telemetry</span>
+                                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Details</span>
                                 <div className="flex items-center gap-4 text-muted-foreground">
                                    <div className="flex items-center gap-1.5"><Flame className="h-3.5 w-3.5 text-primary" /> <span className="text-[10px] font-bold">MILD</span></div>
                                    <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> <span className="text-[10px] font-bold">15M</span></div>
@@ -732,14 +732,14 @@ function MenuManagementContent() {
                 )
               })
             ) : (
-              <div className="col-span-full py-60 text-center bg-card/20 rounded-[4rem] border-2 border-dashed border-border/10 group hover:border-primary/20 transition-all">
-                <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-[3rem] bg-muted border border-border/10 shadow-3xl mb-12 group-hover:scale-110 transition-transform duration-700">
+              <div className="col-span-full py-60 text-center bg-card/20 rounded-[4rem] border-2 border-dashed border-border/60 group hover:border-primary/20 transition-all">
+                <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-[3rem] bg-muted border border-border/60 shadow-3xl mb-12 group-hover:scale-110 transition-transform duration-700">
                   <Utensils className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <h3 className="text-4xl font-black tracking-tight text-foreground mb-4">Registry Empty.</h3>
-                <p className="text-muted-foreground font-medium max-w-sm mx-auto mb-12 text-lg leading-relaxed">Your culinary holdings are currently offline. Establish your first asset to begin the broadcast.</p>
+                <h3 className="text-4xl font-black tracking-tight text-foreground mb-4">No menu items found.</h3>
+                <p className="text-muted-foreground font-medium max-w-sm mx-auto mb-12 text-lg leading-relaxed">You haven't added any items to this menu yet. Create your first item to get started.</p>
                 <Button className="h-16 px-12 rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] shadow-[0_25px_50px_-12px_rgba(230,57,70,0.4)] bg-primary text-white" onClick={() => setItemPanelOpen(true)}>
-                  <Plus className="h-5 w-5 mr-4" /> Issue Asset
+                  <Plus className="h-5 w-5 mr-4" /> Add your first item
                 </Button>
               </div>
             )}
@@ -747,37 +747,37 @@ function MenuManagementContent() {
         </section>
       </div>
 
-      {/* REGISTRY BLUEPRINT: Category Modals */}
+      {/* Modal: Category Management */}
       <Dialog open={addCatOpen || editCatOpen} onOpenChange={(open) => { setAddCatOpen(open); setEditCatOpen(open) }}>
-        <DialogContent className="rounded-[2.5rem] p-10 sm:max-w-[500px] bg-card/95 backdrop-blur-3xl border border-border/10 shadow-2xl">
+        <DialogContent className="rounded-[2.5rem] p-10 sm:max-w-[500px] bg-card/95 backdrop-blur-3xl border border-border/60 shadow-2xl">
           <DialogHeader className="mb-8">
             <div className="flex items-center gap-4 mb-4">
               <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                 <LayoutGrid className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-3xl font-black tracking-tight text-foreground">{activeCategory ? "Refine Taxonomy" : "New Classification"}</DialogTitle>
-                <DialogDescription className="font-medium text-muted-foreground">Define the structural architecture of your registry.</DialogDescription>
+                <DialogTitle className="text-3xl font-black tracking-tight text-foreground">{activeCategory ? "Edit Category" : "New Category"}</DialogTitle>
+                <DialogDescription className="font-medium text-muted-foreground">Manage how your menu items are grouped.</DialogDescription>
               </div>
             </div>
           </DialogHeader>
           
           <div className="space-y-10 py-4">
             <div className="space-y-4">
-              <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Category Designation</Label>
+              <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Category Name</Label>
               <Input
-                className="h-16 rounded-2xl border-border/5 bg-muted/30 focus-visible:ring-primary/20 text-xl font-bold text-foreground placeholder:text-muted-foreground/30 transition-all"
-                placeholder="e.g. CELLAR SELECTION"
+                className="h-16 rounded-2xl border-border/50 bg-muted/30 focus-visible:ring-primary/20 text-xl font-bold text-foreground placeholder:text-muted-foreground/30 transition-all"
+                placeholder="e.g. Main Course"
                 value={catDraft.name}
                 onChange={e => setCatDraft(p => ({ ...p, name: e.target.value }))}
               />
             </div>
             
             <div className="space-y-4">
-              <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Internal Log</Label>
+              <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Description</Label>
               <Input
-                className="h-16 rounded-2xl border-border/5 bg-muted/30 focus-visible:ring-primary/20 font-medium text-foreground placeholder:text-muted-foreground/30 transition-all"
-                placeholder="Operational notes regarding this grouping..."
+                className="h-16 rounded-2xl border-border/50 bg-muted/30 focus-visible:ring-primary/20 font-medium text-foreground placeholder:text-muted-foreground/30 transition-all"
+                placeholder="Optional notes about this category..."
                 value={catDraft.description}
                 onChange={e => setCatDraft(p => ({ ...p, description: e.target.value }))}
               />
@@ -797,35 +797,35 @@ function MenuManagementContent() {
                 onClick={handleSaveCategory} 
                 disabled={!catDraft.name.trim() || savingCat}
             >
-               {savingCat ? <Loader2 className="animate-spin h-5 w-5" /> : (activeCategory ? "Update Registry" : "Initialize")}
+               {savingCat ? <Loader2 className="animate-spin h-5 w-5" /> : (activeCategory ? "Save Changes" : "Create Category")}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <AlertDialog open={deleteCatOpen} onOpenChange={setDeleteCatOpen}>
-        <AlertDialogContent className="rounded-[3rem] p-12 bg-card/98 backdrop-blur-3xl border border-border/10 shadow-3xl">
+        <AlertDialogContent className="rounded-[3rem] p-12 bg-card/98 backdrop-blur-3xl border border-border/60 shadow-3xl">
           <AlertDialogHeader className="mb-10 text-center">
             <div className="h-24 w-24 bg-primary/10 text-primary rounded-[2.5rem] flex items-center justify-center mb-8 mx-auto border border-primary/20 shadow-[0_0_60px_-15px_rgba(230,57,70,0.4)]">
               <Trash2 className="h-10 w-10" />
             </div>
-            <AlertDialogTitle className="text-4xl font-black tracking-tighter text-foreground mb-4">Archive classification?</AlertDialogTitle>
+            <AlertDialogTitle className="text-4xl font-black tracking-tighter text-foreground mb-4">Delete Category?</AlertDialogTitle>
             <AlertDialogDescription className="text-lg font-medium text-muted-foreground/30 leading-relaxed max-w-sm mx-auto">
-              This will remove the taxonomic entry and all associated culinary assets from the broadcast registry.
+              This will permanently remove the category and all associated items from your menu.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col sm:flex-row gap-4">
-            <AlertDialogCancel className="flex-1 h-16 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] border-border/5 bg-muted/30 text-muted-foreground/40 hover:bg-muted hover:text-foreground transition-all">Retain</AlertDialogCancel>
+            <AlertDialogCancel className="flex-1 h-16 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] border-border/50 bg-muted/30 text-muted-foreground/40 hover:bg-muted hover:text-foreground transition-all">Cancel</AlertDialogCancel>
             <AlertDialogAction className="flex-1 h-16 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] bg-primary hover:bg-primary/90 text-white shadow-[0_20px_40px_-10px_rgba(230,57,70,0.5)] transition-all" onClick={handleDeleteCategory}>
-              Terminate
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* REGISTRY BLUEPRINT: Item Studio Side Panel */}
+      {/* Item Management Panel */}
       <Sheet open={itemPanelOpen} onOpenChange={setItemPanelOpen}>
-        <SheetContent className="w-full sm:max-w-[700px] bg-card border-l border-border/5 p-0 custom-scrollbar overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-[700px] bg-card border-l border-border/50 p-0 custom-scrollbar overflow-y-auto">
           <div className="relative h-48 bg-muted overflow-hidden">
              {itemDraft.images.length > 0 ? (
                <Image 
@@ -839,7 +839,7 @@ function MenuManagementContent() {
              )}
              <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-card to-transparent" />
              <div className="absolute top-10 right-10 flex gap-4">
-                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-muted/50 border border-border/10 hover:bg-muted transition-all text-foreground" onClick={() => setItemPanelOpen(false)}>
+                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-muted/50 border border-border/60 hover:bg-muted transition-all text-foreground" onClick={() => setItemPanelOpen(false)}>
                   <X className="h-5 w-5" />
                 </Button>
              </div>
@@ -848,28 +848,28 @@ function MenuManagementContent() {
           <div className="px-12 -mt-16 relative z-10 space-y-12 pb-24">
              <div className="space-y-4">
                 <Badge className="bg-primary/10 text-primary border border-primary/20 font-black text-[10px] uppercase tracking-[0.4em] px-5 py-2 rounded-full">
-                   {categories.find(c => c.id === categoryId)?.name || "Master Registry"}
+                   {categories.find(c => c.id === categoryId)?.name || "Uncategorized"}
                 </Badge>
                 <div className="flex items-end justify-between gap-6">
                    <div className="space-y-2 flex-1">
-                      <h2 className="text-5xl font-black tracking-tighter text-foreground uppercase">{activeItem ? "Issue Correction" : "Establish Asset"}</h2>
-                      <p className="text-muted-foreground font-medium text-lg italic serif">"Culinary excellence precision-mapped for the digital age."</p>
+                      <h2 className="text-5xl font-black tracking-tighter text-foreground uppercase">{activeItem ? "Edit Item" : "Add Item"}</h2>
+                      <p className="text-muted-foreground font-medium text-lg italic serif">"Refining your menu with precision and style."</p>
                    </div>
                    <div className="flex flex-col items-center gap-2">
-                       <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Thermal Index</span>
-                       <div className="h-16 w-16 rounded-2xl bg-muted/30 border border-border/5 flex items-center justify-center group hover:border-primary/40 transition-all">
+                       <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em]">Popularity</span>
+                       <div className="h-16 w-16 rounded-2xl bg-muted/30 border border-border/50 flex items-center justify-center group hover:border-primary/40 transition-all">
                           <Flame className="h-6 w-6 text-primary" />
                        </div>
                    </div>
                 </div>
              </div>
 
-             <div className="grid grid-cols-1 gap-12 border-t border-border/5 pt-12">
+             <div className="grid grid-cols-1 gap-12 border-t border-border/50 pt-12">
                 <div className="space-y-10">
                    <div className="space-y-4">
-                      <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Asset Identity</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Item Name</Label>
                       <Input
-                        className="h-16 rounded-2xl border-border/5 bg-muted/30 text-2xl font-black text-foreground uppercase placeholder:text-muted-foreground/30 focus-visible:ring-primary/20"
+                        className="h-16 rounded-2xl border-border/50 bg-muted/30 text-2xl font-black text-foreground uppercase placeholder:text-muted-foreground/30 focus-visible:ring-primary/20"
                         placeholder="e.g. TRUFFLE RISOTTO"
                         value={itemDraft.name}
                         onChange={e => setItemDraft(p => ({ ...p, name: e.target.value }))}
@@ -878,12 +878,12 @@ function MenuManagementContent() {
 
                    <div className="grid grid-cols-2 gap-8">
                       <div className="space-y-4">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Registry Appraisal</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Price</Label>
                         <div className="relative">
                           <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
                           <Input
                             type="number"
-                            className="h-16 rounded-2xl border-border/5 bg-muted/30 pl-14 text-xl font-black text-foreground focus-visible:ring-primary/20"
+                            className="h-16 rounded-2xl border-border/50 bg-muted/30 pl-14 text-xl font-black text-foreground focus-visible:ring-primary/20"
                             step="0.01"
                             value={itemDraft.price}
                             onChange={e => setItemDraft(p => ({ ...p, price: e.target.value }))}
@@ -891,9 +891,9 @@ function MenuManagementContent() {
                         </div>
                       </div>
                       <div className="space-y-4">
-                        <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Broadcast Currency</Label>
+                        <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Currency</Label>
                         <select
-                          className="h-16 w-full rounded-2xl border-border/5 bg-muted/30 px-6 text-sm font-black text-foreground/80 uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer"
+                          className="h-16 w-full rounded-2xl border-border/50 bg-muted/30 px-6 text-sm font-black text-foreground/80 uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer"
                           value={itemDraft.currency}
                           onChange={e => setItemDraft(p => ({ ...p, currency: e.target.value }))}
                         >
@@ -906,23 +906,23 @@ function MenuManagementContent() {
                    </div>
 
                    <div className="space-y-4">
-                      <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Culinary Blueprint</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Description</Label>
                       <textarea
-                        className="w-full min-h-[160px] rounded-[2rem] border-border/5 bg-muted/30 p-8 text-lg font-medium text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none leading-relaxed"
-                        placeholder="Detail the narrative of this culinary holding..."
+                        className="w-full min-h-[160px] rounded-[2rem] border-border/50 bg-muted/30 p-8 text-lg font-medium text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none leading-relaxed"
+                        placeholder="Provide a compelling description for this item..."
                         value={itemDraft.description}
                         onChange={e => setItemDraft(p => ({ ...p, description: e.target.value }))}
                       />
                    </div>
 
                    <div className="space-y-6">
-                      <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Visual Log</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Item Images</Label>
                       <div className="grid grid-cols-4 gap-4">
                          {itemDraft.images.map((img, idx) => (
-                           <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-border/5 group/img">
+                           <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-border/50 group/img">
                               <Image 
                                 src={img instanceof File ? URL.createObjectURL(img) : img} 
-                                alt="Asset" 
+                                alt="Item" 
                                 fill 
                                 className="object-cover group-hover/img:scale-110 transition-transform duration-700" 
                               />
@@ -935,7 +935,7 @@ function MenuManagementContent() {
                            </div>
                          ))}
                          <button 
-                           className="aspect-square rounded-2xl border-2 border-dashed border-border/5 flex flex-col items-center justify-center gap-2 hover:border-primary/40 hover:bg-muted transition-all group/add"
+                           className="aspect-square rounded-2xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-2 hover:border-primary/40 hover:bg-muted transition-all group/add"
                            onClick={() => document.getElementById("p-img")?.click()}
                          >
                             <UploadCloud className="h-5 w-5 text-muted-foreground group-hover/add:text-primary transition-colors" />
@@ -945,11 +945,11 @@ function MenuManagementContent() {
                    </div>
                 </div>
 
-                <div className="pt-12 border-t border-border/5 space-y-8">
-                   <div className="flex items-center justify-between p-8 rounded-3xl bg-muted/30 border border-border/5">
+                <div className="pt-12 border-t border-border/50 space-y-8">
+                   <div className="flex items-center justify-between p-8 rounded-3xl bg-muted/30 border border-border/50">
                       <div className="space-y-1">
-                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Market Presence</span>
-                         <p className="text-sm font-medium text-muted-foreground">Set this asset as live or archived.</p>
+                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Availability</span>
+                         <p className="text-sm font-medium text-muted-foreground">Toggle item visibility on the public menu.</p>
                       </div>
                       <Switch 
                          className="scale-125 data-[state=checked]:bg-primary"
@@ -962,7 +962,7 @@ function MenuManagementContent() {
                       {activeItem && (
                         <Button 
                           variant="ghost" 
-                          className="h-20 w-20 rounded-3xl border border-border/5 bg-muted/30 hover:bg-primary/10 hover:border-primary/20 text-muted-foreground hover:text-primary transition-all"
+                          className="h-20 w-20 rounded-3xl border border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/20 text-muted-foreground hover:text-primary transition-all"
                           onClick={() => { setDeleteItemOpen(true); }}
                         >
                            <Trash2 className="h-6 w-6" />
@@ -975,7 +975,7 @@ function MenuManagementContent() {
                       >
                          {savingItem ? <Loader2 className="animate-spin h-6 w-6" /> : (
                             <span className="flex items-center gap-4">
-                               {activeItem ? "Synchronize Asset" : "Commit to Registry"}
+                               {activeItem ? "Save Changes" : "Save Item"}
                                <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                             </span>
                          )}
@@ -988,20 +988,20 @@ function MenuManagementContent() {
       </Sheet>
 
       <AlertDialog open={deleteItemOpen} onOpenChange={setDeleteItemOpen}>
-        <AlertDialogContent className="rounded-[3rem] p-12 bg-card/98 backdrop-blur-3xl border border-border/10 shadow-3xl">
+        <AlertDialogContent className="rounded-[3rem] p-12 bg-card/98 backdrop-blur-3xl border border-border/60 shadow-3xl">
           <AlertDialogHeader className="mb-10 text-center">
             <div className="h-24 w-24 bg-primary/10 text-primary rounded-[2.5rem] flex items-center justify-center mb-8 mx-auto border border-primary/20 shadow-[0_0_60px_-15px_rgba(230,57,70,0.4)]">
               <Trash2 className="h-10 w-10" />
             </div>
-            <AlertDialogTitle className="text-4xl font-black tracking-tighter text-foreground mb-4">Purge Asset?</AlertDialogTitle>
+            <AlertDialogTitle className="text-4xl font-black tracking-tighter text-foreground mb-4">Delete Item?</AlertDialogTitle>
             <AlertDialogDescription className="text-lg font-medium text-muted-foreground leading-relaxed max-w-sm mx-auto">
-              This action permanently removes the culinary holding from the establishment's active broadcast registry.
+              This action will permanently remove this item from your menu. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col sm:flex-row gap-4">
-            <AlertDialogCancel className="flex-1 h-16 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] border-border/5 bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground transition-all">Retain</AlertDialogCancel>
+            <AlertDialogCancel className="flex-1 h-16 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] border-border/50 bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground transition-all">Cancel</AlertDialogCancel>
             <AlertDialogAction className="flex-1 h-16 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] bg-primary hover:bg-primary/90 text-white shadow-[0_20px_40px_-10px_rgba(230,57,70,0.5)] transition-all" onClick={handleDeleteItem}>
-              Execute Purge
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,7 +1,8 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Coffee, MapPin, Phone, Instagram, Facebook, ArrowRight, Loader2, Utensils, Globe } from "lucide-react"
+import { MapPin, Phone, Instagram, Facebook, ArrowRight, Loader2, Globe } from "lucide-react"
+import { Logo } from "@/components/logo"
 import Link from "next/link"
 import Image from "next/image"
 import { useEffect, useState } from "react"
@@ -228,11 +229,11 @@ export default function HotelMenuClient({ hotelSlug, initialData }: HotelMenuCli
       </div>
 
       <footer className="pb-40 text-center">
-        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-60">
-          <span>Experience by</span>
-          <div className="flex items-center gap-1 font-bold text-foreground">
-            MenuVista
-          </div>
+        <div className="flex flex-col items-center justify-center gap-3">
+          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] opacity-60">
+            Experience by
+          </span>
+          <Logo width={120} height={40} />
         </div>
       </footer>
     </div>

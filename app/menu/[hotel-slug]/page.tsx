@@ -78,7 +78,7 @@ export default async function HotelMenuLandingPage({ params }: Props) {
                 streetAddress: initialData.address,
               },
               telephone: initialData.phone,
-              url: `https://menuqr.com/menu/${hotelSlug}`,
+              url: `https://menuvista.com/menu/${hotelSlug}`,
             }),
           }}
         />

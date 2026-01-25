@@ -15,6 +15,7 @@ import { useEffect, useState, useMemo, useRef } from "react"
 import { apiFetch } from "@/lib/api-client"
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { Logo } from "@/components/logo"
 
 const MotionLink = motion(Link)
 
@@ -231,46 +232,47 @@ export default function LandingClient() {
 
       <main className="flex-1">
         {/* HERO SECTION */}
-        <section ref={heroRef} className="relative min-h-[100vh] flex items-center justify-center pt-20 overflow-hidden">
+        <section ref={heroRef} className="relative min-h-[100vh] flex items-center justify-center pt-24 md:pt-20 overflow-hidden px-4 sm:px-6">
           {/* Background Visuals */}
           <div className="absolute inset-0 z-0">
             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(230,57,70,0.1),transparent_70%)] opacity-50" />
             <motion.div 
                style={{ y: heroY, opacity: heroOpacity }}
-               className="absolute top-[10%] right-[5%] w-[500px] h-[500px] rounded-full bg-primary/20 blur-[120px]" 
+               className="absolute top-[10%] right-[5%] w-[300px] md:w-[500px] h-[300px] md:h-[500px] rounded-full bg-primary/20 blur-[80px] md:blur-[120px]" 
             />
             <motion.div 
                style={{ y: heroY, opacity: heroOpacity }}
-               className="absolute bottom-[5%] left-[5%] w-[450px] h-[450px] rounded-full bg-secondary/15 blur-[100px]" 
+               className="absolute bottom-[5%] left-[5%] w-[250px] md:w-[450px] h-[250px] md:h-[450px] rounded-full bg-secondary/15 blur-[60px] md:blur-[100px]" 
             />
           </div>
 
-          <div className="container relative z-10 mx-auto px-6 grid lg:grid-cols-2 gap-20 items-center">
+          <div className="container relative z-10 mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
             <motion.div
               initial={{ opacity: 0, x: -60 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
               viewport={{ once: true }}
+              className="text-center lg:text-left"
             >
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.8 }}
                 viewport={{ once: true }}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-[0.3em] mb-10 shadow-2xl shadow-primary/40"
+                className="inline-flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-full bg-primary text-white text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] mb-8 md:mb-10 shadow-2xl shadow-primary/40"
               >
-                <Zap className="h-4 w-4 fill-white" />
-                The Michelin-Star Standard
+                <Zap className="h-3 md:h-4 w-3 md:w-4 fill-white" />
+                The Professional Choice
               </motion.div>
               
-              <h1 className="font-serif text-[clamp(3.5rem,8vw,7.5rem)] leading-[0.85] tracking-tighter mb-10">
+              <h1 className="font-serif text-[clamp(2.5rem,10vw,7.5rem)] leading-[0.9] lg:leading-[0.85] tracking-tighter mb-8 md:mb-10">
                 Taste the <br />
-                <span className="text-primary italic font-normal">Next Level</span> <br />
+                <span className="text-primary italic font-normal">Future</span> <br />
                 of Dining.
               </h1>
               
-              <p className="max-w-xl text-xl md:text-2xl text-muted-foreground mb-10 leading-relaxed font-medium">
-                Elevate your restaurant with the world's most sophisticated digital menu ecosystem. Designed for speed, beauty, and conversion.
+              <p className="max-w-xl mx-auto lg:mx-0 text-lg md:text-2xl text-muted-foreground mb-8 md:mb-10 leading-relaxed font-medium">
+                Elevate your restaurant with a professional digital menu platform. Designed for speed, beauty, and business growth.
               </p>
               
               {/* HERO SEARCH - HIGHER VISIBILITY */}
@@ -279,12 +281,12 @@ export default function LandingClient() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.8 }}
                 viewport={{ once: true }}
-                className="max-w-2xl mb-12 relative group z-40"
+                className="max-w-2xl mx-auto lg:mx-0 mb-8 md:mb-12 relative group z-40"
               >
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-3xl blur opacity-20 group-focus-within:opacity-40 transition duration-1000 group-focus-within:duration-200"></div>
-                <div className="relative flex items-center bg-card/40 backdrop-blur-xl border border-border rounded-2xl p-2 shadow-2xl focus-within:border-primary/50 transition-all">
-                  <Search className="ml-4 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <div className="flex-1 relative h-14 flex items-center">
+                <div className="relative flex items-center bg-card/40 backdrop-blur-xl border border-border rounded-xl md:rounded-2xl p-1.5 md:p-2 shadow-2xl focus-within:border-primary/50 transition-all">
+                  <Search className="ml-3 md:ml-4 h-5 md:h-6 w-5 md:w-6 text-muted-foreground group-focus-within:text-primary transition-colors shrink-0" />
+                  <div className="flex-1 relative h-12 md:h-14 flex items-center">
                     <AnimatePresence mode="wait">
                       {!searchQuery && (
                         <motion.p
@@ -292,28 +294,28 @@ export default function LandingClient() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute inset-x-0 pl-4 text-lg font-medium text-muted-foreground pointer-events-none whitespace-nowrap overflow-hidden"
+                          className="absolute inset-x-0 pl-3 md:pl-4 text-sm md:text-lg font-medium text-muted-foreground pointer-events-none whitespace-nowrap overflow-hidden text-left"
                         >
                           {SEARCH_PLACEHOLDERS[placeholderIndex]}
                         </motion.p>
                       )}
                     </AnimatePresence>
                     <Input 
-                      className="h-full w-full border-none bg-transparent pl-4 pr-10 text-lg font-medium focus-visible:ring-0 shadow-none text-foreground selection:bg-primary/40"
+                      className="h-full w-full border-none bg-transparent pl-3 md:pl-4 pr-8 md:pr-10 text-base md:text-lg font-medium focus-visible:ring-0 shadow-none text-foreground selection:bg-primary/40"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Button className="rounded-xl bg-primary hover:bg-primary/90 font-bold px-6 shadow-lg shadow-primary/20 text-white">
+                  <Button className="rounded-lg md:rounded-xl bg-primary hover:bg-primary/90 font-bold px-4 md:px-6 h-10 md:h-12 shadow-lg shadow-primary/20 text-white text-xs md:text-base">
                     Explore
                   </Button>
                 </div>
               </motion.div>
 
-              <div className="flex flex-wrap gap-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 md:gap-6">
                 <Button 
                   size="lg" 
-                  className="h-16 px-10 rounded-2xl text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/30 transition-all duration-300 border-none text-white" 
+                  className="h-14 md:h-16 w-full sm:w-auto px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/30 transition-all duration-300 border-none text-white" 
                   asChild
                 >
                   <MotionLink 
@@ -322,23 +324,23 @@ export default function LandingClient() {
                     whileTap={{ scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   >
-                    Join the Elite
+                    Get Started
                   </MotionLink>
                 </Button>
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="h-16 px-10 rounded-2xl text-lg font-bold bg-muted/50 border-border hover:bg-muted transition-all text-foreground" 
+                  className="h-14 md:h-16 w-full sm:w-auto px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold bg-muted/50 border-border hover:bg-muted transition-all text-foreground" 
                   asChild
                 >
                   <MotionLink 
                     href="/login" 
-                    className="flex items-center"
+                    className="flex items-center justify-center"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   >
-                    Live Demo <Play className="ml-2 h-5 w-5 fill-foreground" />
+                    Live Demo <Play className="ml-2 h-4 md:h-5 w-4 md:w-5 fill-foreground" />
                   </MotionLink>
                 </Button>
               </div>
@@ -347,20 +349,20 @@ export default function LandingClient() {
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="mt-20 flex items-center gap-10"
+                className="mt-12 md:mt-20 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 md:gap-10"
               >
-                <div className="flex -space-x-4">
+                <div className="flex -space-x-3 md:-space-x-4">
                   {[1,2,3,4,5].map(i => (
-                    <div key={i} className="h-14 w-14 rounded-full border-[3px] border-background bg-slate-800 flex items-center justify-center overflow-hidden ring-4 ring-primary/5 transition-transform hover:scale-110 hover:z-10 cursor-pointer">
+                    <div key={i} className="h-10 w-10 md:h-14 md:w-14 rounded-full border-[2px] md:border-[3px] border-background bg-slate-800 flex items-center justify-center overflow-hidden ring-4 ring-primary/5 transition-transform hover:scale-110 hover:z-10 cursor-pointer">
                       <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=chef${i}`} alt="chef" width={56} height={56} />
                     </div>
                   ))}
                 </div>
-                <div>
-                   <div className="flex gap-1 mb-1">
-                      {[1,2,3,4,5].map(i => <Star key={i} className="h-4 w-4 fill-accent text-accent" />)}
+                <div className="text-center sm:text-left">
+                   <div className="flex justify-center sm:justify-start gap-0.5 md:gap-1 mb-1">
+                      {[1,2,3,4,5].map(i => <Star key={i} className="h-3 md:h-4 w-3 md:w-4 fill-accent text-accent" />)}
                    </div>
-                   <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest italic">Trusted by 200+ Michelin Chefs</p>
+                   <p className="text-[10px] md:text-sm font-bold text-muted-foreground uppercase tracking-widest italic">Trusted by 200+ Hospitality Leaders</p>
                 </div>
               </motion.div>
             </motion.div>
@@ -383,7 +385,7 @@ export default function LandingClient() {
                       <Flame className="h-7 w-7 fill-white" />
                    </div>
                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Signature</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Bestseller</p>
                       <p className="text-lg font-bold text-foreground">Wagyu Gold</p>
                    </div>
                 </div>
@@ -412,11 +414,11 @@ export default function LandingClient() {
                    <Smartphone className="h-8 w-8" />
                    <div className="h-4 w-4 rounded-full bg-white animate-ping" />
                 </div>
-                <p className="text-sm font-medium mb-1 uppercase tracking-widest text-white">Active Users</p>
+                <p className="text-sm font-medium mb-1 uppercase tracking-widest text-white">Active Scans</p>
                 <p className="text-4xl font-serif font-black text-white">1.2M+</p>
               </motion.div>
 
-              <div className="relative rounded-[5rem] overflow-hidden border-[12px] border-card shadow-2xl aspect-[4/5] bg-card group">
+              <div className="relative rounded-[3rem] md:rounded-[5rem] overflow-hidden border-[8px] md:border-[12px] border-card shadow-2xl aspect-[4/5] bg-card group">
                 <Image 
                   src="/hotel.webp" 
                   alt="Premium Menu Mockup" 
@@ -425,8 +427,8 @@ export default function LandingClient() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                 <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                <div className="absolute bottom-16 left-16 right-16">
-                   <div className="flex gap-4 mb-8">
+                <div className="absolute bottom-10 md:bottom-16 left-10 md:left-16 right-10 md:right-16">
+                   <div className="flex gap-4 mb-6 md:mb-8">
                        <span className="h-1.5 flex-1 bg-white/20 rounded-full overflow-hidden">
                           <motion.span 
                             animate={{ x: ["-100%", "200%"] }}
@@ -436,7 +438,7 @@ export default function LandingClient() {
                        </span>
                        <span className="h-1.5 w-12 bg-white/10 rounded-full" />
                    </div>
-                   <h3 className="text-5xl font-serif text-white tracking-tight">The <span className="italic block text-white">Palace Grille</span></h3>
+                   <h3 className="text-4xl md:text-5xl font-serif text-white tracking-tight">The <span className="italic block text-white">Palace Grille</span></h3>
                 </div>
               </div>
             </motion.div>
@@ -444,31 +446,31 @@ export default function LandingClient() {
         </section>
 
         {/* PREMIUM RESTAURANT SHOWCASE */}
-        <section className="py-40 bg-background relative" id="restaurants">
-          <div className="container mx-auto px-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-24 gap-12">
+        <section className="py-20 md:py-40 bg-background relative" id="restaurants">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-8 md:gap-12">
                <div className="max-w-2xl">
                   <motion.div 
                     initial={{ x: -20, opacity: 0 }}
                     whileInView={{ x: 0, opacity: 1 }}
-                    className="flex items-center gap-3 mb-6"
+                    className="flex items-center gap-3 mb-4 md:mb-6"
                   >
-                     <div className="h-[2px] w-12 bg-primary" />
-                     <p className="text-xs font-black uppercase tracking-[0.4em] text-primary">Curated Directory</p>
+                     <div className="h-[2px] w-8 md:w-12 bg-primary" />
+                     <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-primary">Gourmet Directory</p>
                   </motion.div>
-                  <h2 className="text-6xl md:text-8xl font-serif tracking-tight leading-none italic font-normal text-foreground">Featured <br /><span className="not-italic text-primary font-bold">Establishments</span></h2>
+                  <h2 className="text-5xl md:text-8xl font-serif tracking-tight leading-[1] md:leading-none italic font-normal text-foreground">Featured <br /><span className="not-italic text-primary font-bold">Restaurants</span></h2>
                </div>
-               <div className="flex flex-col items-end gap-2 group cursor-default">
-                  <p className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">Network Pulse</p>
-                  <div className="text-3xl font-bold flex items-center gap-4 text-foreground">
-                     {restaurants.length} Registered Nodes
+               <div className="flex flex-col items-start md:items-end gap-2 group cursor-default">
+                  <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">Network Status</p>
+                  <div className="text-2xl md:text-3xl font-bold flex items-center gap-4 text-foreground">
+                     {restaurants.length} Restaurants
                      <div className="flex gap-1.5 h-6 items-end">
                         {[1,2,3,4,5].map(i => (
                           <motion.div 
                             key={i}
                             animate={{ height: [10, 24, 10] }}
                             transition={{ duration: 1, repeat: Infinity, delay: i * 0.1 }}
-                            className="w-1.5 rounded-full bg-primary" 
+                            className="w-1 md:w-1.5 rounded-full bg-primary" 
                           />
                         ))}
                      </div>
@@ -477,18 +479,18 @@ export default function LandingClient() {
             </div>
 
             {loading ? (
-              <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-8 md:gap-12 sm:grid-cols-2 lg:grid-cols-3">
                  {[1,2,3].map(i => (
-                   <div key={i} className="flex flex-col gap-8 h-[600px] rounded-[4rem] bg-slate-900/50 p-10 border border-white/5 overflow-hidden">
-                      <div className="aspect-[16/11] w-full rounded-[3rem] bg-white/5 animate-pulse" />
+                   <div key={i} className="flex flex-col gap-8 h-auto md:h-[600px] rounded-3xl md:rounded-[4rem] bg-slate-900/50 p-6 md:p-10 border border-white/5 overflow-hidden">
+                      <div className="aspect-[16/11] w-full rounded-2xl md:rounded-[3rem] bg-white/5 animate-pulse" />
                       <div className="space-y-4">
-                        <div className="h-10 w-2/3 bg-white/5 rounded-full animate-pulse" />
-                        <div className="h-6 w-full bg-white/5 rounded-full animate-pulse" />
-                        <div className="h-6 w-1/2 bg-white/5 rounded-full animate-pulse" />
+                        <div className="h-8 md:h-10 w-2/3 bg-white/5 rounded-full animate-pulse" />
+                        <div className="h-5 md:h-6 w-full bg-white/5 rounded-full animate-pulse" />
+                        <div className="h-5 md:h-6 w-1/2 bg-white/5 rounded-full animate-pulse" />
                       </div>
-                      <div className="mt-auto flex gap-4 pt-10 border-t border-white/5">
-                        <div className="h-12 w-12 rounded-2xl bg-white/5 animate-pulse" />
-                        <div className="h-12 w-12 rounded-2xl bg-white/5 animate-pulse" />
+                      <div className="mt-auto flex gap-4 pt-8 md:pt-10 border-t border-white/5">
+                        <div className="h-10 md:h-12 w-10 md:w-12 rounded-xl md:rounded-2xl bg-white/5 animate-pulse" />
+                        <div className="h-10 md:h-12 w-10 md:w-12 rounded-xl md:rounded-2xl bg-white/5 animate-pulse" />
                       </div>
                    </div>
                  ))}
@@ -501,13 +503,13 @@ export default function LandingClient() {
                       transition={{ duration: 2, repeat: Infinity }}
                       className="inline-block"
                     >
-                      <ChefHat className="h-16 w-16 text-primary mb-6 mx-auto" />
+                      <ChefHat className="h-12 md:h-16 w-12 md:w-16 text-primary mb-4 md:mb-6 mx-auto" />
                     </motion.div>
-                    <h3 className="text-2xl font-serif text-muted-foreground italic">Cooking your curated selection...</h3>
+                    <h3 className="text-xl md:text-2xl font-serif text-muted-foreground italic">Loading our featured restaurants...</h3>
                  </div>
               </div>
             ) : filteredRestaurants.length > 0 ? (
-              <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-8 md:gap-12 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredRestaurants.map((restaurant, i) => (
                   <RestaurantCard key={restaurant.id} restaurant={restaurant} index={i} />
                 ))}
@@ -515,15 +517,16 @@ export default function LandingClient() {
             ) : (
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="py-40 text-center bg-slate-900/40 rounded-[5rem] border-2 border-dashed border-white/10"
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                className="py-20 md:py-40 text-center bg-slate-900/40 rounded-[3rem] md:rounded-[5rem] border-2 border-dashed border-white/10 px-6"
               >
-                 <Utensils className="h-20 w-20 mx-auto text-white/5 mb-10" />
-                 <h3 className="text-5xl font-serif mb-6">No matches for your palate</h3>
-                 <p className="text-muted-foreground text-xl max-w-md mx-auto mb-10 font-medium">Try broadening your search criteria or clearing all active filters.</p>
+                 <Utensils className="h-16 w-16 md:h-20 md:w-20 mx-auto text-white/5 mb-8 md:mb-10" />
+                 <h3 className="text-3xl md:text-5xl font-serif mb-4 md:mb-6">No restaurants found</h3>
+                 <p className="text-muted-foreground text-lg md:text-xl max-w-sm md:max-w-md mx-auto mb-8 md:mb-10 font-medium">Try broadening your search criteria or clearing all active filters.</p>
                  <Button 
                    variant="outline" 
-                   className="h-16 px-10 rounded-2xl text-lg font-bold border-primary text-primary hover:bg-primary hover:text-white"
+                   className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold border-primary text-primary hover:bg-primary hover:text-white"
                    onClick={() => setSearchQuery("")}
                  >
                    Clear all filters
@@ -534,37 +537,39 @@ export default function LandingClient() {
         </section>
 
         {/* HOW IT WORKS - ARCHITECTURE */}
-        <section className="py-40 bg-card">
-           <div className="container mx-auto px-6">
-              <div className="grid lg:grid-cols-2 gap-32 items-center">
+        <section className="py-20 md:py-40 bg-card">
+           <div className="container mx-auto px-4 md:px-6">
+              <div className="grid lg:grid-cols-2 gap-16 md:gap-32 items-center">
                  <div>
                     <motion.div 
                       initial={{ opacity: 0, x: -30 }}
                       whileInView={{ opacity: 1, x: 0 }}
-                      className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-secondary/10 text-secondary text-xs font-black uppercase tracking-widest mb-10"
+                      viewport={{ once: true }}
+                      className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-secondary/10 text-secondary text-[10px] md:text-xs font-black uppercase tracking-widest mb-8 md:mb-10"
                     >
                       <Zap className="h-4 w-4 fill-secondary" />
-                      Instant Deployment
+                      Instant Set up
                     </motion.div>
-                    <h2 className="text-6xl md:text-8xl font-serif mb-12 tracking-tight leading-[0.9] text-foreground">Architected for <br /> <span className="italic font-normal">Superior</span> <br /> Conversion.</h2>
+                    <h2 className="text-5xl md:text-8xl font-serif mb-10 md:mb-12 tracking-tight leading-[1] text-foreground">Built for <br /> <span className="italic font-normal">Superior</span> <br /> Conversion.</h2>
                     
-                    <div className="space-y-12">
+                    <div className="space-y-8 md:space-y-12">
                        {[
-                         { step: "01", title: "Identity Forge", desc: "Craft your digital brand presence within minutes. Our smart-theming engine adapts to your physical ambiance." },
-                         { step: "02", title: "Dynamic Curation", desc: "Real-time menu management. Update prices, availability, and visuals instantly across all guest devices." },
-                         { step: "03", title: "Global Activation", desc: "Go live with high-res QR integration. No hardware needed, just pure high-performance software." }
+                         { step: "01", title: "Design Your Brand", desc: "Customize your digital menu presence within minutes. Our smart-theming engine adapts to your restaurant's style." },
+                         { step: "02", title: "Menu Management", desc: "Real-time menu updates. Change prices, availability, and visuals instantly across all guest devices." },
+                         { step: "03", title: "Go Live", desc: "Instantly publish your menu with high-res QR integration. No hardware needed, just powerful software." }
                        ].map((item, i) => (
                          <motion.div 
                            key={i}
                            initial={{ opacity: 0, x: -20 }}
                            whileInView={{ opacity: 1, x: 0 }}
                            transition={{ delay: i * 0.2 }}
-                           className="flex gap-10 group cursor-default"
+                           viewport={{ once: true }}
+                           className="flex gap-6 md:gap-10 group cursor-default"
                          >
-                            <span className="text-6xl font-serif italic text-muted-foreground/20 group-hover:text-primary transition-colors duration-500">{item.step}</span>
+                            <span className="text-4xl md:text-6xl font-serif italic text-muted-foreground/20 group-hover:text-primary transition-colors duration-500">{item.step}</span>
                             <div>
-                               <h4 className="text-2xl font-bold mb-3 text-foreground">{item.title}</h4>
-                               <p className="text-muted-foreground leading-relaxed font-medium">{item.desc}</p>
+                               <h4 className="text-xl md:text-2xl font-bold mb-2 md:mb-3 text-foreground">{item.title}</h4>
+                               <p className="text-muted-foreground text-sm md:text-base leading-relaxed font-medium">{item.desc}</p>
                             </div>
                          </motion.div>
                        ))}
@@ -573,9 +578,10 @@ export default function LandingClient() {
 
                  <div className="relative">
                     <motion.div 
-                       initial={{ opacity: 0, y: 50 }}
-                       whileInView={{ opacity: 1, y: 0 }}
-                       className="relative z-10 rounded-[4rem] overflow-hidden border border-border shadow-3xl bg-card group"
+                       initial={{ opacity: 0, scale: 0.9 }}
+                       whileInView={{ opacity: 1, scale: 1 }}
+                       viewport={{ once: true }}
+                       className="relative z-10 rounded-3xl md:rounded-[4rem] overflow-hidden border border-border shadow-3xl bg-card group"
                     >
                        <Image 
                          src="/hotel.webp" 
@@ -589,31 +595,32 @@ export default function LandingClient() {
                           <motion.div 
                             animate={{ scale: [1, 1.1, 1] }} 
                             transition={{ duration: 2, repeat: Infinity }}
-                            className="h-24 w-24 rounded-full bg-primary flex items-center justify-center text-white shadow-3xl shadow-primary/50 cursor-pointer"
+                            className="h-16 w-16 md:h-24 md:w-24 rounded-full bg-primary flex items-center justify-center text-white shadow-3xl shadow-primary/50 cursor-pointer"
                           >
-                             <Play className="h-10 w-10 fill-white ml-2" />
+                             <Play className="h-6 w-6 md:h-10 md:w-10 fill-white ml-1 md:ml-2" />
                           </motion.div>
                        </div>
                     </motion.div>
                     
                     {/* Decorative Elements */}
-                    <div className="absolute -top-20 -right-20 w-80 h-80 bg-primary/20 rounded-full blur-[120px] -z-10" />
-                    <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-secondary/10 rounded-full blur-[120px] -z-10" />
+                    <div className="absolute -top-10 -right-10 md:-top-20 md:-right-20 w-40 md:w-80 h-40 md:h-80 bg-primary/20 rounded-full blur-[80px] md:blur-[120px] -z-10" />
+                    <div className="absolute -bottom-10 -left-10 md:-bottom-20 md:-left-20 w-40 md:w-80 h-40 md:h-80 bg-secondary/10 rounded-full blur-[80px] md:blur-[120px] -z-10" />
                  </div>
               </div>
            </div>
         </section>
 
         {/* CALL TO ACTION - SIGNATURE SECTION */}
-        <section className="py-40 relative px-6 overflow-hidden">
+        <section className="py-20 md:py-40 relative px-4 md:px-6 overflow-hidden">
            <motion.div 
-             initial={{ opacity: 0, scale: 0.95 }}
-             whileInView={{ opacity: 1, scale: 1 }}
+             initial={{ opacity: 0, y: 100 }}
+             whileInView={{ opacity: 1, y: 0 }}
              transition={{ duration: 1 }}
-             className="max-w-7xl mx-auto rounded-[5rem] bg-gradient-to-br from-primary to-[#800000] p-16 md:p-32 text-center relative overflow-hidden group shadow-[0_100px_200px_-50px_rgba(230,57,70,0.6)]"
+             viewport={{ once: true }}
+             className="max-w-7xl mx-auto rounded-[3rem] md:rounded-[5rem] bg-gradient-to-br from-primary to-[#800000] p-10 md:p-32 text-center relative overflow-hidden group shadow-[0_100px_200px_-50px_rgba(230,57,70,0.6)]"
            >
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none" />
-              <div className="absolute top-0 right-0 p-20 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-1000">
+              <div className="absolute top-0 right-0 p-10 md:p-20 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-1000 hidden md:block">
                  <ChefHat className="h-[500px] w-[500px] text-white" />
               </div>
 
@@ -621,24 +628,25 @@ export default function LandingClient() {
                  <motion.div 
                    initial={{ y: 20, opacity: 0 }}
                    whileInView={{ y: 0, opacity: 1 }}
-                   className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-white text-xs font-black uppercase tracking-[0.4em] mb-12 shadow-2xl"
+                   viewport={{ once: true }}
+                   className="inline-flex items-center gap-2 md:gap-3 px-5 md:px-6 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-white text-[10px] md:text-xs font-black uppercase tracking-[0.4em] mb-8 md:mb-12 shadow-2xl"
                  >
-                    <Sparkles className="h-4 w-4 fill-white" />
-                    Limited Expansion
+                    <Sparkles className="h-3 md:h-4 w-3 md:w-4 fill-white" />
+                    Join Now
                  </motion.div>
 
-                 <h2 className="text-7xl md:text-9xl font-serif text-white mb-14 tracking-tight leading-none">
-                    Define Your <br /><span className="italic block mt-4 font-normal text-white">Legacy Today.</span>
+                 <h2 className="text-4xl sm:text-6xl md:text-9xl font-serif text-white mb-8 md:mb-14 tracking-tight leading-none">
+                    Define Your <br /><span className="italic block mt-2 md:mt-4 font-normal text-white">Digital Experience.</span>
                  </h2>
 
-                 <p className="text-white text-xl md:text-3xl mb-20 max-w-3xl mx-auto leading-relaxed font-serif italic">
-                    Join the exclusive circle of hospitality leaders redefining the intersection of taste and technology.
+                 <p className="text-white text-lg md:text-3xl mb-12 md:mb-20 max-w-3xl mx-auto leading-relaxed font-serif italic">
+                    Join leading hospitality businesses redefining the intersection of taste and technology.
                  </p>
 
-                 <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
+                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-8">
                     <Button 
                       size="lg" 
-                      className="h-24 px-16 rounded-[2.5rem] bg-white text-primary text-2xl font-bold transition-all shadow-2xl hover:shadow-white/20 border-none"
+                      className="h-16 md:h-24 px-8 md:px-16 rounded-xl md:rounded-[2.5rem] bg-white text-primary text-xl md:text-2xl font-bold transition-all shadow-2xl hover:shadow-white/20 border-none w-full sm:w-auto"
                       asChild
                     >
                        <MotionLink 
@@ -647,13 +655,13 @@ export default function LandingClient() {
                          whileTap={{ scale: 0.95 }}
                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
                        >
-                         Apply for Entry
+                         Create Your Menu
                        </MotionLink>
                     </Button>
                     <Button 
                       size="lg" 
                       variant="outline" 
-                      className="h-24 px-16 rounded-[2.5rem] bg-black/40 border-white/20 text-white text-2xl font-bold backdrop-blur-md flex items-center gap-4 transition-all"
+                      className="h-16 md:h-24 px-8 md:px-16 rounded-xl md:rounded-[2.5rem] bg-black/40 border-white/20 text-white text-xl md:text-2xl font-bold backdrop-blur-md flex items-center gap-4 transition-all w-full sm:w-auto"
                       asChild
                     >
                        <MotionLink 
@@ -662,7 +670,7 @@ export default function LandingClient() {
                          whileTap={{ scale: 0.95 }}
                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
                        >
-                         Explore Demo <ArrowRight className="h-8 w-8" />
+                         Explore Demo <ArrowRight className="h-6 w-6 md:h-8 md:w-8" />
                        </MotionLink>
                     </Button>
                  </div>
@@ -671,49 +679,43 @@ export default function LandingClient() {
         </section>
       </main>
 
-      <footer className="py-32 bg-card border-t border-border relative overflow-hidden">
+      <footer className="py-20 md:py-32 bg-card border-t border-border relative overflow-hidden">
         {/* Decorative Blur */}
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[150px] pointer-events-none translate-x-1/2 translate-y-1/2" />
         
         <div className="container mx-auto px-6 relative z-10">
-          <div className="grid gap-24 md:grid-cols-2 lg:grid-cols-4 mb-40">
-            <div className="lg:col-span-1 space-y-12">
-               <Link href="/" className="flex items-center gap-5 group">
-                  <div className="h-20 w-20 rounded-[2rem] bg-primary flex items-center justify-center text-white shadow-2xl shadow-primary/40 group-hover:rotate-12 transition-all duration-500">
-                     <ChefHat className="h-10 w-10" />
-                  </div>
-                  <div>
-                    <span className="text-5xl font-serif block tracking-tighter text-foreground">MenuQR</span>
-                    <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary">Signature Hub</span>
-                  </div>
+          <div className="grid gap-16 md:gap-24 md:grid-cols-2 lg:grid-cols-4 mb-20 md:mb-40">
+            <div className="lg:col-span-1 space-y-8 md:space-y-12">
+               <Link href="/" className="flex items-center group">
+                  <Logo width={140} height={44} />
                </Link>
-               <p className="text-muted-foreground text-xl leading-relaxed italic">
+               <p className="text-muted-foreground text-lg md:text-xl leading-relaxed italic">
                   "Where the art of hospitality meets the precision of digital engineering. We craft experiences, not just menus."
                </p>
-               <div className="flex gap-6">
+               <div className="flex gap-4 md:gap-6">
                   {[Play, Smartphone, QrCode].map((Icon, i) => (
                     <motion.div 
                       key={i} 
                       whileHover={{ y: -5, backgroundColor: "rgba(230,57,70,0.1)", borderColor: "rgba(230,57,70,0.5)", color: "#E63946" }}
-                      className="h-14 w-14 rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground transition-all cursor-pointer"
+                      className="h-10 w-10 md:h-14 md:w-14 rounded-xl md:rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground transition-all cursor-pointer"
                     >
-                       <Icon className="h-6 w-6" />
+                       <Icon className="h-5 w-5 md:h-6 md:w-6" />
                     </motion.div>
                   ))}
                </div>
             </div>
 
             {[
-              { title: "Ecosystem", links: ["Dynamic Menus", "Instant Scan", "Chef Dashboard", "Michelin Insights", "API Access"] },
-              { title: "Experience", links: ["Partner Directory", "Gallery", "Brand Stories", "Sustainability", "Careers"] },
-              { title: "Resources", links: ["Developer Docs", "Integration Guide", "Legal Hub", "Privacy Contract", "Status"] }
+              { title: "Platform", links: ["Digital Menus", "Instant Scan", "Dashboard", "Analytics", "API Access"] },
+              { title: "Experience", links: ["Partners", "Gallery", "Success Stories", "Sustainability", "Careers"] },
+              { title: "Resources", links: ["Documentation", "Integration Guide", "Legal", "Privacy Policy", "System Status"] }
             ].map(col => (
               <div key={col.title}>
-                 <h4 className="text-xs font-black uppercase tracking-[0.5em] mb-12 text-primary">{col.title}</h4>
-                 <ul className="space-y-8">
+                 <h4 className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] mb-8 md:mb-12 text-primary">{col.title}</h4>
+                 <ul className="space-y-4 md:space-y-8">
                     {col.links.map(link => (
-                      <li key={link} className="text-muted-foreground text-lg hover:text-foreground transition-all cursor-pointer flex items-center gap-4 group">
-                         <span className="h-[2px] w-0 bg-primary group-hover:w-8 transition-all duration-500" />
+                      <li key={link} className="text-muted-foreground text-base md:text-lg hover:text-foreground transition-all cursor-pointer flex items-center gap-4 group">
+                         <span className="h-[2px] w-0 bg-primary group-hover:w-6 md:group-hover:w-8 transition-all duration-500" />
                          <span className="group-hover:translate-x-2 transition-transform">{link}</span>
                       </li>
                     ))}
@@ -722,19 +724,19 @@ export default function LandingClient() {
             ))}
           </div>
 
-          <div className="pt-20 border-t border-border flex flex-col md:flex-row items-center justify-between gap-12">
-             <div className="flex flex-wrap items-center justify-center md:justify-start gap-10">
-                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground italic">© 2026 MenuQR Global Architecture</span>
-                <span className="text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground flex items-center gap-3">
-                   <div className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
-                   Ecosystem Hub: Operational
+          <div className="pt-10 md:pt-20 border-t border-border flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
+             <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 md:gap-10">
+                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground italic text-center">© 2026 MenuVista Global</span>
+                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground flex items-center gap-3">
+                   <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-secondary animate-pulse" />
+                   System Status: Online
                 </span>
              </div>
              
-             <div className="flex gap-16 text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">
+             <div className="flex flex-wrap justify-center gap-6 md:gap-16 text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">
                 <span className="hover:text-primary transition-colors cursor-pointer">Sitemap</span>
-                <span className="hover:text-primary transition-colors cursor-pointer">Security Ledger</span>
-                <span className="hover:text-primary transition-colors cursor-pointer">Cookies Charter</span>
+                <span className="hover:text-primary transition-colors cursor-pointer">Security</span>
+                <span className="hover:text-primary transition-colors cursor-pointer">Cookie Policy</span>
              </div>
           </div>
         </div>

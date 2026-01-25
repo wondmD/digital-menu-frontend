@@ -8,8 +8,8 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: {
-    default: "MenuQR | Elegant Digital Menus for Modern Hospitality",
-    template: "%s | MenuQR",
+    default: "MenuVista | Elegant Digital Menus for Modern Hospitality",
+    template: "%s | MenuVista",
   },
   description:
     "Transform your dining experience with nature-inspired, high-performance digital menus designed for hotels and cafés.",
@@ -22,29 +22,29 @@ export const metadata: Metadata = {
     "hotel menu",
     "café digital menu",
   ],
-  authors: [{ name: "MenuQR Team" }],
-  creator: "MenuQR",
-  publisher: "MenuQR",
+  authors: [{ name: "MenuVista Team" }],
+  creator: "MenuVista",
+  publisher: "MenuVista",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://menuqr.com"), // Replace with actual domain
+  metadataBase: new URL("https://menuvista.com"), // Replace with actual domain
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "MenuQR | Elegant Digital Menus",
+    title: "MenuVista | Elegant Digital Menus",
     description: "Nature-inspired, high-performance digital menus for hotels and cafés.",
-    url: "https://menuqr.com",
-    siteName: "MenuQR",
+    url: "https://menuvista.com",
+    siteName: "MenuVista",
     images: [
       {
         url: "/hotel.webp",
         width: 1200,
         height: 630,
-        alt: "MenuQR Digital Menu Preview",
+        alt: "MenuVista Digital Menu Preview",
       },
     ],
     locale: "en_US",
@@ -52,10 +52,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "MenuQR | Elegant Digital Menus",
+    title: "MenuVista | Elegant Digital Menus",
     description: "Nature-inspired, high-performance digital menus for hotels and cafés.",
     images: ["/hotel.webp"],
-    creator: "@menuqr",
+    creator: "@menuvista",
   },
   robots: {
     index: true,

@@ -22,8 +22,8 @@
   --accent-foreground: #000000;
   --destructive: #ef4444;
   --destructive-foreground: #FFFFFF;
-  --border: rgba(0, 0, 0, 0.08);
-  --input: rgba(0, 0, 0, 0.08);
+  --border: rgba(0, 0, 0, 0.2);
+  --input: rgba(0, 0, 0, 0.2);
   --ring: #E63946;
   --radius: 1.25rem;
 
@@ -33,7 +33,7 @@
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #FFFFFF;
   --sidebar-accent-foreground: #000000;
-  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --sidebar-border: rgba(0, 0, 0, 0.15);
   --sidebar-ring: #E63946;
 }
 

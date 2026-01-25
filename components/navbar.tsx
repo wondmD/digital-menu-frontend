@@ -7,6 +7,7 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Logo } from "@/components/logo"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -30,14 +31,8 @@ export function Navbar() {
       )}
     >
       <div className="container flex items-center justify-between px-6 mx-auto">
-        <Link href="/" className="flex items-center space-x-4 group">
-          <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-2xl shadow-primary/40 group-hover:rotate-12 transition-all duration-500">
-            <ChefHat className="h-6 w-6" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-2xl font-serif font-bold tracking-tighter text-foreground">MenuQR</span>
-            <span className="text-[8px] font-black uppercase tracking-[0.4em] text-primary">Luxury Hub</span>
-          </div>
+        <Link href="/" className="flex items-center group">
+          <Logo width={140} height={44} />
         </Link>
 
         {/* Desktop Navigation */}
@@ -116,7 +111,7 @@ export function Navbar() {
               </Button>
               <Button className="w-full h-16 rounded-2xl text-lg font-bold bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 text-white" asChild>
                 <Link href="/register" onClick={() => setIsOpen(false)}>
-                  Get Founded
+                  Get Started
                 </Link>
               </Button>
             </div>

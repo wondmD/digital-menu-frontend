@@ -11,14 +11,19 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
 
   const { path: pathSegments } = await params
   
+  // Robust path construction
+  const path = pathSegments.filter(Boolean).join("/")
+  const isPublicPlan = path === "subscription/plans" || path === "plans"
+  
   const session = await getServerSession(authOptions)
   const token = (session?.user as any)?.accessToken as string | undefined
   
   // Requirement check: Only block if it's strictly an "owner/private" endpoint.
   // Public endpoints (like public menu views) should be allowed without a token.
-  const isPrivate = pathSegments[0]?.toLowerCase() === "my-restaurants" || 
+  const isPrivate = !isPublicPlan && (
+                    pathSegments[0]?.toLowerCase() === "my-restaurants" || 
                     pathSegments[0]?.toLowerCase() === "subscription" ||
-                    pathSegments[0]?.toLowerCase() === "admin"
+                    pathSegments[0]?.toLowerCase() === "admin")
   
   if (isPrivate && !token) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -36,7 +41,6 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
     }
   }
 
-  const path = pathSegments.join("/")
   const url = new URL(request.url)
   
   // Clean query string to avoid duplicate ID parameters which cause "slice/array" errors in Go backends

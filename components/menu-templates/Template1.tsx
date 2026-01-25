@@ -3,6 +3,7 @@
 import { MenuItem, TemplateProps } from "./types"
 import { motion } from "framer-motion"
 import Image from "next/image"
+import { Logo } from "@/components/logo"
 import { getImageUrl } from "@/lib/utils"
 import { Search, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -151,9 +152,11 @@ export default function Template1({
       </main>
 
       <footer className="mt-24 py-12 border-t border-[#E5E1D8] text-center">
-        <div className="flex items-center justify-center gap-2 text-[10px] font-sans uppercase tracking-[0.3em] text-[#706C61] opacity-70">
-          <span>Presented by</span>
-          <span className="font-bold text-[#1A1A1A]">MenuVista</span>
+        <div className="flex flex-col items-center justify-center gap-4">
+          <span className="text-[10px] font-sans uppercase tracking-[0.3em] text-[#706C61] opacity-70">
+            Presented by
+          </span>
+          <Logo width={110} height={35} grayscale />
         </div>
       </footer>
     </div>

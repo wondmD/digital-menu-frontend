@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { MailCheck, ArrowLeft, LogIn, ChefHat, Sparkles, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
+import { Logo } from "@/components/logo"
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
@@ -30,7 +31,8 @@ function VerifyEmailContent() {
         className="w-full max-w-2xl relative z-10"
       >
         <div className="bg-card/40 backdrop-blur-3xl border border-border rounded-[3.5rem] p-8 md:p-14 shadow-[0_60px_120px_-30px_rgba(0,0,0,0.6)] text-center">
-          <header className="mb-12">
+          <header className="mb-12 flex flex-col items-center">
+            <Logo width={180} height={60} className="mb-12" />
             <motion.div 
               initial={{ rotate: -15, scale: 0.8 }}
               animate={{ rotate: 0, scale: 1 }}
@@ -44,18 +46,18 @@ function VerifyEmailContent() {
             </motion.div>
             
             <h1 className="text-4xl md:text-5xl font-serif text-foreground tracking-tight mb-6">
-              {isSuccess ? "Ritual Complete! ✨" : "Awaiting Verification"}
+              {isSuccess ? "Verification Successful!" : "Awaiting Verification"}
             </h1>
             
             <p className="text-muted-foreground text-lg font-medium max-w-md mx-auto leading-relaxed italic">
               {isSuccess ? (
-                "Your identity has been forged. Your luxury establishment is ready to go live."
+                "Your account has been verified. You can now start managing your digital menu."
               ) : email ? (
                 <span>
-                  We've sent a luxury invitation to <strong>{email}</strong>. Please follow the instructions to secure your station.
+                  We've sent a verification link to <strong>{email}</strong>. Please follow the instructions to secure your account.
                 </span>
               ) : (
-                "We've sent a verification link to your inbox. Open it to activate your chef profile."
+                "We've sent a verification link to your inbox. Please follow the instructions to activate your profile."
               )}
             </p>
           </header>
@@ -66,7 +68,7 @@ function VerifyEmailContent() {
               <ul className="space-y-3 text-sm text-muted-foreground font-medium">
                 <li className="flex items-center gap-3">
                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                   Check your spam or promotions cellar.
+                   Check your spam or junk folder.
                 </li>
                 <li className="flex items-center gap-3">
                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -74,7 +76,7 @@ function VerifyEmailContent() {
                 </li>
                 <li className="flex items-center gap-3">
                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                   Give the digital waiter a moment to deliver.
+                   Give the system a moment to deliver.
                 </li>
               </ul>
             </div>
@@ -85,7 +87,7 @@ function VerifyEmailContent() {
                <Button variant="outline" asChild className="h-16 px-8 rounded-2xl border-border text-foreground hover:bg-muted/30 transition-all text-xs font-black uppercase tracking-widest flex-1">
                  <Link href="/register">
                    <ArrowLeft className="mr-2 h-4 w-4" />
-                   Restart Enrollment
+                   Back to Register
                  </Link>
                </Button>
              )}

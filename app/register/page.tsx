@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
+import { Logo } from "@/components/logo"
 
 export default function RegisterPage() {
   const { toast } = useToast()
@@ -163,14 +164,9 @@ export default function RegisterPage() {
 
         <div className="bg-card/40 backdrop-blur-3xl border border-border rounded-[3.5rem] p-8 md:p-14 shadow-2xl">
           <header className="mb-12">
-            <div className="flex items-center gap-6 mb-8">
-               <motion.div 
-                 initial={{ rotate: -15 }}
-                 animate={{ rotate: 0 }}
-                 className="h-16 w-16 items-center justify-center rounded-2xl bg-primary/20 border border-primary/30 flex text-primary"
-               >
-                 <ChefHat className="h-8 w-8" />
-               </motion.div>
+            <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
+               <Logo width={160} height={50} />
+               <div className="h-10 w-px bg-border hidden md:block" />
                <div>
                   <h1 className="text-3xl md:text-4xl font-serif text-foreground tracking-tight">Claim Your Kitchen 🍽️</h1>
                   <p className="text-muted-foreground font-medium">Join the elite circle of digital restaurant owners.</p>

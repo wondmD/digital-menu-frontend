@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/dashboard/', '/api/'],
     },
-    sitemap: 'https://menuqr.com/sitemap.xml',
+    sitemap: 'https://menuvista.com/sitemap.xml',
   }
 }

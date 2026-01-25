@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://menuqr.com'
+  const baseUrl = 'https://menuvista.com'
   
   // Static routes
   const routes = [

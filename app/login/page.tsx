@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/components/ui/use-toast"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FormEvent, useEffect, useState } from "react"
+import { Logo } from "@/components/logo"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -113,14 +114,8 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-card/40 backdrop-blur-3xl border border-border rounded-[3rem] p-8 md:p-14 shadow-2xl">
-          <header className="mb-12 text-center">
-            <motion.div 
-               initial={{ rotate: -10, scale: 0.8 }}
-               animate={{ rotate: 0, scale: 1 }}
-               className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-primary shadow-2xl shadow-primary/40 mb-8"
-            >
-              <ChefHat className="h-10 w-10 text-white" />
-            </motion.div>
+          <header className="mb-12 flex flex-col items-center text-center">
+            <Logo width={180} height={60} className="mb-8" />
             <h1 className="text-4xl md:text-5xl font-serif text-foreground tracking-tight mb-4">Welcome back 👋</h1>
             <p className="text-muted-foreground text-lg font-medium">
               Good to see you again. Let’s get you back to your menus.
@@ -131,7 +126,7 @@ export default function LoginPage() {
             <div className="space-y-6">
               <div className="group relative">
                 <Label htmlFor="email" className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground group-focus-within:text-primary transition-colors ml-1 mb-3 block">
-                  Culinarian Identity (Email)
+                  Email Address
                 </Label>
                 <div className="relative">
                   <Input
@@ -154,7 +149,7 @@ export default function LoginPage() {
                   <Label htmlFor="password" className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground group-focus-within:text-primary transition-colors">
                     The Secret Key (Password)
                   </Label>
-                  <Link href="#" className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors">
+                  <Link href="/forgot-password" className="text-[10px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors">
                     Forgot Key?
                   </Link>
                 </div>
