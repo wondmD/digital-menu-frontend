@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "40cc1d7b-4c97-4497-8fe0-63dad84ac890",
-		"name": "MenuVista API Latest",
-		"description": "# MenuVista API Documentation\n\nWelcome to the MenuVista API documentation. This collection provides a comprehensive set of endpoints for managing restaurants, menus, staff, and subscriptions.\n\n## Authentication\n\nMost endpoints require authentication using a Bearer Token. \n1. Register a new user or Login.\n2. Copy the `access_token` from the response.\n3. The collection automatically sets the `access_token` collection variable after a successful login.\n\n## Base URL\n\nThe base URL for all API endpoints is `{{base_url}}`, which defaults to `http://localhost:8080/api/v1`.\n\n## Error Handling\n\nErrors are returned in the following format:\n```json\n{\n  \"success\": false,\n  \"status_code\": 400,\n  \"error\": \"Error message description\",\n  \"code\": \"ERROR_CODE\"\n}\n```",
+		"name": "Agelgil API Latest",
+		"description": "# Agelgil API Documentation\n\nWelcome to the Agelgil API documentation. This collection provides a comprehensive set of endpoints for managing restaurants, menus, staff, and subscriptions.\n\n## Authentication\n\nMost endpoints require authentication using a Bearer Token. \n1. Register a new user or Login.\n2. Copy the `access_token` from the response.\n3. The collection automatically sets the `access_token` collection variable after a successful login.\n\n## Base URL\n\nThe base URL for all API endpoints is `{{base_url}}`, which defaults to `http://localhost:8080/api/v1`.\n\n## Error Handling\n\nErrors are returned in the following format:\n```json\n{\n  \"success\": false,\n  \"status_code\": 400,\n  \"error\": \"Error message description\",\n  \"code\": \"ERROR_CODE\"\n}\n```",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "37276877"
 	},

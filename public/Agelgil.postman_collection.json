@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "menuvista-api-collection-v4",
-    "name": "MenuVista API - Ultimate",
-    "description": "Ultimate API collection for MenuVista with standardized responses, refined routing, and comprehensive examples.",
+    "_postman_id": "agelgil-api-collection-v4",
+    "name": "Agelgil API - Ultimate",
+    "description": "Ultimate API collection for Agelgil with standardized responses, refined routing, and comprehensive examples.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

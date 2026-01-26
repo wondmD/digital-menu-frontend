@@ -16,11 +16,16 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   const isClient = typeof window !== "undefined"
   const baseUrl = isClient ? "/api/proxy" : API_BASE
   const url = `${baseUrl}${path}`
+  
+  const method = (options.method || "GET").toUpperCase()
+
+  if (isClient) {
+    console.log(`[apiFetch] Calling endpoint: ${url} (Original path: ${path})`, { method, options })
+  }
+
   const headers: Record<string, string> = {
     ...(options.headers || {}),
   }
-
-  const method = (options.method || "GET").toUpperCase()
 
   if (options.body && !(options.body instanceof FormData)) {
     headers["Content-Type"] = headers["Content-Type"] || "application/json"

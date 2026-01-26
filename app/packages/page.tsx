@@ -266,7 +266,7 @@ export default function PackageSelectionPage() {
       // If it's a free trial OR if there's no checkout URL returned (implicit activation)
       if (planToProcess === "free-trial" || !checkoutUrl) {
          console.log("Plan activated successfully (implicit or trial)")
-         toast({ title: "Welcome to MenuVista!", description: "Your membership has been activated successfully." })
+         toast({ title: "Welcome to Agelgil (አገልግል)!", description: "Your membership has been activated successfully." })
          
          // Give the backend a moment to process the update before redirecting
          setTimeout(() => {
@@ -344,7 +344,7 @@ export default function PackageSelectionPage() {
                       <p className="text-muted-foreground font-medium leading-relaxed">
                         {isCurrentlyTrialling 
                           ? `You have ${trialDaysLeft !== null ? `${trialDaysLeft} day${trialDaysLeft !== 1 ? 's' : ''}` : 'some time'} remaining on your trial. Access your dashboard or upgrade to keep your data.`
-                          : "Experience MenuVista with a 7-day free trial. No commitment, cancel anytime."}
+                          : "Experience Agelgil (አገልግል) with a 7-day free trial. No commitment, cancel anytime."}
                       </p>
                    </div>
                 </div>

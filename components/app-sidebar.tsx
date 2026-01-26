@@ -131,8 +131,9 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
       <Sidebar className="border-r border-border bg-sidebar text-sidebar-foreground">
         <SidebarHeader className="p-6 h-auto border-none">
           <div className="flex items-center justify-between gap-3 px-2">
-            <Link href="/dashboard" className="flex items-center gap-3">
-              <Logo width={115} height={36} />
+            <Link href="/dashboard" className="flex items-center gap-2 group">
+              <Logo width={32} height={32} className="-ml-1" />
+              <span className="text-lg font-serif text-primary italic transition-all group-hover:scale-105 active:scale-95">አገልግል</span>
             </Link>
             <ThemeToggle />
           </div>

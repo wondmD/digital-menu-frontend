@@ -324,7 +324,7 @@ export default function QRPage() {
                         className="w-full h-16 md:h-20 rounded-xl md:rounded-[2rem] bg-primary text-white font-black uppercase text-[10px] md:text-xs tracking-[0.4em] hover:bg-primary/90 transition-all shadow-[0_20px_50px_-15px_rgba(230,57,70,0.5)]" 
                         asChild
                     >
-                       <a href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(menuUrl)}`} download="MenuVista.png" target="_blank">
+                       <a href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(menuUrl)}`} download="Agelgil_QR.png" target="_blank">
                           <Download className="h-4 w-4 md:h-5 md:w-5 mr-3 md:mr-4" /> Download QR
                        </a>
                     </Button>

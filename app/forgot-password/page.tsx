@@ -31,10 +31,16 @@ export default function ForgotPasswordPage() {
 
     setLoading(true)
     try {
-      await apiFetch("/forgot-password", {
+      const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
-        body: { email },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       })
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || "Request failed")
+      }
       
       setSubmitted(true)
       toast({ 
@@ -117,7 +123,7 @@ export default function ForgotPasswordPage() {
                       id="email"
                       name="email"
                       type="email"
-                      placeholder="headchef@menuvista.com"
+                      placeholder="headchef@agelgil.com"
                       required
                       className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-6 text-lg transition-all"
                     />

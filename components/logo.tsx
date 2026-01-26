@@ -22,7 +22,7 @@ export function Logo({ className, width = 120, height = 40, grayscale = false }:
   }, [])
 
   if (!mounted) {
-    return <div className={cn("w-32 h-10 bg-muted animate-pulse rounded", className)} />
+    return <div className={cn("bg-muted animate-pulse rounded", className)} style={{ width, height }} />
   }
 
   const currentTheme = resolvedTheme || theme
@@ -30,14 +30,14 @@ export function Logo({ className, width = 120, height = 40, grayscale = false }:
 
   return (
     <div 
-      className={cn("relative flex items-center justify-start", grayscale && "grayscale opacity-50 contrast-125", className)}
+      className={cn("relative flex items-center overflow-hidden", grayscale && "grayscale opacity-50 contrast-125", className)}
       style={{ width: width, height: height }}
     >
       <Image
         src={src}
-        alt="MenuVista Logo"
+        alt="Agelgil Logo"
         fill
-        className="object-contain object-left"
+        className="object-cover object-left"
         priority
       />
     </div>

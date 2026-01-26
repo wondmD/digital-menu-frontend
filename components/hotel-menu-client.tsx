@@ -233,7 +233,10 @@ export default function HotelMenuClient({ hotelSlug, initialData }: HotelMenuCli
           <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.2em] opacity-60">
             Experience by
           </span>
-          <Logo width={120} height={40} />
+          <div className="flex flex-col items-center gap-2">
+            <Logo width={120} height={40} />
+            <span className="text-xl font-serif text-primary italic">አገልግል</span>
+          </div>
         </div>
       </footer>
     </div>

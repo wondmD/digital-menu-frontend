@@ -266,13 +266,13 @@ export default function LandingClient() {
               </motion.div>
               
               <h1 className="font-serif text-[clamp(2.5rem,10vw,7.5rem)] leading-[0.9] lg:leading-[0.85] tracking-tighter mb-8 md:mb-10">
-                Taste the <br />
-                <span className="text-primary italic font-normal">Future</span> <br />
-                of Dining.
+                Agelgil — <br />
+                <span className="text-primary italic font-normal">አገልግል</span> <br />
+                Future of Dining.
               </h1>
               
               <p className="max-w-xl mx-auto lg:mx-0 text-lg md:text-2xl text-muted-foreground mb-8 md:mb-10 leading-relaxed font-medium">
-                Elevate your restaurant with a professional digital menu platform. Designed for speed, beauty, and business growth.
+                Elevate your restaurant with Agelgil (አገልግል), the professional digital menu platform. Designed for speed, beauty, and business growth.
               </p>
               
               {/* HERO SEARCH - HIGHER VISIBILITY */}
@@ -726,7 +726,7 @@ export default function LandingClient() {
 
           <div className="pt-10 md:pt-20 border-t border-border flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
              <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 md:gap-10">
-                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground italic text-center">© 2026 MenuVista Global</span>
+                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground italic text-center">© 2026 Agelgil (አገልግል)</span>
                 <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground flex items-center gap-3">
                    <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-secondary animate-pulse" />
                    System Status: Online

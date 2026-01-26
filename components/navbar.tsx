@@ -31,8 +31,9 @@ export function Navbar() {
       )}
     >
       <div className="container flex items-center justify-between px-6 mx-auto">
-        <Link href="/" className="flex items-center group">
-          <Logo width={140} height={44} />
+        <Link href="/" className="flex items-center gap-2 group">
+          <Logo width={40} height={40} className="-ml-2" />
+          <span className="hidden sm:block text-2xl font-serif text-primary italic tracking-tight transition-transform group-hover:scale-105 active:scale-95">አገልግል</span>
         </Link>
 
         {/* Desktop Navigation */}

@@ -1,49 +1,55 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { authOptions } from "@/lib/auth"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || ""
 
-async function handle(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
+async function handle(request: Request, context: { params: any }) {
+  const { params } = context
+  // Handle both Next.js 14 (Sync) and Next.js 15 (Async) params
+  const resolvedParams = params instanceof Promise ? await params : params
+  const { path: pathSegments } = resolvedParams || { path: [] }
+  
+  const path = (pathSegments || []).filter(Boolean).join("/")
+  
   if (!API_BASE) {
     return NextResponse.json({ error: "API base URL not configured" }, { status: 500 })
   }
 
-  const { path: pathSegments } = await params
-  
-  // Robust path construction
-  const path = pathSegments.filter(Boolean).join("/")
   const isPublicPlan = path === "subscription/plans" || path === "plans"
   
-  const session = await getServerSession(authOptions)
-  const token = (session?.user as any)?.accessToken as string | undefined
-  
   // Requirement check: Only block if it's strictly an "owner/private" endpoint.
-  // Public endpoints (like public menu views) should be allowed without a token.
   const isPrivate = !isPublicPlan && (
-                    pathSegments[0]?.toLowerCase() === "my-restaurants" || 
-                    pathSegments[0]?.toLowerCase() === "subscription" ||
-                    pathSegments[0]?.toLowerCase() === "admin")
+                    pathSegments?.[0]?.toLowerCase() === "my-restaurants" || 
+                    pathSegments?.[0]?.toLowerCase() === "subscription" ||
+                    pathSegments?.[0]?.toLowerCase() === "admin")
   
-  if (isPrivate && !token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  let token: string | undefined
+  if (isPrivate) {
+    const session = await getServerSession(authOptions)
+    token = (session?.user as any)?.accessToken as string | undefined
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
   }
 
   // Robustly identify IDs from the path
   let rId = "", cId = ""
-  for (let i = 0; i < pathSegments.length; i++) {
-    const seg = pathSegments[i].toLowerCase()
-    if ((seg === "my-restaurants" || seg === "restaurants") && i + 1 < pathSegments.length) {
-      rId = pathSegments[i + 1]
-    }
-    if (seg === "categories" && i + 1 < pathSegments.length) {
-      cId = pathSegments[i + 1]
+  if (pathSegments) {
+    for (let i = 0; i < pathSegments.length; i++) {
+      const seg = pathSegments[i].toLowerCase()
+      if ((seg === "my-restaurants" || seg === "restaurants") && i + 1 < pathSegments.length) {
+        rId = pathSegments[i + 1]
+      }
+      if (seg === "categories" && i + 1 < pathSegments.length) {
+        cId = pathSegments[i + 1]
+      }
     }
   }
 
   const url = new URL(request.url)
   
-  // Clean query string to avoid duplicate ID parameters which cause "slice/array" errors in Go backends
+  // Clean query string to avoid duplicate ID parameters
   const queryParams = new URLSearchParams(url.search)
   queryParams.delete("restaurant_id")
   queryParams.delete("category_id")
@@ -51,10 +57,12 @@ async function handle(request: Request, { params }: { params: Promise<{ path: st
   queryParams.delete("categoryId")
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ""
   
-  const targetUrl = `${API_BASE}/${path}${queryString}`
+  // Clean up API_BASE to ensure no trailing slash interaction issues
+  const base = API_BASE.endsWith("/") ? API_BASE.slice(0, -1) : API_BASE
+  const targetUrl = `${base}/${path}${queryString}`
 
-  // Log the final request details to the terminal for debugging
-  console.log(`\x1b[35m[API Proxy]\x1b[0m ${request.method} -> ${targetUrl}`)
+  console.log(`\x1b[35m[API Proxy Debug]\x1b[0m Forwarding to: ${targetUrl}`)
+  
   if (rId || cId) {
     console.log(`\x1b[36m[Context]\x1b[0m RestaurantID: ${rId || 'N/A'} | CategoryID: ${cId || 'N/A'}`)
   }

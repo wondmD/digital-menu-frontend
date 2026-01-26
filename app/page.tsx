@@ -2,10 +2,10 @@ import { Metadata } from "next"
 import LandingClient from "@/components/landing-client"
 
 export const metadata: Metadata = {
-  title: "MenuVista | Elegant Digital Menus for Modern Hospitality",
+  title: "Agelgil | Elegant Digital Menus for Modern Hospitality",
   description: "Transform your dining experience with nature-inspired, high-performance digital menus designed for hotels and cafés. Explore local gems and curated menus.",
   alternates: {
-    canonical: "https://menuvista.com",
+    canonical: "https://agelgil.com",
   },
 }
 

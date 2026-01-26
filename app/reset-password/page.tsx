@@ -80,16 +80,20 @@ function ResetPasswordForm() {
       return
     }
 
+    console.log("[ResetPassword] Submitting with token:", token)
+
     setLoading(true)
     try {
-      // Assuming backend expects POST /reset-password with token and password
-      await apiFetch("/reset-password", {
+      const res = await fetch("/api/auth/reset-password", {
         method: "POST",
-        body: { 
-          token, 
-          password: passwords.password 
-        },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password: passwords.password }),
       })
+
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(text || "Reset failed")
+      }
       
       setSuccess(true)
       toast({ title: "Key Updated!", description: "Your secret key has been successfully changed." })

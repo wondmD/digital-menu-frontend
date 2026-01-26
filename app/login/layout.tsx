@@ -2,7 +2,7 @@ import { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Login",
-  description: "Log in to your MenuVista partner dashboard to manage your digital menus.",
+  description: "Log in to your Agelgil (አገልግል) partner dashboard to manage your digital menus.",
 }
 
 export default function LoginLayout({ children }: { children: React.ReactNode }) {

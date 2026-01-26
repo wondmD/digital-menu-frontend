@@ -27,32 +27,41 @@ export function SubscriptionWatcher({ children }: { children: React.ReactNode })
       return
     }
 
-    const checkSubscription = async () => {
+        const checkSubscription = async () => {
       try {
-        // According to Postman: GET /subscription/me
+        console.log("[SubscriptionWatcher] Checking subscription...")
         const res = await apiFetch<any>("/subscription/me", { token })
+        console.log("[SubscriptionWatcher] Raw Response:", res)
         
-        // Subscription check logic: 
-        // If data is null or status is not 'active', they need to subscribe.
-        // We'll be lenient: if the API returns a successful response with an active subscription, we're good.
-        const subscription = res?.data || res
+        // Handle various response wrappers
+        const subscription = res?.data?.data || res?.data || res
         
-        // If data is null or status is not 'active', they need to subscribe.
-        // We'll allow active subscriptions AND active free trials.
-        const isActive = subscription?.status === "active"
-        const isTrial = subscription?.plan_slug === "free-trial" || subscription?.name?.toLowerCase().includes("trial")
-        const isExpired = subscription?.status === "expired" || (subscription?.expires_at && new Date(subscription.expires_at) < new Date())
+        const status = (subscription?.status || "").toLowerCase()
+        const planSlug = (subscription?.plan_slug || "").toLowerCase()
+        const planName = (subscription?.name || "").toLowerCase()
+
+        const isActive = status === "active" || status === "pending" || res?.success === true
+        const isTrial = planSlug === "free-trial" || planName.includes("trial")
         
-        if (!subscription || (!isActive && !isTrial) || isExpired) {
-          // No active subscription or trial, redirect to packages
-          // But only if we're not already on the packages or payment pages
+        // Use a 24-hour buffer for expiry to avoid timezone/clock drift issues
+        const expiryDate = subscription?.expires_at ? new Date(subscription.expires_at) : null
+        const now = new Date()
+        const isExpired = expiryDate ? (expiryDate.getTime() + 86400000 < now.getTime()) : false
+        
+        console.log("[SubscriptionWatcher] Parsed:", { isActive, isTrial, isExpired, status, planSlug })
+
+        // REDIRECT LOGIC: Only redirect if it's definitively NOT active/trial AND NOT successfully returned
+        const shouldRedirect = !isActive && !isTrial
+        
+        if (shouldRedirect || (isExpired && !isActive)) {
+          console.log("[SubscriptionWatcher] Redirecting to /packages. Reason:", { shouldRedirect, isExpired, isActive })
           if (!pathname.startsWith("/packages") && !pathname.startsWith("/payment")) {
              router.push("/packages")
           }
         }
       } catch (err) {
         // If the subscription is missing (404), redirect to packages
-        console.error("Subscription check failed:", err)
+        console.error("[SubscriptionWatcher] Error:", err)
         if (!pathname.startsWith("/packages") && !pathname.startsWith("/payment")) {
            router.push("/packages")
         }

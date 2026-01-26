@@ -8,8 +8,8 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: {
-    default: "MenuVista | Elegant Digital Menus for Modern Hospitality",
-    template: "%s | MenuVista",
+    default: "Agelgil | Elegant Digital Menus for Modern Hospitality",
+    template: "%s | Agelgil",
   },
   description:
     "Transform your dining experience with nature-inspired, high-performance digital menus designed for hotels and cafés.",
@@ -21,30 +21,32 @@ export const metadata: Metadata = {
     "hospitality software",
     "hotel menu",
     "café digital menu",
+    "Agelgil",
+    "አገልግል",
   ],
-  authors: [{ name: "MenuVista Team" }],
-  creator: "MenuVista",
-  publisher: "MenuVista",
+  authors: [{ name: "Agelgil Team" }],
+  creator: "Agelgil",
+  publisher: "Agelgil",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://menuvista.com"), // Replace with actual domain
+  metadataBase: new URL("https://agelgil.com"), // Replace with actual domain
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "MenuVista | Elegant Digital Menus",
+    title: "Agelgil | Elegant Digital Menus",
     description: "Nature-inspired, high-performance digital menus for hotels and cafés.",
-    url: "https://menuvista.com",
-    siteName: "MenuVista",
+    url: "https://agelgil.com",
+    siteName: "Agelgil",
     images: [
       {
         url: "/hotel.webp",
         width: 1200,
         height: 630,
-        alt: "MenuVista Digital Menu Preview",
+        alt: "Agelgil Digital Menu Preview",
       },
     ],
     locale: "en_US",
@@ -52,10 +54,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "MenuVista | Elegant Digital Menus",
+    title: "Agelgil | Elegant Digital Menus",
     description: "Nature-inspired, high-performance digital menus for hotels and cafés.",
     images: ["/hotel.webp"],
-    creator: "@menuvista",
+    creator: "@agelgil",
   },
   robots: {
     index: true,
