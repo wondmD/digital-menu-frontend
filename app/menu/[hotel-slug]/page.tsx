@@ -34,19 +34,36 @@ export async function generateMetadata(
       hotel.logo_image_url
     )
 
+    // Dynamic OG Image from our internal API
+    const ogImageUrl = new URL("https://agelgil.com/api/og")
+    ogImageUrl.searchParams.set("name", hotel.name)
+    if (hotel.description) ogImageUrl.searchParams.set("description", hotel.description)
+    if (hotel.logo_url || hotel.logo_image_url) {
+      ogImageUrl.searchParams.set("logo", getImageUrl(hotel.logo_url || hotel.logo_image_url) || "")
+    }
+
     return {
       title: `${hotel.name} | Digital Menu`,
       description: hotel.description || `View the elegant digital menu for ${hotel.name}. Explore our dishes and seasonal specialties.`,
       openGraph: {
         title: `${hotel.name} | Digital Menu`,
         description: hotel.description,
-        images: shareImage ? [shareImage, ...previousImages] : previousImages,
+        images: [
+          {
+            url: ogImageUrl.toString(),
+            width: 1200,
+            height: 630,
+            alt: hotel.name,
+          },
+          ...(shareImage ? [{ url: shareImage }] : []),
+          ...previousImages,
+        ],
       },
       twitter: {
         card: "summary_large_image",
         title: `${hotel.name} | Digital Menu`,
         description: hotel.description,
-        images: shareImage ? [shareImage] : [],
+        images: [ogImageUrl.toString()],
       },
     }
   } catch (error) {

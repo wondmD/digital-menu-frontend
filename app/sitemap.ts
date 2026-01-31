@@ -1,20 +1,35 @@
 import { MetadataRoute } from 'next'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://agelgil.com'
   
   // Static routes
-  const routes = [
+  const staticRoutes = [
     '',
     '/login',
     '/register',
     '/packages',
+    '/verify-email',
+    '/forgot-password',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),
     changeFrequency: 'daily' as const,
-    priority: route === '' ? 1 : 0.8,
+    priority: route === '' ? 1.0 : 0.8,
   }))
 
-  return [...routes]
+  // You can fetch public restaurant slugs here if you have a public list API
+  // Example:
+  /*
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/restaurants`)
+  const restaurants = await res.json()
+  const dynamicRoutes = restaurants.map((r: any) => ({
+    url: `${baseUrl}/menu/${r.slug}`,
+    lastModified: new Date(r.updated_at || new Date()),
+    changeFrequency: 'weekly' as const,
+    priority: 0.6,
+  }))
+  */
+
+  return [...staticRoutes]
 }
