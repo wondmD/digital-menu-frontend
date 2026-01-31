@@ -32,14 +32,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://agelgil.com"), // Replace with actual domain
+  metadataBase: new URL("https://digital-menu-frontend-nine.vercel.app/"), // Replace with actual domain
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "Agelgil | Elegant Digital Menus",
     description: "Nature-inspired, high-performance digital menus for hotels and cafés.",
-    url: "https://agelgil.com",
+    url: "https://digital-menu-frontend-nine.vercel.app/",
     siteName: "Agelgil",
     images: [
       {
