@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Agelgil menu", "modern dining experience"
   ],
   alternates: {
-    canonical: "https://agelgil.com",
+    canonical: "https://digital-menu-frontend-nine.vercel.app/",
   },
   openGraph: {
     title: "Agelgil | The Future of Digital Menus",

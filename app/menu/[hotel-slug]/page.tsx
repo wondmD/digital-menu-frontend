@@ -35,7 +35,7 @@ export async function generateMetadata(
     )
 
     // Dynamic OG Image from our internal API
-    const ogImageUrl = new URL("https://agelgil.com/api/og")
+    const ogImageUrl = new URL("https://digital-menu-frontend-nine.vercel.app/api/og")
     ogImageUrl.searchParams.set("name", hotel.name)
     if (hotel.description) ogImageUrl.searchParams.set("description", hotel.description)
     if (hotel.logo_url || hotel.logo_image_url) {
@@ -108,7 +108,7 @@ export default async function HotelMenuLandingPage({ params }: Props) {
                 streetAddress: initialData.address,
               },
               telephone: initialData.phone,
-              url: `https://agelgil.com/menu/${hotelSlug}`,
+              url: `https://digital-menu-frontend-nine.vercel.app/menu/${hotelSlug}`,
             }),
           }}
         />
