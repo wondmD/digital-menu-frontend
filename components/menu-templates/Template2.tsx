@@ -27,6 +27,8 @@ export default function Template2({
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
+
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Dynamic Header */}
@@ -34,7 +36,16 @@ export default function Template2({
         <div className="absolute top-0 right-0 p-8 opacity-10 -rotate-12">
             <Sparkles className="h-32 w-32" />
         </div>
-        <div className="container max-w-5xl mx-auto relative z-10">
+        <div className="container max-w-5xl mx-auto relative z-10 flex gap-6 items-center">
+          {logoImage && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative w-20 h-20 rounded-2xl overflow-hidden bg-card shadow-lg border border-border"
+            >
+              <Image src={logoImage} alt={hotel.name} fill className="object-contain p-2" />
+            </motion.div>
+          )}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}

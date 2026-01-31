@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react"
 import { useSession } from "next-auth/react"
 import { 
   Plus, 
-  Loader2, 
   LayoutGrid, 
   Search, 
   ChevronRight,
@@ -17,9 +16,11 @@ import {
   Info,
   ListFilter,
   Layers,
-  Clock
+  Clock,
+  ChevronDown
 } from "lucide-react"
 import Link from "next/link"
+import { LoadingSignal } from "@/components/ui/loading-signal"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -286,7 +287,7 @@ export default function CategoriesPage() {
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 md:gap-6">
           <div className="flex flex-col gap-2 md:gap-3">
-            <span className="text-[10px] uppercase font-black tracking-[0.4em] text-muted-foreground ml-1">Select Restaurant</span>
+            <span className="text-[10px] uppercase font-black tracking-[0.4em] text-muted-foreground ml-1 text-center md:text-left">Currently customizing</span>
             <div className="relative group">
               <Hotel className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
               <select
@@ -301,6 +302,7 @@ export default function CategoriesPage() {
                   </option>
                 ))}
               </select>
+              <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-primary pointer-events-none group-hover:scale-110 transition-transform" />
             </div>
           </div>
 
@@ -345,13 +347,7 @@ export default function CategoriesPage() {
       <div className="grid gap-6 md:gap-10 sm:grid-cols-2 lg:grid-cols-3">
         {loading ? (
           <div className="col-span-full py-20 md:py-40 flex flex-col items-center justify-center gap-6 md:gap-8">
-             <div className="relative h-20 w-20 md:h-24 md:w-24">
-                <div className="absolute inset-0 rounded-[1.5rem] md:rounded-[2rem] border-4 border-primary/20 animate-spin transition-all duration-[3000ms]" />
-                <div className="absolute inset-2 rounded-xl md:rounded-[1.5rem] border-4 border-secondary/20 animate-spin-slow" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                   <Loader2 className="h-8 w-8 md:h-10 md:w-10 text-primary animate-spin" />
-                </div>
-             </div>
+             <LoadingSignal />
              <p className="font-black uppercase tracking-[0.5em] text-[10px] md:text-[11px] text-muted-foreground animate-pulse">Loading categories...</p>
           </div>
         ) : filteredCategories.length > 0 ? (
@@ -520,7 +516,7 @@ export default function CategoriesPage() {
                 disabled={!newName.trim() || saving}
               >
                 {saving ? (
-                  <Loader2 className="animate-spin h-5 md:h-6 w-5 md:w-6" />
+                  <LoadingSignal size="sm" className="h-5 md:h-6 w-5 md:w-6" />
                 ) : (
                   <>
                     {editOpen ? "Save Changes" : "Create Category"}

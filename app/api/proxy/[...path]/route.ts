@@ -49,28 +49,19 @@ async function handle(request: Request, context: { params: any }) {
 
   const url = new URL(request.url)
   
-  // Clean query string to avoid duplicate ID parameters
+  // Clean query string to avoid duplicate or conflicting parameters
   const queryParams = new URLSearchParams(url.search)
-  queryParams.delete("restaurant_id")
-  queryParams.delete("category_id")
-  queryParams.delete("restaurantId")
-  queryParams.delete("categoryId")
+  const paramsToDelete = [
+    "restaurant_id", "category_id", "restaurantId", "categoryId",
+    "slug", "restaurant_slug", "RestaurantSlug"
+  ]
+  paramsToDelete.forEach(p => queryParams.delete(p))
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ""
   
-  // Clean up API_BASE to ensure no trailing slash interaction issues
-  const base = API_BASE.endsWith("/") ? API_BASE.slice(0, -1) : API_BASE
-  const targetUrl = `${base}/${path}${queryString}`
-
-  console.log(`\x1b[35m[API Proxy Debug]\x1b[0m Forwarding to: ${targetUrl}`)
-  
-  if (rId || cId) {
-    console.log(`\x1b[36m[Context]\x1b[0m RestaurantID: ${rId || 'N/A'} | CategoryID: ${cId || 'N/A'}`)
-  }
-
-  const contentType = request.headers.get("content-type") || ""
-  
-  let body: any = null
   const method = request.method.toUpperCase()
+  const contentType = request.headers.get("content-type") || ""
+  let body: any = null
+
   if (method !== "GET" && method !== "HEAD" && method !== "DELETE") {
     const isPost = method === "POST"
     const lastSeg = pathSegments[pathSegments.length - 1].toLowerCase()
@@ -81,14 +72,22 @@ async function handle(request: Request, context: { params: any }) {
       const formData = await request.formData()
       const newFormData = new FormData()
       
-      // Copy fields, stripping existing IDs to prevent the "slice" collision
+      // Copy fields, stripping existing IDs to prevent collisions
       for (const [key, value] of formData.entries()) {
         const k = key.toLowerCase().replace(/[^a-z0-9]/g, "")
-        if (k === "restaurantid" || k === "categoryid") continue
+        // Extremely aggressive scrubbing of any field that sounds like slug or id
+        if (k === "restaurantid" || k === "categoryid" || 
+            k === "slug" || k === "restaurantslug" || 
+            k === "id" || k === "restaurant_id") {
+          console.log(`\x1b[33m[API Proxy Scrub]\x1b[0m Removed field: ${key}`)
+          continue
+        }
         
-        // Preserve filenames for File objects as Go backends require them in the multipart header
-        if (value instanceof File) {
-          newFormData.append(key, value, value.name)
+        // Preserve filenames for File/Blob objects as Go backends require them in the multipart header.
+        // We use duck-typing to check for Blobs/Files from the request.
+        if (value && typeof value === 'object' && 'arrayBuffer' in (value as any)) {
+          console.log(`\x1b[36m[API Proxy File]\x1b[0m Appending file for key: ${key}, name: ${(value as any).name}`)
+          newFormData.append(key, value as any, (value as any).name || 'file')
         } else {
           newFormData.append(key, value)
         }
@@ -101,6 +100,7 @@ async function handle(request: Request, context: { params: any }) {
           newFormData.append("restaurant_id", rId)
         }
         if (cId && isItemsAction) {
+          console.log(`\x1b[32m[API Proxy Inject]\x1b[0m Injected category_id: ${cId}`)
           newFormData.append("category_id", cId)
         }
       }
@@ -109,13 +109,18 @@ async function handle(request: Request, context: { params: any }) {
     } else {
       const rawBody = await request.json()
       
-      // Scrub conflicting keys
-      delete rawBody.restaurant_id
-      delete rawBody.category_id
-      delete rawBody.restaurantId
-      delete rawBody.categoryId
-      delete rawBody.RestaurantID
-      delete rawBody.CategoryID
+      // Extremely aggressive scrubbing for JSON payloads
+      const keysToDelete = [
+        "restaurant_id", "category_id", "restaurantId", "categoryId", 
+        "RestaurantID", "CategoryID", "slug", "Slug", "restaurant_slug", "RestaurantSlug"
+      ]
+      
+      keysToDelete.forEach(key => {
+        if (key in rawBody) {
+          console.log(`\x1b[33m[API Proxy Scrub]\x1b[0m Deleted JSON key: ${key}`)
+          delete rawBody[key]
+        }
+      })
 
       // Inject IDs for POST requests
       if (isPost) {
@@ -123,12 +128,28 @@ async function handle(request: Request, context: { params: any }) {
           rawBody.restaurant_id = rId
         }
         if (cId && isItemsAction) {
+          console.log(`\x1b[32m[API Proxy Inject]\x1b[0m Injected category_id: ${cId}`)
           rawBody.category_id = cId
         }
       }
 
       body = JSON.stringify(rawBody)
     }
+  }
+
+  // Clean up API_BASE to ensure no trailing slash interaction issues
+  const base = API_BASE.endsWith("/") ? API_BASE.slice(0, -1) : API_BASE
+  const targetUrl = `${base}/${path}${queryString}`
+
+  console.log(`\x1b[35m[API Proxy Debug]\x1b[0m Forwarding ${method} to: ${targetUrl}`)
+  if (body instanceof FormData) {
+    const entries = Array.from(body.entries())
+    console.log(`\x1b[35m[API Proxy Body]\x1b[0m FormData Fields: ${entries.map(e => `${e[0]}: ${typeof e[1]}`).join(", ")}`)
+  } else if (typeof body === "string" && body.startsWith("{")) {
+    try {
+      const keys = Object.keys(JSON.parse(body))
+      console.log(`\x1b[35m[API Proxy Body]\x1b[0m JSON Keys: ${keys.join(", ")}`)
+    } catch (e) {}
   }
 
   try {

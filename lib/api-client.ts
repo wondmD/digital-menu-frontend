@@ -20,7 +20,12 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   const method = (options.method || "GET").toUpperCase()
 
   if (isClient) {
-    console.log(`[apiFetch] Calling endpoint: ${url} (Original path: ${path})`, { method, options })
+    if (options.body instanceof FormData) {
+      const keys = Array.from(options.body.keys())
+      console.log(`[apiFetch] Calling endpoint: ${url} (Original path: ${path})`, { method, bodyKeys: keys })
+    } else {
+      console.log(`[apiFetch] Calling endpoint: ${url} (Original path: ${path})`, { method, options })
+    }
   }
 
   const headers: Record<string, string> = {
@@ -112,4 +117,64 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   }
 
   throw lastError
+}
+
+export async function apiFetchWithProgress<T>(
+  path: string, 
+  options: ApiOptions & { onProgress?: (pct: number) => void } = {}
+): Promise<T> {
+  const isClient = typeof window !== "undefined"
+  if (!isClient) return apiFetch(path, options)
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || ""
+  const baseUrl = "/api/proxy"
+  const url = `${baseUrl}${path}`
+  const method = (options.method || "POST").toUpperCase()
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open(method, url)
+
+    if (options.token) {
+      xhr.setRequestHeader("Authorization", `Bearer ${options.token}`)
+    }
+
+    if (options.body && !(options.body instanceof FormData)) {
+      xhr.setRequestHeader("Content-Type", "application/json")
+    }
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && options.onProgress) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100)
+        options.onProgress(percentComplete)
+      }
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText))
+        } catch (e) {
+          resolve(xhr.responseText as any)
+        }
+      } else {
+        let message = `Request failed (HTTP ${xhr.status})`
+        try {
+          const parsed = JSON.parse(xhr.responseText)
+          message = parsed.error || parsed.message || message
+        } catch {}
+        reject(new Error(message))
+      }
+    }
+
+    xhr.onerror = () => reject(new Error("Network connection error"))
+    
+    const body = options.body instanceof FormData 
+      ? options.body 
+      : options.body 
+        ? JSON.stringify(options.body) 
+        : undefined
+        
+    xhr.send(body)
+  })
 }

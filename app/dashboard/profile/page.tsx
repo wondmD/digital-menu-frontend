@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
 import { apiFetch } from "@/lib/api-client"
-import { cn } from "@/lib/utils"
+import { cn, getImageUrl } from "@/lib/utils"
 import { 
   Building2, 
   MapPin, 
@@ -28,7 +28,9 @@ import {
   Plus,
   Trash2,
   Settings,
-  Loader2
+  Image as ImageIcon,
+  Upload,
+  X
 } from "lucide-react"
 import Link from "next/link"
 import {
@@ -54,6 +56,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { motion, AnimatePresence } from "framer-motion"
+import { useRouter } from "next/navigation"
 
 type Restaurant = {
   id: string
@@ -68,12 +71,24 @@ type Restaurant = {
   created_at?: string
   cuisine_type?: string
   email?: string
+  logo?: any
+  logo_url?: string
+  logo_image_url?: string
+  cover?: any
+  cover_url?: string
+  cover_image_url?: string
+  gallery_images?: any[]
+  gallery_urls?: string[]
+  gallery_image_urls?: string[]
 }
+
+import { LoadingSignal } from "@/components/ui/loading-signal"
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
   const token = (session?.user as any)?.accessToken as string | undefined
   const { toast } = useToast()
+  const router = useRouter()
 
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,10 +100,24 @@ export default function ProfilePage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
+  const [step, setStep] = useState(1)
 
-  const [draft, setDraft] = useState({
+  const [draft, setDraft] = useState<{
+    name: string;
+    description: string;
+    city: string;
+    country: string;
+    phone: string;
+    email: string;
+    address: string;
+    cuisine_type: string;
+    is_published: boolean;
+    logo: File | null;
+    cover: File | null;
+    gallery_images: File[];
+    keep_gallery_urls: string[];
+  }>({
     name: "",
-    slug: "",
     description: "",
     city: "",
     country: "",
@@ -97,7 +126,19 @@ export default function ProfilePage() {
     address: "",
     cuisine_type: "",
     is_published: false,
+    logo: null,
+    cover: null,
+    gallery_images: [],
+    keep_gallery_urls: []
   })
+
+  // Previews
+  const [previews, setPreviews] = useState<{
+    logo: string | null;
+    cover: string | null;
+    gallery: string[];
+  }>({ logo: null, cover: null, gallery: [] })
+
 
   useEffect(() => {
     if (!token) return
@@ -127,8 +168,24 @@ export default function ProfilePage() {
       const method = editingId ? "PATCH" : "POST"
       
       const formData = new FormData()
+      
+      // Append text fields
       Object.entries(draft).forEach(([key, val]) => {
-        formData.append(key, String(val))
+        if (key !== 'logo' && key !== 'cover' && key !== 'gallery_images' && key !== 'keep_gallery_urls') {
+          formData.append(key, String(val))
+        }
+      })
+
+      // Send existing gallery URLs to keep
+      if (draft.keep_gallery_urls && draft.keep_gallery_urls.length > 0) {
+        draft.keep_gallery_urls.forEach(url => formData.append("keep_gallery_urls", url))
+      }
+
+      // Append files
+      if (draft.logo) formData.append("logo", draft.logo)
+      if (draft.cover) formData.append("cover", draft.cover)
+      draft.gallery_images.forEach((file) => {
+        formData.append("gallery_images", file)
       })
 
       await apiFetch(url, { method, token, body: formData })
@@ -178,33 +235,23 @@ export default function ProfilePage() {
 
   const resetDraft = () => {
     setDraft({
-      name: "", slug: "", description: "", city: "", country: "", phone: "", email: "", address: "", cuisine_type: "", is_published: false
+      name: "", description: "", city: "", country: "", phone: "", email: "", address: "", cuisine_type: "", is_published: false,
+      logo: null, cover: null, gallery_images: [], keep_gallery_urls: []
     })
+    setPreviews({ logo: null, cover: null, gallery: [] })
     setEditingId(null)
+    setStep(1)
   }
 
   const startEdit = (res: Restaurant) => {
-    setDraft({
-      name: res.name,
-      slug: res.slug || "",
-      description: res.description || "",
-      city: res.city || "",
-      country: res.country || "",
-      phone: res.phone || "",
-      email: res.email || "",
-      address: res.address || "",
-      cuisine_type: res.cuisine_type || "",
-      is_published: res.is_published || false
-    })
-    setEditingId(res.id)
-    setOpen(true)
+    router.push(`/dashboard/restaurants/${res.id}`)
   }
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Loading your restaurants...</p>
+      <div className="flex h-[60vh] flex-col items-center justify-center gap-6">
+        <LoadingSignal />
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary animate-pulse">Initializing Dashboard...</p>
       </div>
     )
   }
@@ -244,43 +291,184 @@ export default function ProfilePage() {
           </DialogTrigger>
           <DialogContent className="bg-card border-border text-foreground rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 max-w-2xl w-[95vw] md:w-full overflow-y-auto max-h-[90vh]">
             <DialogHeader className="mb-6 md:mb-8">
-              <DialogTitle className="text-2xl md:text-3xl font-black">{editingId ? "Edit Restaurant" : "Add Restaurant"}</DialogTitle>
-              <DialogDescription className="text-muted-foreground font-medium italic text-sm">Enter the details for your restaurant location.</DialogDescription>
+              <div className="flex items-center justify-between mb-2">
+                <DialogTitle className="text-2xl md:text-3xl font-black">
+                  Add New Restaurant
+                </DialogTitle>
+                <div className="flex items-center gap-2">
+                    {[1, 2].map((i) => (
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "h-1.5 w-8 rounded-full transition-all duration-500",
+                          step === i ? "bg-primary w-12" : "bg-muted"
+                        )} 
+                      />
+                    ))}
+                  </div>
+              </div>
+              <DialogDescription className="text-muted-foreground font-medium italic text-sm">
+                {step === 1 ? "Step 1: Tell us about your brand and visuals." : "Step 2: Provide contact and location details."}
+              </DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Restaurant Name</Label>
-                <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl focus:ring-primary/20" placeholder="e.g. Harbor View Bistro" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Menu Link Slug</Label>
-                <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl text-primary font-bold" placeholder="harbor-view-01" value={draft.slug} onChange={e => setDraft(d => ({ ...d, slug: e.target.value }))} />
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Address</Label>
-                <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="123 Main Street" value={draft.address} onChange={e => setDraft(d => ({ ...d, address: e.target.value }))} />
-              </div>
-              <div className="space-y-2 text-foreground">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">City</Label>
-                <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" value={draft.city} onChange={e => setDraft(d => ({ ...d, city: e.target.value }))} />
-              </div>
-              <div className="space-y-2 text-foreground">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cuisine Type</Label>
-                <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="e.g. Modern Italian" value={draft.cuisine_type} onChange={e => setDraft(d => ({ ...d, cuisine_type: e.target.value }))} />
-              </div>
-              <div className="md:col-span-2 flex items-center justify-between p-4 md:p-6 rounded-2xl bg-muted border border-border/50">
-                 <div className="space-y-1">
-                    <Label className="text-sm font-black text-foreground">Public Visibility</Label>
-                    <p className="text-[9px] md:text-[10px] text-muted-foreground font-medium uppercase tracking-widest leading-tight">Allow customers to view your digital menu</p>
-                 </div>
-                 <Switch checked={draft.is_published} onCheckedChange={(val) => setDraft(d => ({ ...d, is_published: val }))} />
-              </div>
-            </div>
+
+            <AnimatePresence mode="wait">
+              {step === 1 ? (
+                <motion.div 
+                  key="step1"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+                >
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Restaurant Name</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl focus:ring-primary/20" placeholder="e.g. Harbor View Bistro" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cuisine Type</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="e.g. Modern Italian" value={draft.cuisine_type} onChange={e => setDraft(d => ({ ...d, cuisine_type: e.target.value }))} />
+                  </div>
+
+                  {/* Logo & Cover Upload */}
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Logo (Profile)</Label>
+                    <div className="flex gap-4 items-center">
+                      <div className="h-20 w-20 rounded-2xl bg-muted border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
+                        {previews.logo ? (
+                          <img src={getImageUrl(previews.logo)} className="h-full w-full object-cover" />
+                        ) : (
+                          <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                        )}
+                        <Label htmlFor="logo-upload" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                          <Upload className="h-5 w-5 text-white" />
+                        </Label>
+                        <input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={e => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            setDraft(d => ({ ...d, logo: file }))
+                            setPreviews(p => ({ ...p, logo: URL.createObjectURL(file) }))
+                          }
+                        }} />
+                      </div>
+                      <p className="text-[9px] text-muted-foreground uppercase font-bold max-w-[120px]">Recommended: Square 512x512</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cover Photo</Label>
+                    <div className="h-20 w-full rounded-2xl bg-muted border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
+                      {previews.cover ? (
+                        <img src={getImageUrl(previews.cover)} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-1">
+                          <Upload className="h-5 w-5 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      <Label htmlFor="cover-upload" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                        <Upload className="h-5 w-5 text-white" />
+                      </Label>
+                      <input id="cover-upload" type="file" className="hidden" accept="image/*" onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setDraft(d => ({ ...d, cover: file }))
+                          setPreviews(p => ({ ...p, cover: URL.createObjectURL(file) }))
+                        }
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Gallery */}
+                  <div className="md:col-span-2 space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Gallery</Label>
+                    <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+                      {previews.gallery.map((url, idx) => (
+                        <div key={idx} className="aspect-square rounded-xl bg-muted overflow-hidden relative group border border-border/50">
+                          <img src={getImageUrl(url)} className="h-full w-full object-cover" />
+                          <button 
+                            onClick={() => {
+                              const urlToRemove = previews.gallery[idx]
+                              if (urlToRemove.startsWith('blob:')) {
+                                const blobUrlsBefore = previews.gallery.slice(0, idx).filter(u => u.startsWith('blob:'))
+                                const fileIdx = blobUrlsBefore.length
+                                setDraft(d => ({ ...d, gallery_images: d.gallery_images.filter((_, i) => i !== fileIdx) }))
+                              } else {
+                                setDraft(d => ({ ...d, keep_gallery_urls: d.keep_gallery_urls.filter(u => u !== urlToRemove) }))
+                              }
+                              setPreviews(p => ({ ...p, gallery: p.gallery.filter((_, i) => i !== idx) }))
+                            }}
+                            className="absolute top-1 right-1 h-5 w-5 bg-destructive rounded-full flex items-center justify-center text-white scale-0 group-hover:scale-100 transition-transform"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                      <Label htmlFor="gallery-upload" className="aspect-square rounded-xl bg-muted border-2 border-dashed border-border/50 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/80">
+                        <Plus className="h-6 w-6 text-muted-foreground/30" />
+                        <input id="gallery-upload" type="file" multiple className="hidden" accept="image/*" onChange={e => {
+                          const files = Array.from(e.target.files || [])
+                          setDraft(d => ({ ...d, gallery_images: [...d.gallery_images, ...files] }))
+                          setPreviews(p => ({ ...p, gallery: [...p.gallery, ...files.map(f => URL.createObjectURL(f))] }))
+                        }} />
+                      </Label>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Short Description</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="Tell customers about your kitchen..." value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} />
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+                >
+                  <div className="md:col-span-2 space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Address</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="123 Main Street" value={draft.address} onChange={e => setDraft(d => ({ ...d, address: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">City</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" value={draft.city} onChange={e => setDraft(d => ({ ...d, city: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Phone</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl font-mono" placeholder="+1..." value={draft.phone} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Business Email</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="contact@restaurant.com" value={draft.email} onChange={e => setDraft(d => ({ ...d, email: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2 flex items-center justify-between p-4 md:p-6 rounded-2xl bg-muted border border-border/50">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-black text-foreground">Public Visibility</Label>
+                      <p className="text-[9px] md:text-[10px] text-muted-foreground font-medium uppercase tracking-widest leading-tight">Allow customers to view your digital menu</p>
+                    </div>
+                    <Switch checked={draft.is_published} onCheckedChange={(val) => setDraft(d => ({ ...d, is_published: val }))} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <DialogFooter className="mt-8 md:mt-10 flex-col md:flex-row gap-3">
-              <Button variant="ghost" className="w-full md:w-auto px-8 h-12 rounded-xl font-black uppercase text-[10px] tracking-widest text-muted-foreground" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button className="w-full md:w-auto px-10 h-12 rounded-xl bg-primary text-white font-black uppercase text-[10px] tracking-widest" onClick={handleSave} disabled={saving || !draft.name}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : editingId ? "Save Changes" : "Add Restaurant"}
-              </Button>
+              {step === 2 && (
+                <Button variant="ghost" className="w-full md:w-auto px-8 h-12 rounded-xl font-black uppercase text-[10px] tracking-widest text-muted-foreground" onClick={() => setStep(1)}>
+                  Back
+                </Button>
+              )}
+              {step === 1 ? (
+                <Button className="w-full md:w-auto px-10 h-12 rounded-xl bg-foreground text-background font-black uppercase text-[10px] tracking-widest" onClick={() => setStep(2)} disabled={!draft.name}>
+                  Next Step
+                </Button>
+              ) : (
+                <Button className="w-full md:w-auto px-10 h-12 rounded-xl bg-primary text-white font-black uppercase text-[10px] tracking-widest" onClick={handleSave} disabled={saving}>
+                  {saving ? <LoadingSignal size="sm" className="h-4 w-4" /> : "Create Restaurant"}
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -321,8 +509,12 @@ export default function ProfilePage() {
                    <Card className="bg-card/40 backdrop-blur-3xl border-border/50 rounded-[2rem] md:rounded-[2.5rem] group hover:border-primary/20 transition-all duration-500 overflow-hidden relative shadow-2xl">
                       <CardContent className="p-0">
                         <div className="flex flex-col md:flex-row md:items-center p-6 md:p-8 gap-6 md:gap-8">
-                           <div className="h-20 w-20 md:h-24 md:w-24 rounded-[1.5rem] md:rounded-[2rem] bg-muted border border-border/50 flex items-center justify-center relative group-hover:bg-primary/10 transition-colors shrink-0">
-                              <Building2 className="h-8 w-8 md:h-10 md:w-10 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                           <div className="h-20 w-20 md:h-24 md:w-24 rounded-[1.5rem] md:rounded-[2rem] bg-muted border border-border/50 flex items-center justify-center relative group-hover:bg-primary/10 transition-colors shrink-0 overflow-hidden shadow-inner">
+                              {res.logo || res.logo_url || res.logo_image_url ? (
+                                <img src={getImageUrl(res.logo || res.logo_url || res.logo_image_url)} className="h-full w-full object-cover" />
+                              ) : (
+                                <Building2 className="h-8 w-8 md:h-10 md:w-10 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                              )}
                               {res.is_published && (
                                 <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-secondary shadow-[0_0_10px_rgba(42,157,143,0.5)] border-4 border-background" />
                               )}
@@ -347,9 +539,6 @@ export default function ProfilePage() {
                            </div>
 
                            <div className="flex flex-wrap md:flex-nowrap gap-2 md:gap-3 shrink-0 justify-center">
-                              <Button variant="ghost" size="icon" className="h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl bg-muted/50 border border-border/50 text-muted-foreground hover:text-foreground transition-all" onClick={() => startEdit(res)}>
-                                 <Settings className="h-4 w-4 md:h-5 md:w-5 font-bold" />
-                              </Button>
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
@@ -360,13 +549,15 @@ export default function ProfilePage() {
                                 )}
                                 onClick={() => togglePublish(res)}
                               >
-                                 {publishing === res.id ? <Loader2 className="animate-spin h-4 w-4" /> : res.is_published ? <Eye className="h-4 w-4 md:h-5 md:w-5" /> : <EyeOff className="h-4 w-4 md:h-5 md:w-5" />}
+                                {publishing === res.id ? <LoadingSignal size="sm" className="h-4 w-4" /> : res.is_published ? <Eye className="h-4 w-4 md:h-5 md:w-5" /> : <EyeOff className="h-4 w-4 md:h-5 md:w-5" />}
                               </Button>
                               <Button variant="ghost" size="icon" className="h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl bg-muted/50 border border-border/50 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all" onClick={() => setDeletingId(res.id)}>
                                  <Trash2 className="h-4 w-4 md:h-5 md:w-5" />
                               </Button>
-                              <Button className="h-12 md:h-14 px-4 md:px-6 rounded-xl md:rounded-2xl bg-foreground text-background font-black uppercase text-[10px] tracking-widest shadow-xl flex-1 md:flex-none" asChild>
-                                 <Link href={`/dashboard/menu?hotel=${res.id}`}>Manage Menu</Link>
+                              <Button className="h-12 md:h-14 px-4 md:px-8 rounded-xl md:rounded-2xl bg-foreground text-background font-black uppercase text-[10px] tracking-widest shadow-xl flex-1 md:flex-none group" asChild>
+                                 <Link href={`/dashboard/restaurants/${res.id}`}>
+                                    Manage <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                                 </Link>
                               </Button>
                            </div>
                         </div>

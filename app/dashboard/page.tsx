@@ -26,7 +26,7 @@ import {
 import { apiFetch } from "@/lib/api-client"
 import Link from "next/link"
 import { motion, Variants } from "framer-motion"
-import { cn } from "@/lib/utils"
+import { cn, getImageUrl } from "@/lib/utils"
 
 type Restaurant = {
   id: string
@@ -37,6 +37,9 @@ type Restaurant = {
   country?: string
   is_published?: boolean
   cuisine_type?: string
+  logo?: any
+  logo_url?: string
+  logo_image_url?: string
 }
 
 export default function DashboardPage() {
@@ -242,7 +245,15 @@ export default function DashboardPage() {
                   >
                     <div className="flex flex-col md:flex-row items-center p-6 md:p-10 gap-6 md:gap-10">
                       <div className="h-20 w-20 md:h-24 md:w-24 rounded-[1.75rem] md:rounded-[2.5rem] bg-muted border border-border/50 overflow-hidden relative flex items-center justify-center group-hover:bg-primary/10 transition-colors shrink-0">
-                        <Building2 className="h-8 w-8 md:h-10 md:w-10 text-muted-foreground/20 group-hover:text-primary transition-colors" />
+                        {res.logo || res.logo_url || res.logo_image_url ? (
+                          <img 
+                            src={getImageUrl(res.logo || res.logo_url || res.logo_image_url)} 
+                            alt={res.name} 
+                            className="h-full w-full object-cover transition-transform group-hover:scale-110" 
+                          />
+                        ) : (
+                          <Building2 className="h-8 w-8 md:h-10 md:w-10 text-muted-foreground/20 group-hover:text-primary transition-colors" />
+                        )}
                       </div>
                       
                       <div className="flex-1 space-y-3 text-center md:text-left w-full">

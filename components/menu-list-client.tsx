@@ -15,6 +15,8 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 
+import { LoadingSignal } from "@/components/ui/loading-signal"
+
 // Template Imports
 import { MenuItem, Category, Restaurant } from "./menu-templates/types"
 import Template1 from "./menu-templates/Template1"
@@ -129,8 +131,8 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
   if (loading) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-background gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium animate-pulse">Setting the table...</p>
+        <LoadingSignal />
+        <p className="text-muted-foreground font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Setting the table...</p>
       </div>
     )
   }

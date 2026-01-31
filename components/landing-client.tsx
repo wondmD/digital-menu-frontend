@@ -14,7 +14,7 @@ import {
 import { useEffect, useState, useMemo, useRef } from "react"
 import { apiFetch } from "@/lib/api-client"
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion"
-import { cn } from "@/lib/utils"
+import { cn, getImageUrl } from "@/lib/utils"
 import { Logo } from "@/components/logo"
 
 const MotionLink = motion(Link)
@@ -24,7 +24,8 @@ type Restaurant = {
   name: string
   slug: string
   description?: string
-  image_url?: string
+  logo_url?: string
+  cover_url?: string
   address?: string
   cuisine_type?: string
   rating?: number | string
@@ -99,7 +100,7 @@ function RestaurantCard({ restaurant, index }: { restaurant: Restaurant; index: 
             className="relative aspect-[16/11] rounded-[3.5rem] overflow-hidden mb-8"
           >
             <Image 
-              src={restaurant.image_url || "/hotel.webp"} 
+              src={getImageUrl(restaurant.cover_url || restaurant.logo_url) || "/hotel.webp"} 
               alt={restaurant.name} 
               fill 
               className="object-cover transition-transform duration-1000 group-hover:scale-110" 

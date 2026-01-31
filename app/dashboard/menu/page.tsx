@@ -11,7 +11,6 @@ import {
   MoreVertical, 
   Edit2, 
   Trash2, 
-  Loader2, 
   Utensils, 
   CheckCircle2, 
   XCircle, 
@@ -60,13 +59,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
-import { apiFetch } from "@/lib/api-client"
+import { apiFetch, apiFetchWithProgress } from "@/lib/api-client"
 import { cn, getImageUrl, getImageUrls } from "@/lib/utils"
 import Link from "next/link"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { motion, AnimatePresence } from "framer-motion"
+import { LoadingSignal } from "@/components/ui/loading-signal"
+import { Progress } from "@/components/ui/progress"
 
 type Restaurant = { id: string; name: string; slug?: string; status?: string; is_published?: boolean }
 type Category = { id: string; name: string; description?: string }
@@ -147,6 +148,7 @@ function MenuManagementContent() {
   
   const [savingCat, setSavingCat] = useState(false)
   const [savingItem, setSavingItem] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   
   const [activeCategory, setActiveCategory] = useState<Category | null>(null)
   const [catDraft, setCatDraft] = useState({ name: "", description: "" })
@@ -399,8 +401,15 @@ function MenuManagementContent() {
         }
       })
 
-      await apiFetch(url, { method, token, body: formData })
+      setUploadProgress(0)
+      await apiFetchWithProgress(url, { 
+        method, 
+        token, 
+        body: formData,
+        onProgress: (pct) => setUploadProgress(pct)
+      })
       toast({ title: activeItem ? "Item updated" : "Item created" })
+      setUploadProgress(0)
       setAddItemOpen(false)
       setEditItemOpen(false)
       
@@ -469,9 +478,8 @@ function MenuManagementContent() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground animate-pulse">Loading menu...</p>
+      <div className="flex h-[80vh] items-center justify-center">
+        <LoadingSignal message="Preparing your menu..." />
       </div>
     )
   }
@@ -539,22 +547,25 @@ function MenuManagementContent() {
         <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-5 w-full md:w-auto">
            {restaurants.length > 0 && (
              <div className="flex items-center gap-3 bg-card/60 p-2 rounded-[1.5rem] md:rounded-[2rem] border border-border/50 shadow-2xl w-full sm:w-auto">
-               <div className="flex flex-col gap-1.5 px-3 md:px-4 flex-1 sm:flex-none">
-                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-primary/60">Select restaurant</span>
-                  <select
-                    className="bg-transparent text-xs md:text-sm font-black text-foreground focus:outline-none appearance-none cursor-pointer pr-6"
-                    value={restaurantId}
-                    onChange={(e) => {
-                      setRestaurantId(e.target.value)
-                      setCategoryId("")
-                    }}
-                  >
-                    {restaurants.map(r => <option key={r.id} value={r.id} className="bg-card">{r.name.toUpperCase()}</option>)}
-                  </select>
+               <div className="flex flex-col gap-0.5 px-3 md:px-4 flex-1 sm:flex-none">
+                  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-primary/60">Currently customizing</span>
+                  <div className="relative flex items-center group/select">
+                    <select
+                      className="bg-transparent text-[10px] md:text-xs font-black text-foreground focus:outline-none appearance-none cursor-pointer pr-10 z-10 w-full"
+                      value={restaurantId}
+                      onChange={(e) => {
+                        setRestaurantId(e.target.value)
+                        setCategoryId("")
+                      }}
+                    >
+                      {restaurants.map(r => <option key={r.id} value={r.id} className="bg-card">{r.name.toUpperCase()}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-0 h-4 w-4 text-primary pointer-events-none transition-transform group-hover/select:translate-y-0.5" />
+                  </div>
                </div>
                <div className="h-8 md:h-10 w-px bg-border/10 mx-1 md:mx-2" />
                <Button variant="ghost" size="icon" disabled={publishing} onClick={togglePublish} className={cn("h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl transition-all", selectedRestaurant?.is_published ? "bg-primary/10 text-primary hover:bg-primary hover:text-white" : "bg-muted text-muted-foreground hover:text-foreground")}>
-                 {publishing ? <Loader2 className="animate-spin" /> : selectedRestaurant?.is_published ? <Eye className="h-5 w-5 md:h-6 md:w-6" /> : <EyeOff className="h-5 w-5 md:h-6 md:w-6" />}
+                 {publishing ? <LoadingSignal size="sm" className="h-4 w-4" /> : selectedRestaurant?.is_published ? <Eye className="h-5 w-5 md:h-6 md:w-6" /> : <EyeOff className="h-5 w-5 md:h-6 md:w-6" />}
                </Button>
              </div>
            )}
@@ -639,12 +650,8 @@ function MenuManagementContent() {
 
           <div className="grid gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
             {itemsLoading ? (
-               <div className="col-span-full py-48 flex flex-col items-center justify-center gap-8">
-                  <div className="relative">
-                    <Loader2 className="h-16 w-16 animate-spin text-primary" />
-                    <div className="absolute inset-0 bg-primary/20 blur-3xl animate-pulse" />
-                  </div>
-                  <p className="font-black tracking-[0.4em] text-[10px] uppercase text-muted-foreground">Loading items...</p>
+               <div className="col-span-full py-48">
+                  <LoadingSignal message="Loading items..." />
                </div>
             ) : filteredItems.length > 0 ? (
               filteredItems.map((item) => {
@@ -797,7 +804,7 @@ function MenuManagementContent() {
                 onClick={handleSaveCategory} 
                 disabled={!catDraft.name.trim() || savingCat}
             >
-               {savingCat ? <Loader2 className="animate-spin h-5 w-5" /> : (activeCategory ? "Save Changes" : "Create Category")}
+               {savingCat ? <LoadingSignal size="sm" className="h-5 w-5" /> : (activeCategory ? "Save Changes" : "Create Category")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -958,6 +965,23 @@ function MenuManagementContent() {
                       />
                    </div>
 
+                   <AnimatePresence>
+                     {savingItem && uploadProgress > 0 && (
+                       <motion.div 
+                         initial={{ opacity: 0, y: 10 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         exit={{ opacity: 0 }}
+                         className="space-y-4"
+                       >
+                         <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-primary">
+                            <span>Uploading assets</span>
+                            <span>{uploadProgress}%</span>
+                         </div>
+                         <Progress value={uploadProgress} className="h-2 bg-muted rounded-full overflow-hidden" />
+                       </motion.div>
+                     )}
+                   </AnimatePresence>
+
                    <div className="flex gap-4">
                       {activeItem && (
                         <Button 
@@ -973,7 +997,7 @@ function MenuManagementContent() {
                         onClick={handleSaveItem}
                         disabled={savingItem}
                       >
-                         {savingItem ? <Loader2 className="animate-spin h-6 w-6" /> : (
+                         {savingItem ? <LoadingSignal size="sm" className="h-6 w-6" /> : (
                             <span className="flex items-center gap-4">
                                {activeItem ? "Save Changes" : "Save Item"}
                                <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />

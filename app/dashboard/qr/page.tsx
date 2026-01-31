@@ -29,12 +29,18 @@ import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from 
 import Template1 from "@/components/menu-templates/Template1"
 import Template2 from "@/components/menu-templates/Template2"
 import Template3 from "@/components/menu-templates/Template3"
+import { LoadingSignal } from "@/components/ui/loading-signal"
+import { ChevronDown, Loader2 } from "lucide-react"
+import { QRPrintCard } from "@/components/qr/qr-print-card"
 
 type Restaurant = { 
   id: string; 
   name: string; 
   slug?: string;
   public_template?: number | string;
+  logo?: string;
+  logo_url?: string;
+  logo_image_url?: string;
 }
 
 export default function QRPage() {
@@ -47,6 +53,8 @@ export default function QRPage() {
   const [loading, setLoading] = useState(true)
   const [updatingTemplate, setUpdatingTemplate] = useState(false)
   const [previewTemplate, setPreviewTemplate] = useState<number | null>(null)
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false)
+  const [printMode, setPrintMode] = useState<'qr' | 'card'>('qr')
 
   const mockRestaurant = {
     name: "The Golden Leaf",
@@ -123,8 +131,8 @@ export default function QRPage() {
   )
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
-  // Updated to use the numeric/UUID ID as the primary identifier, pointing directly to the menu list
-  const menuUrl = selected?.id ? `${origin}/menu/${selected.id}/list` : ""
+  const identifier = selected?.slug || selected?.id
+  const menuUrl = identifier ? `${origin}/menu/${identifier}` : ""
 
   const handleCopy = async () => {
     if (!menuUrl) return
@@ -201,11 +209,11 @@ export default function QRPage() {
           </div>
 
           <div className="flex flex-col gap-3 w-full md:min-w-[280px]">
-            <Label className="text-[9px] md:text-[10px] uppercase font-black tracking-[0.4em] text-muted-foreground ml-2 text-center md:text-left">Select restaurant</Label>
+            <Label className="text-[9px] md:text-[10px] uppercase font-black tracking-[0.4em] text-muted-foreground ml-2 text-center md:text-left">Currently customizing</Label>
             <div className="relative group">
               <Hotel className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-primary" />
               <select
-                className="h-14 md:h-16 w-full rounded-xl md:rounded-[2rem] border border-border/50 bg-background/80 backdrop-blur-md pl-12 md:pl-14 pr-6 text-[10px] md:text-xs font-black tracking-[0.2em] text-foreground shadow-3xl focus:border-primary/40 focus:outline-none transition-all appearance-none cursor-pointer uppercase"
+                className="h-14 md:h-16 w-full rounded-xl md:rounded-[2rem] border border-border/50 bg-background/80 backdrop-blur-md pl-12 md:pl-14 pr-12 text-[10px] md:text-xs font-black tracking-[0.2em] text-foreground shadow-3xl focus:border-primary/40 focus:outline-none transition-all appearance-none cursor-pointer uppercase"
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
                 disabled={!restaurants.length || loading}
@@ -216,6 +224,7 @@ export default function QRPage() {
                   </option>
                 ))}
               </select>
+              <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-primary pointer-events-none group-hover:scale-110 transition-transform" />
             </div>
           </div>
         </div>
@@ -223,9 +232,7 @@ export default function QRPage() {
 
       {loading ? (
         <div className="py-24 flex flex-col items-center justify-center gap-6 opacity-80">
-           <div className="h-24 w-24 rounded-[3rem] bg-card border border-border/60 flex items-center justify-center shadow-3xl">
-              <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-           </div>
+           <LoadingSignal />
            <p className="font-black uppercase tracking-[0.5em] text-[10px] text-primary">Loading QR settings...</p>
         </div>
       ) : !restaurants.length ? (
@@ -321,19 +328,11 @@ export default function QRPage() {
                   
                   <div className="grid grid-cols-1 gap-3 md:gap-4">
                     <Button 
-                        className="w-full h-16 md:h-20 rounded-xl md:rounded-[2rem] bg-primary text-white font-black uppercase text-[10px] md:text-xs tracking-[0.4em] hover:bg-primary/90 transition-all shadow-[0_20px_50px_-15px_rgba(230,57,70,0.5)]" 
-                        asChild
-                    >
-                       <a href={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(menuUrl)}`} download="Agelgil_QR.png" target="_blank">
-                          <Download className="h-4 w-4 md:h-5 md:w-5 mr-3 md:mr-4" /> Download QR
-                       </a>
-                    </Button>
-                    <Button 
                         variant="ghost" 
                         className="w-full h-16 md:h-20 rounded-xl md:rounded-[2rem] border border-border/60 bg-muted/30 font-black uppercase text-[10px] md:text-xs tracking-[0.4em] text-muted-foreground hover:text-foreground hover:bg-muted transition-all" 
-                        onClick={() => window.print()}
+                        onClick={() => setIsPrintDialogOpen(true)}
                     >
-                        <Printer className="h-4 w-4 md:h-5 md:w-5 mr-3 md:mr-4" /> Print QR code
+                        <Printer className="h-4 w-4 md:h-5 md:w-5 mr-3 md:mr-4" /> Print Menu access
                     </Button>
                   </div>
                </div>
@@ -570,6 +569,87 @@ export default function QRPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 5. PRINT OPTIONS DIALOG */}
+      <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
+        <DialogContent className="max-w-md bg-card border-border rounded-[2rem] p-8">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Print Options</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 mt-6">
+            <Button 
+              variant="outline" 
+              className="h-20 flex flex-col items-center justify-center gap-1 rounded-2xl border-2 hover:border-primary hover:bg-primary/5 group"
+              onClick={() => {
+                setPrintMode('qr')
+                setTimeout(() => {
+                  window.print()
+                  setIsPrintDialogOpen(false)
+                }, 100)
+              }}
+            >
+              <QrCode className="h-6 w-6 group-hover:text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Option 1: Only QR Code</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="h-24 flex flex-col items-center justify-center gap-1 rounded-2xl border-2 hover:border-primary hover:bg-primary/5 group text-center"
+              onClick={() => {
+                setPrintMode('card')
+                setTimeout(() => {
+                  window.print()
+                  setIsPrintDialogOpen(false)
+                }, 100)
+              }}
+            >
+              <Palette className="h-6 w-6 group-hover:text-primary" />
+              <span className="text-[10px] font-black uppercase tracking-widest leading-tight">Option 2: Design Card (3×4)</span>
+              <span className="text-[8px] font-medium text-muted-foreground uppercase tracking-widest mt-1">Logo + Name + Brand Design</span>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Print Areas (Hidden on screen) */}
+      <div className="hidden print:block fixed inset-0 bg-white z-[9999]">
+         <style>{`
+           @media print {
+             body * { visibility: hidden !important; }
+             .print-container, .print-container * { visibility: visible !important; }
+             .print-container { 
+                position: fixed; 
+                left: 0; 
+                top: 0; 
+                width: 100vw; 
+                height: 100vh; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                background: white !important; 
+                z-index: 99999;
+             }
+             @page { size: auto; margin: 0; }
+           }
+         `}</style>
+         <div className="print-container">
+            {selected && (printMode === 'qr' ? (
+              <div className="text-center p-12 bg-white border border-gray-100 rounded-[3rem]">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(menuUrl)}`}
+                  alt="Menu QR"
+                  className="h-[4in] w-[4in]"
+                />
+                <div className="mt-8 space-y-2">
+                   <p className="text-2xl font-black uppercase tracking-[0.4em] text-black">Scan to View Menu</p>
+                   <p className="text-lg font-bold text-gray-400 font-serif italic text-black">{selected.name}</p>
+                </div>
+              </div>
+            ) : (
+              <QRPrintCard restaurant={selected} qrUrl={menuUrl} />
+            ))}
+         </div>
+      </div>
     </div>
   )
 }

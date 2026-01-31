@@ -26,10 +26,21 @@ export default function Template1({
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
+
   return (
     <div className="min-h-screen bg-[#FDFCF8] text-[#1A1A1A] font-serif pb-24">
       {/* Header */}
       <header className="pt-16 pb-12 px-6 text-center border-b border-[#E5E1D8]">
+        {logoImage && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative w-24 h-24 mx-auto mb-6"
+          >
+            <Image src={logoImage} alt={hotel.name} fill className="object-contain" />
+          </motion.div>
+        )}
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

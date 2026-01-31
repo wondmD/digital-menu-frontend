@@ -22,6 +22,9 @@ export default function Template3({
   const currentCategory = categories.find((c) => c.id === activeCategory)
   const categoryItems = currentCategory?.items || []
 
+  // Ensure we get the correct logo URL field
+  const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
+
   const filteredItems = categoryItems.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -33,7 +36,22 @@ export default function Template3({
         <div className="container max-w-3xl mx-auto space-y-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-black flex items-center gap-2">
-               <Zap className="h-6 w-6 text-primary fill-current" />
+               {logoImage ? (
+                 <motion.div
+                   initial={{ scale: 0.8, opacity: 0 }}
+                   animate={{ scale: 1, opacity: 1 }}
+                   className="relative w-8 h-8 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700"
+                 >
+                   <Image
+                     src={logoImage}
+                     alt={hotel.name}
+                     fill
+                     className="object-cover"
+                   />
+                 </motion.div>
+               ) : (
+                 <Zap className="h-6 w-6 text-primary fill-current" />
+               )}
                {hotel.name}
             </h1>
           </div>

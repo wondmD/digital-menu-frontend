@@ -25,6 +25,14 @@ export async function generateMetadata(
     }
 
     const previousImages = (await parent).openGraph?.images || []
+    
+    // Check all possible image fields for social share images
+    const shareImage = getImageUrl(
+      hotel.cover_image_url || 
+      hotel.cover_url || 
+      hotel.logo_url || 
+      hotel.logo_image_url
+    )
 
     return {
       title: `${hotel.name} | Digital Menu`,
@@ -32,13 +40,13 @@ export async function generateMetadata(
       openGraph: {
         title: `${hotel.name} | Digital Menu`,
         description: hotel.description,
-        images: [getImageUrl(hotel.image_url), ...previousImages],
+        images: shareImage ? [shareImage, ...previousImages] : previousImages,
       },
       twitter: {
         card: "summary_large_image",
         title: `${hotel.name} | Digital Menu`,
         description: hotel.description,
-        images: [getImageUrl(hotel.image_url)],
+        images: shareImage ? [shareImage] : [],
       },
     }
   } catch (error) {
@@ -72,7 +80,12 @@ export default async function HotelMenuLandingPage({ params }: Props) {
               "@type": "Restaurant",
               name: initialData.name,
               description: initialData.description,
-              image: getImageUrl(initialData.image_url),
+              image: getImageUrl(
+                initialData.cover_image_url || 
+                initialData.cover_url || 
+                initialData.logo_url || 
+                initialData.logo_image_url
+              ),
               address: {
                 "@type": "PostalAddress",
                 streetAddress: initialData.address,
