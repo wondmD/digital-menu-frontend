@@ -29,9 +29,9 @@ export default function Template1({
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8] text-[#1A1A1A] font-serif pb-24">
+    <div className="min-h-screen bg-[#FDFCF8] dark:bg-[#121210] text-[#1A1A1A] dark:text-[#EAEAEA] font-serif pb-24 transition-colors duration-500">
       {/* Header */}
-      <header className="pt-16 pb-12 px-6 text-center border-b border-[#E5E1D8]">
+      <header className="pt-16 pb-12 px-6 text-center border-b border-[#E5E1D8] dark:border-[#2A2A28]">
         {logoImage && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
@@ -52,22 +52,22 @@ export default function Template1({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-sm font-sans uppercase tracking-[0.3em] text-[#706C61]"
+          className="text-sm font-sans uppercase tracking-[0.3em] text-[#706C61] dark:text-[#A09D95]"
         >
           Menu Selection
         </motion.p>
       </header>
 
       {/* Navigation & Search */}
-      <div className="sticky top-0 z-30 bg-[#FDFCF8]/90 backdrop-blur-md border-b border-[#E5E1D8]">
+      <div className="sticky top-0 z-30 bg-[#FDFCF8]/90 dark:bg-[#121210]/90 backdrop-blur-md border-b border-[#E5E1D8] dark:border-[#2A2A28]">
         <div className="container max-w-4xl mx-auto px-6 py-4 space-y-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#706C61]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#706C61] dark:text-[#A09D95]" />
             <Input
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search our collection..."
-              className="pl-10 bg-transparent border-[#E5E1D8] focus:ring-[#706C61] font-sans"
+              className="pl-10 bg-transparent border-[#E5E1D8] dark:border-[#2A2A28] focus:ring-[#706C61] dark:focus:ring-[#A09D95] font-sans"
             />
           </div>
           
@@ -79,15 +79,15 @@ export default function Template1({
                 className={cn(
                   "text-sm font-sans uppercase tracking-widest whitespace-nowrap transition-colors pb-2 relative",
                   activeCategory === cat.id 
-                    ? "text-[#1A1A1A] font-bold" 
-                    : "text-[#706C61] hover:text-[#1A1A1A]"
+                    ? "text-[#1A1A1A] dark:text-white font-bold" 
+                    : "text-[#706C61] dark:text-[#A09D95] hover:text-[#1A1A1A] dark:hover:text-white"
                 )}
               >
                 {cat.name}
                 {activeCategory === cat.id && (
                   <motion.div 
                     layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1A1A1A]"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1A1A1A] dark:bg-primary"
                   />
                 )}
               </button>
@@ -117,7 +117,7 @@ export default function Template1({
                   className="group cursor-pointer flex flex-col md:flex-row gap-8 items-start"
                 >
                   {item.image_url && (
-                    <div className="relative aspect-[4/3] w-full md:w-48 overflow-hidden rounded-sm bg-[#F5F2ED]">
+                    <div className="relative aspect-[4/3] w-full md:w-48 overflow-hidden rounded-sm bg-[#F5F2ED] dark:bg-[#1A1A18]">
                       <Image
                         src={getImageUrl(item.image_url) || "/placeholder.svg"}
                         alt={item.name}
@@ -128,19 +128,19 @@ export default function Template1({
                   )}
                   <div className="flex-1 space-y-3 w-full">
                     <div className="flex items-baseline justify-between gap-4">
-                      <h3 className="text-2xl font-serif text-[#1A1A1A] group-hover:text-primary transition-colors">
+                      <h3 className="text-2xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA] group-hover:text-primary transition-colors">
                         {item.name}
                       </h3>
-                      <div className="h-px flex-1 bg-[#E5E1D8] mx-2 hidden md:block" />
-                      <span className="text-xl font-serif text-[#1A1A1A]">
+                      <div className="h-px flex-1 bg-[#E5E1D8] dark:bg-[#2A2A28] mx-2 hidden md:block" />
+                      <span className="text-xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA]">
                         {item.currency} {item.price.toFixed(2)}
                       </span>
                     </div>
-                    <p className="text-[#706C61] font-sans leading-relaxed max-w-2xl">
+                    <p className="text-[#706C61] dark:text-[#A09D95] font-sans leading-relaxed max-w-2xl">
                       {item.description}
                     </p>
                     {item.is_available === false && (
-                      <span className="inline-block text-[10px] uppercase tracking-[0.2em] px-2 py-1 bg-[#F5F2ED] text-[#706C61] border border-[#E5E1D8]">
+                      <span className="inline-block text-[10px] uppercase tracking-[0.2em] px-2 py-1 bg-[#F5F2ED] dark:bg-[#1A1A18] text-[#706C61] dark:text-[#A09D95] border border-[#E5E1D8] dark:border-[#2A2A28]">
                         Currently Unavailable
                       </span>
                     )}
@@ -150,10 +150,10 @@ export default function Template1({
             </div>
           ) : (
             <div className="text-center py-24 space-y-4">
-              <p className="text-xl font-serif italic text-[#706C61]">No dishes match your search</p>
+              <p className="text-xl font-serif italic text-[#706C61] dark:text-[#A09D95]">No dishes match your search</p>
               <button 
                 onClick={() => onSearchChange("")}
-                className="text-sm font-sans uppercase tracking-[0.2em] underline"
+                className="text-sm font-sans uppercase tracking-[0.2em] underline dark:text-white"
               >
                 Clear Search
               </button>
@@ -162,9 +162,9 @@ export default function Template1({
         </div>
       </main>
 
-      <footer className="mt-24 py-12 border-t border-[#E5E1D8] text-center">
+      <footer className="mt-24 py-12 border-t border-[#E5E1D8] dark:border-[#2A2A28] text-center">
         <div className="flex flex-col items-center justify-center gap-4">
-          <span className="text-[10px] font-sans uppercase tracking-[0.3em] text-[#706C61] opacity-70">
+          <span className="text-[10px] font-sans uppercase tracking-[0.3em] text-[#706C61] dark:text-[#A09D95] opacity-70">
             Presented by
           </span>
           <Logo width={110} height={35} grayscale />

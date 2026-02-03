@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { MapPin, Phone, Instagram, Facebook, ArrowRight, Loader2, Globe, Utensils, Star, Clock } from "lucide-react"
+import { MapPin, Phone, Instagram, Facebook, ArrowRight, Loader2, Globe, Utensils, Star, Clock, Twitter, MessageCircle, Heart, Quote, Mail, ExternalLink, ChefHat } from "lucide-react"
 import { Logo } from "@/components/logo"
 import Link from "next/link"
 import Image from "next/image"
@@ -39,6 +39,14 @@ type Restaurant = {
   is_published?: boolean
   cuisine_type?: string
   email?: string
+  instagram_url?: string
+  facebook_url?: string
+  twitter_url?: string
+  tiktok_url?: string
+  website_url?: string
+  opening_hours?: string
+  rating?: number
+  review_count?: number
 }
 
 interface HotelMenuClientProps {
@@ -201,26 +209,39 @@ export default function HotelMenuClient({ hotelSlug, initialData }: HotelMenuCli
                     className="object-contain p-4"
                   />
                 </div>
-              ) : (
-                <div className="w-16 h-1 bg-primary mx-auto mb-8 shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
-              )}
+              ) : null}
               
               <div className="space-y-2">
                 {hotel.cuisine_type && (
-                  <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                  <span className="text-primary font-bold uppercase tracking-[0.3em] text-xs drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">
                     {hotel.cuisine_type}
                   </span>
                 )}
-                <h1 className="text-6xl md:text-8xl font-serif text-white tracking-tight drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)]">
+                <h1 className="text-6xl md:text-8xl font-serif text-white tracking-tight drop-shadow-[0_10px_20px_rgba(0,0,0,1)]">
                   {hotel.name}
                 </h1>
               </div>
 
-              <p className="text-xl md:text-2xl text-white/90 font-light max-w-2xl mx-auto italic leading-relaxed drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              <p className="text-xl md:text-2xl text-white font-medium max-w-2xl mx-auto italic leading-relaxed drop-shadow-[0_5px_15px_rgba(0,0,0,1)]">
                 {hotel.description || "A culinary journey like no other."}
               </p>
 
-              <div className="flex flex-wrap items-center justify-center gap-6 pt-4 text-white/50">
+              {/* Cover Socials */}
+              <div className="flex items-center justify-center gap-6 pt-4">
+                <Link href={hotel.instagram_url || "#"} target="_blank" className="w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-xl border border-primary/50 text-white hover:bg-primary hover:border-primary transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group">
+                  <Instagram className="h-6 w-6 transition-transform group-hover:scale-110" />
+                </Link>
+                <Link href={hotel.tiktok_url || "#"} target="_blank" className="w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-xl border border-primary/50 text-white hover:bg-primary hover:border-primary transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group">
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6 transition-transform group-hover:scale-110">
+                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z"/>
+                  </svg>
+                </Link>
+                <Link href={hotel.email ? `mailto:${hotel.email}` : "#"} className="w-14 h-14 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-xl border border-primary/50 text-white hover:bg-primary hover:border-primary transition-all duration-500 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group">
+                  <Mail className="h-6 w-6 transition-transform group-hover:scale-110" />
+                </Link>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-6 pt-6 text-white font-bold drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">
                 {hotel.address && (
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-primary" />
@@ -230,19 +251,9 @@ export default function HotelMenuClient({ hotelSlug, initialData }: HotelMenuCli
                 <div className="h-1 w-1 bg-white/20 rounded-full" />
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-primary fill-primary" />
-                  <span className="text-sm font-medium">Top Rated</span>
+                  <span className="text-sm font-medium">{hotel.rating ? `${hotel.rating}/5` : "Top Rated"}</span>
                 </div>
               </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2, duration: 1 }}
-              className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-            >
-              <span className="text-[10px] uppercase tracking-[0.4em] text-white/40">Scroll to Explore</span>
-              <div className="w-[1px] h-12 bg-gradient-to-b from-primary to-transparent" />
             </motion.div>
           </div>
         </section>
@@ -277,7 +288,7 @@ export default function HotelMenuClient({ hotelSlug, initialData }: HotelMenuCli
                     </div>
                     <div>
                       <h3 className="font-bold text-lg mb-1">Open Daily</h3>
-                      <p className="text-muted-foreground">08:00 AM — 11:00 PM</p>
+                      <p className="text-muted-foreground">{hotel.opening_hours || "08:00 AM — 11:00 PM"}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-6 group">
@@ -292,15 +303,33 @@ export default function HotelMenuClient({ hotelSlug, initialData }: HotelMenuCli
                 </div>
 
                 <div className="flex items-center gap-4 pt-4">
-                  <Link href="#" className="h-12 w-12 rounded-full border flex items-center justify-center hover:bg-secondary transition-colors">
-                    <Instagram className="h-5 w-5" />
-                  </Link>
-                  <Link href="#" className="h-12 w-12 rounded-full border flex items-center justify-center hover:bg-secondary transition-colors">
-                    <Facebook className="h-5 w-5" />
-                  </Link>
-                  <Link href="#" className="h-12 w-12 rounded-full border flex items-center justify-center hover:bg-secondary transition-colors">
-                    <Globe className="h-5 w-5" />
-                  </Link>
+                  {hotel.instagram_url && (
+                    <Link href={hotel.instagram_url} target="_blank" className="h-12 w-12 rounded-full border border-primary/20 flex items-center justify-center hover:bg-primary/10 hover:border-primary/40 transition-all duration-300">
+                      <Instagram className="h-5 w-5" />
+                    </Link>
+                  )}
+                  {hotel.facebook_url && (
+                    <Link href={hotel.facebook_url} target="_blank" className="h-12 w-12 rounded-full border border-primary/20 flex items-center justify-center hover:bg-primary/10 hover:border-primary/40 transition-all duration-300">
+                      <Facebook className="h-5 w-5" />
+                    </Link>
+                  )}
+                  {hotel.twitter_url && (
+                    <Link href={hotel.twitter_url} target="_blank" className="h-12 w-12 rounded-full border border-primary/20 flex items-center justify-center hover:bg-primary/10 hover:border-primary/40 transition-all duration-300">
+                      <Twitter className="h-5 w-5 text-foreground" />
+                    </Link>
+                  )}
+                  {hotel.tiktok_url && (
+                    <Link href={hotel.tiktok_url} target="_blank" className="h-12 w-12 rounded-full border border-primary/20 flex items-center justify-center hover:bg-primary/10 hover:border-primary/40 transition-all duration-300">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                        <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
+                      </svg>
+                    </Link>
+                  )}
+                  {(hotel.website_url || hotel.email) && (
+                    <Link href={hotel.website_url || `mailto:${hotel.email}`} target="_blank" className="h-12 w-12 rounded-full border border-primary/20 flex items-center justify-center hover:bg-primary/10 hover:border-primary/40 transition-all duration-300">
+                      <Globe className="h-5 w-5" />
+                    </Link>
+                  )}
                 </div>
               </motion.div>
 
@@ -387,7 +416,216 @@ export default function HotelMenuClient({ hotelSlug, initialData }: HotelMenuCli
           </div>
         )}
 
-        {/* Gallery Slide Show / Lightbox */}
+        {/* Featured Specials Section */}
+        <section className="py-24 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-primary/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="container px-6 mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+              <div className="space-y-4">
+                <Badge className="bg-primary/10 text-primary border-none rounded-full px-4 py-1">
+                  CHEF'S SELECTION
+                </Badge>
+                <h2 className="text-4xl md:text-5xl font-serif">Signature <span className="italic text-primary">Masterpieces</span></h2>
+                <p className="text-muted-foreground max-w-xl">
+                  Hand-selected by our executive chef, these dishes represent the pinnacle of our culinary philosophy.
+                </p>
+              </div>
+              <Button asChild variant="ghost" className="group text-primary hover:text-primary hover:bg-primary/5">
+                <Link href={`/menu/${hotelSlug}/list`}>
+                  Explore Full Menu <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                { name: "Symphony of Flavors", desc: "A seasonal arrangement of hand-picked ingredients.", price: "Premium" },
+                { name: "The Artisan's Catch", desc: "Freshly sourced seafood prepared with traditional techniques.", price: "Market Price" },
+                { name: "Heritage Fusion", desc: "A modern twist on timeless classics from our heritage.", price: "Exclusive" }
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  whileHover={{ y: -10 }}
+                  className="group relative bg-secondary/10 rounded-[2rem] p-8 border border-border/50 hover:border-primary/30 transition-all duration-500"
+                >
+                  <div className="mb-6 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <ChefHat className="h-7 w-7 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-3">{item.name}</h3>
+                  <p className="text-muted-foreground mb-6 line-clamp-2">{item.desc}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold tracking-widest uppercase text-primary/80">{item.price}</span>
+                    <div className="h-8 w-8 rounded-full border border-primary/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ArrowRight className="h-4 w-4 text-primary" />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Testimonials Section */}
+        <section className="py-24 bg-secondary/5">
+          <div className="container px-6 mx-auto">
+            <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
+              <div className="flex justify-center gap-1 text-primary">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-5 w-5 fill-primary" />
+                ))}
+              </div>
+              <h2 className="text-4xl font-serif">What our <span className="italic text-primary">Guests</span> say</h2>
+              <p className="text-muted-foreground">Stories of unforgettable dining experiences from our community.</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[
+                { author: "Elias T.", text: "The atmosphere is unmatched. Every dish tells a story of passion and excellence. A truly elevated experience." },
+                { author: "Selam W.", text: "Exceptional service and the fusion of flavors in their signature dishes is something I've never tasted before." },
+                { author: "Dawit K.", text: "A masterpiece in every sense. From the presentation to the last bite, it was pure culinary magic." }
+              ].map((review, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  whileHover={{ y: -5 }}
+                  className="bg-background border border-border/50 p-8 rounded-3xl relative"
+                >
+                  <Quote className="absolute top-6 right-8 h-12 w-12 text-primary/5 -scale-x-100" />
+                  <p className="text-lg italic leading-relaxed mb-6 text-foreground/80">"{review.text}"</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                      {review.author[0]}
+                    </div>
+                    <span className="font-medium">{review.author}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Features / Why Us Section */}
+        <section className="py-24 border-y border-border/50">
+          <div className="container px-6 mx-auto">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
+              {[
+                { icon: Utensils, title: "Artisanal Cuisine", desc: "Hand-crafted dishes using traditional methods." },
+                { icon: MapPin, title: "Prime Location", desc: "Situated in the heart of the city with stunning views." },
+                { icon: Heart, title: "Made with Love", desc: "Every ingredient is chosen with the utmost care." },
+                { icon: Star, title: "Elite Service", desc: "A world-class team dedicated to your experience." }
+              ].map((feature, i) => (
+                <div key={i} className="flex flex-col items-center text-center space-y-4">
+                  <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center">
+                    <feature.icon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-bold">{feature.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">{feature.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Reservation / Contact CTA */}
+        <section className="py-24 bg-background relative overflow-hidden">
+          <div className="container px-6 mx-auto">
+            <div className="bg-primary/5 rounded-[3rem] p-12 md:p-20 relative overflow-hidden border border-primary/10">
+              <div className="absolute top-0 right-0 p-8 opacity-10">
+                <Utensils className="h-64 w-64 rotate-12" />
+              </div>
+              
+              <div className="relative z-10 grid lg:grid-cols-2 gap-16 items-center">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h2 className="text-4xl md:text-5xl font-serif">Plan an <span className="italic text-primary">Experience</span></h2>
+                    <p className="text-lg text-muted-foreground">
+                      Whether it's an intimate dinner or a grand celebration, we're here to make it unforgettable.
+                    </p>
+                  </div>
+                  
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Phone className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Call Us</p>
+                        <p className="font-medium">{hotel.phone || "Coming Soon"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Mail className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold">Email Us</p>
+                        <p className="font-medium">{hotel.email || "hello@restaurant.com"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-4">
+                    <Button size="lg" className="rounded-full px-8 h-14 text-base shadow-xl shadow-primary/20">
+                      Reserve a Table
+                    </Button>
+                    <Button variant="outline" size="lg" className="rounded-full px-8 h-14 text-base border-primary/20 hover:bg-primary/5">
+                      Get Directions <ExternalLink className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="relative h-[400px] rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 group">
+                  <Image 
+                    src={coverImage}
+                    alt="Map Preview"
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                  />
+                  <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl">
+                      <MapPin className="h-8 w-8 text-white animate-bounce" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Newsletter / Join Club Section */}
+        <section className="py-24 bg-primary text-primary-foreground relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-64 h-64 border-4 border-white rounded-full -translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute bottom-0 right-0 w-96 h-96 border-4 border-white rounded-full translate-x-1/3 translate-y-1/3" />
+          </div>
+          
+          <div className="container px-6 mx-auto relative z-10 text-center space-y-8">
+            <div className="space-y-4 max-w-2xl mx-auto">
+              <h2 className="text-4xl md:text-5xl font-serif">Join the <span className="italic opacity-80 underline decoration-white/30 underline-offset-8">Connoisseurs Club</span></h2>
+              <p className="text-primary-foreground/80 text-lg">
+                Be the first to know about our seasonal menus, exclusive events, and culinary secrets.
+              </p>
+            </div>
+            
+            <form className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto" onSubmit={(e) => e.preventDefault()}>
+              <input 
+                type="email" 
+                placeholder="Your email address" 
+                className="flex-1 h-14 rounded-full bg-white/10 border border-white/20 px-6 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all"
+              />
+              <Button className="h-14 rounded-full px-8 bg-white text-primary hover:bg-white/90 font-bold transition-transform active:scale-95">
+                JOIN NOW
+              </Button>
+            </form>
+            <p className="text-xs text-primary-foreground/40 uppercase tracking-widest font-bold">Privacy Guaranteed. No Spam.</p>
+          </div>
+        </section>
+
         <Dialog open={selectedImageIndex !== null} onOpenChange={(open) => !open && setSelectedImageIndex(null)}>
           <DialogContent className="max-w-[95vw] sm:max-w-[70vw] h-[80vh] p-0 bg-transparent border-none shadow-none flex items-center justify-center">
             <DialogHeader className="sr-only">

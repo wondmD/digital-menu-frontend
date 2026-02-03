@@ -38,10 +38,10 @@ export function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex md:items-center space-x-12">
-          {["Features", "Design", "Demo"].map((item) => (
+          {["Features", "Demo"].map((item) => (
             <Link
               key={item}
-              href={`/#${item.toLowerCase()}`}
+              href={item === "Demo" ? "/demo" : `/#${item.toLowerCase()}`}
               className="text-[11px] font-black tracking-[0.3em] uppercase text-muted-foreground transition-all hover:text-primary relative group"
             >
               {item}
@@ -88,10 +88,10 @@ export function Navbar() {
             className="fixed inset-x-0 top-0 z-[-1] pt-32 pb-12 bg-background border-b border-border px-8 shadow-2xl md:hidden flex flex-col gap-10"
           >
             <div className="flex flex-col gap-6">
-              {["Features", "Design", "Demo"].map((item) => (
+              {["Features", "Demo"].map((item) => (
                 <Link
                   key={item}
-                  href={`/#${item.toLowerCase()}`}
+                  href={item === "Demo" ? "/demo" : `/#${item.toLowerCase()}`}
                   className="text-4xl font-serif text-foreground hover:text-primary transition-colors"
                   onClick={() => setIsOpen(false)}
                 >

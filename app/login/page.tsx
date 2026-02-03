@@ -51,6 +51,7 @@ export default function LoginPage() {
       const res = await signIn("credentials", {
         email,
         password,
+        remember: String(remember),
         redirect: false,
         callbackUrl: "/dashboard",
       })

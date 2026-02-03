@@ -52,98 +52,84 @@ const SEARCH_PLACEHOLDERS = [
 ]
 
 function RestaurantCard({ restaurant, index }: { restaurant: Restaurant; index: number }) {
-  const x = useMotionValue(0)
-  const y = useMotionValue(0)
-
-  const mouseXSpring = useSpring(x)
-  const mouseYSpring = useSpring(y)
-
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["15deg", "-15deg"])
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-15deg", "15deg"])
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const width = rect.width
-    const height = rect.height
-    const mouseX = e.clientX - rect.left
-    const mouseY = e.clientY - rect.top
-    const xPct = (mouseX / width) - 0.5
-    const yPct = (mouseY / height) - 0.5
-    x.set(xPct)
-    y.set(yPct)
-  }
-
-  const handleMouseLeave = () => {
-    x.set(0)
-    y.set(0)
-  }
-
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
+      initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ delay: index * 0.05, duration: 0.5 }}
       viewport={{ once: true }}
-      style={{
-        rotateX,
-        rotateY,
-        transformStyle: "preserve-3d",
-      }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
       className="group"
     >
       <Link href={`/menu/${restaurant.slug}`} className="block h-full">
-        <article className="relative h-full flex flex-col bg-slate-900/40 rounded-[4rem] p-5 border border-white/5 group-hover:border-primary/40 shadow-2xl transition-all duration-700 overflow-hidden backdrop-blur-sm">
-          <div 
-            style={{ transform: "translateZ(50px)" }}
-            className="relative aspect-[16/11] rounded-[3.5rem] overflow-hidden mb-8"
-          >
+        <article className="relative h-full flex flex-col bg-card/40 rounded-[2.5rem] p-4 border border-border group-hover:border-primary/40 shadow-xl transition-all duration-500 overflow-hidden backdrop-blur-sm">
+          <div className="relative aspect-square rounded-[2rem] overflow-hidden mb-5">
             <Image 
               src={getImageUrl(restaurant.cover_url || restaurant.logo_url) || "/hotel.webp"} 
               alt={restaurant.name} 
               fill 
-              className="object-cover transition-transform duration-1000 group-hover:scale-110" 
+              className="object-cover transition-transform duration-700 group-hover:scale-110" 
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
-            <div className="absolute top-8 right-8 h-14 w-14 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
-                <Star className="h-6 w-6 fill-primary" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-60" />
+            <div className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Star className="h-4 w-4 fill-primary" />
             </div>
-            <div className="absolute bottom-8 left-8 flex items-center gap-3">
-                <div className="px-6 py-2 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 text-[11px] font-black uppercase tracking-widest text-white italic">
+            <div className="absolute bottom-4 left-4">
+                <div className="px-4 py-1 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-[9px] font-black uppercase tracking-widest text-white italic">
                   {restaurant.cuisine_type || "Gourmet"}
                 </div>
             </div>
           </div>
 
-          <div style={{ transform: "translateZ(30px)" }} className="px-6 flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-4xl font-serif tracking-tighter group-hover:text-primary transition-colors">{restaurant.name}</h3>
-              </div>
-              <p className="text-muted-foreground text-lg line-clamp-2 leading-relaxed font-medium mb-10 group-hover:text-foreground transition-colors transition-opacity">
-                {restaurant.description || "The intersection of tradition and innovation. A curated dining experience for the most demanding aficionados."}
+          <div className="px-2 flex-1 flex flex-col">
+              <h3 className="text-xl md:text-2xl font-serif tracking-tight group-hover:text-primary transition-colors mb-2 line-clamp-1">{restaurant.name}</h3>
+              <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed font-medium mb-6">
+                {restaurant.description || "The intersection of tradition and innovation curated for you."}
               </p>
               
-              <div className="mt-auto pt-10 border-t border-border/10 grid grid-cols-2 gap-8 pb-4">
-                <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-muted/50 flex items-center justify-center text-primary group-hover:bg-primary/20 transition-colors">
-                      <Clock className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Wait Time</p>
-                      <p className="font-bold">{restaurant.delivery_time}</p>
-                    </div>
+              <div className="mt-auto pt-4 border-t border-border/10 flex items-center justify-between text-[11px] font-bold">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{restaurant.delivery_time}</span>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-muted/50 flex items-center justify-center text-secondary group-hover:bg-secondary/20 transition-colors">
-                      <Sparkles className="h-6 w-6 fill-secondary" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Rating</p>
-                      <p className="font-bold">{restaurant.rating} / 5.0</p>
-                    </div>
+                <div className="flex items-center gap-2 text-primary">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>{restaurant.rating}</span>
                 </div>
               </div>
+          </div>
+        </article>
+      </Link>
+    </motion.div>
+  )
+}
+
+function DishCard({ dish, index }: { dish: Dish; index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.05 }}
+      className="group"
+    >
+      <Link href={`/menu/${dish.restaurant_slug}`} className="block h-full">
+        <article className="flex gap-4 p-4 bg-card/40 rounded-3xl border border-border group-hover:border-primary/40 transition-all backdrop-blur-sm">
+          <div className="relative h-24 w-24 shrink-0 rounded-2xl overflow-hidden shadow-lg">
+            <Image 
+              src={getImageUrl(dish.image_url) || "/hotel.webp"} 
+              alt={dish.name} 
+              fill 
+              className="object-cover group-hover:scale-110 transition-transform" 
+            />
+          </div>
+          <div className="flex-1 flex flex-col justify-center min-w-0">
+            <div className="flex justify-between items-start mb-1">
+              <h4 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{dish.name}</h4>
+              <span className="text-primary font-black text-sm whitespace-nowrap ml-2">${dish.price}</span>
+            </div>
+            <p className="text-muted-foreground text-xs line-clamp-2 mb-2">{dish.description}</p>
+            <div className="flex items-center gap-2">
+              <div className="px-2 py-0.5 bg-primary/10 text-primary text-[8px] font-black uppercase rounded-md tracking-widest">{dish.restaurant_name}</div>
+            </div>
           </div>
         </article>
       </Link>
@@ -227,67 +213,62 @@ export default function LandingClient() {
     )
   , [restaurants, searchQuery])
 
+  const filteredDishes = useMemo(() => 
+    dishes.filter(d => 
+      d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  , [dishes, searchQuery])
+
+  const hasSearch = searchQuery.length > 0
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/30 selection:text-white overflow-x-hidden">
       <Navbar />
 
       <main className="flex-1">
-        {/* HERO SECTION */}
-        <section ref={heroRef} className="relative min-h-[100vh] flex items-center justify-center pt-24 md:pt-20 overflow-hidden px-4 sm:px-6">
+        {/* HERO SECTION - REDESIGNED */}
+        <section ref={heroRef} className="relative min-h-[90vh] md:min-h-screen flex flex-col items-center pt-24 md:pt-32 overflow-hidden px-4 sm:px-6">
           {/* Background Visuals */}
           <div className="absolute inset-0 z-0">
-            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(230,57,70,0.1),transparent_70%)] opacity-50" />
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(230,57,70,0.08),transparent_70%)] opacity-50" />
             <motion.div 
                style={{ y: heroY, opacity: heroOpacity }}
-               className="absolute top-[10%] right-[5%] w-[300px] md:w-[500px] h-[300px] md:h-[500px] rounded-full bg-primary/20 blur-[80px] md:blur-[120px]" 
-            />
-            <motion.div 
-               style={{ y: heroY, opacity: heroOpacity }}
-               className="absolute bottom-[5%] left-[5%] w-[250px] md:w-[450px] h-[250px] md:h-[450px] rounded-full bg-secondary/15 blur-[60px] md:blur-[100px]" 
+               className="absolute top-[5%] left-[50%] -translate-x-1/2 w-[300px] md:w-[800px] h-[300px] md:h-[600px] rounded-full bg-primary/10 blur-[80px] md:blur-[150px]" 
             />
           </div>
 
-          <div className="container relative z-10 mx-auto grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -60 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-              viewport={{ once: true }}
-              className="text-center lg:text-left"
-            >
+          <div className="container relative z-10 mx-auto">
+            <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
               <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.8 }}
-                viewport={{ once: true }}
-                className="inline-flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-full bg-primary text-white text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] mb-8 md:mb-10 shadow-2xl shadow-primary/40"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-6 shadow-sm border border-primary/20"
               >
-                <Zap className="h-3 md:h-4 w-3 md:w-4 fill-white" />
-                The Professional Choice
+                <Zap className="h-3 w-3 fill-primary" />
+                The Future of Dining
               </motion.div>
               
-              <h1 className="font-serif text-[clamp(2.5rem,10vw,7.5rem)] leading-[0.9] lg:leading-[0.85] tracking-tighter mb-8 md:mb-10">
-                Agelgil — <br />
-                <span className="text-primary italic font-normal">አገልግል</span> <br />
-                Future of Dining.
+              <h1 className="font-serif text-[clamp(2rem,8vw,5.5rem)] leading-[1] tracking-tighter mb-6 md:mb-8">
+                Find. Scan. <span className="text-primary italic font-normal">Savor.</span>
               </h1>
               
-              <p className="max-w-xl mx-auto lg:mx-0 text-lg md:text-2xl text-muted-foreground mb-8 md:mb-10 leading-relaxed font-medium">
-                Elevate your restaurant with Agelgil (አገልግል), the professional digital menu platform. Designed for speed, beauty, and business growth.
+              <p className="max-w-2xl mx-auto text-base md:text-xl text-muted-foreground mb-8 md:mb-12 leading-relaxed font-medium px-4">
+                Explore premium digital menus from your favorite local spots. High-performance contactless dining technology at your fingertips.
               </p>
               
-              {/* HERO SEARCH - HIGHER VISIBILITY */}
+              {/* HERO SEARCH - CENTRALIZED */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5, duration: 0.8 }}
-                viewport={{ once: true }}
-                className="max-w-2xl mx-auto lg:mx-0 mb-8 md:mb-12 relative group z-40"
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="w-full max-w-3xl mx-auto mb-10 md:mb-16 relative group"
               >
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary to-accent rounded-3xl blur opacity-20 group-focus-within:opacity-40 transition duration-1000 group-focus-within:duration-200"></div>
-                <div className="relative flex items-center bg-card/40 backdrop-blur-xl border border-border rounded-xl md:rounded-2xl p-1.5 md:p-2 shadow-2xl focus-within:border-primary/50 transition-all">
-                  <Search className="ml-3 md:ml-4 h-5 md:h-6 w-5 md:w-6 text-muted-foreground group-focus-within:text-primary transition-colors shrink-0" />
-                  <div className="flex-1 relative h-12 md:h-14 flex items-center">
+                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-[2rem] blur opacity-25 group-focus-within:opacity-50 transition duration-1000"></div>
+                <div className="relative flex items-center bg-card/60 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2.5rem] p-2 md:p-3 shadow-2xl focus-within:border-primary/50 transition-all">
+                  <Search className="ml-3 md:ml-6 h-5 md:h-7 w-5 md:w-7 text-muted-foreground group-focus-within:text-primary transition-colors shrink-0" />
+                  <div className="flex-1 relative h-12 md:h-16 flex items-center">
                     <AnimatePresence mode="wait">
                       {!searchQuery && (
                         <motion.p
@@ -295,159 +276,98 @@ export default function LandingClient() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="absolute inset-x-0 pl-3 md:pl-4 text-sm md:text-lg font-medium text-muted-foreground pointer-events-none whitespace-nowrap overflow-hidden text-left"
+                          className="absolute inset-x-0 pl-3 md:pl-5 text-sm md:text-xl font-medium text-muted-foreground pointer-events-none whitespace-nowrap overflow-hidden text-left"
                         >
                           {SEARCH_PLACEHOLDERS[placeholderIndex]}
                         </motion.p>
                       )}
                     </AnimatePresence>
                     <Input 
-                      className="h-full w-full border-none bg-transparent pl-3 md:pl-4 pr-8 md:pr-10 text-base md:text-lg font-medium focus-visible:ring-0 shadow-none text-foreground selection:bg-primary/40"
+                      className="h-full w-full border-none bg-transparent pl-3 md:pl-5 pr-8 md:pr-10 text-base md:text-xl font-bold focus-visible:ring-0 shadow-none text-foreground selection:bg-primary/40"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <Button className="rounded-lg md:rounded-xl bg-primary hover:bg-primary/90 font-bold px-4 md:px-6 h-10 md:h-12 shadow-lg shadow-primary/20 text-white text-xs md:text-base">
-                    Explore
+                  <Button className="rounded-xl md:rounded-[1.8rem] bg-primary hover:bg-primary/90 font-black px-6 md:px-10 h-10 md:h-14 shadow-xl shadow-primary/20 text-white text-xs md:text-lg uppercase tracking-widest">
+                    Search
                   </Button>
                 </div>
               </motion.div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 md:gap-6">
-                <Button 
-                  size="lg" 
-                  className="h-14 md:h-16 w-full sm:w-auto px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold bg-primary hover:bg-primary/90 shadow-xl shadow-primary/30 transition-all duration-300 border-none text-white" 
-                  asChild
-                >
-                  <MotionLink 
-                    href="/register"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  >
-                    Get Started
-                  </MotionLink>
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="h-14 md:h-16 w-full sm:w-auto px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold bg-muted/50 border-border hover:bg-muted transition-all text-foreground" 
-                  asChild
-                >
-                  <MotionLink 
-                    href="/login" 
-                    className="flex items-center justify-center"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                  >
-                    Live Demo <Play className="ml-2 h-4 md:h-5 w-4 md:w-5 fill-foreground" />
-                  </MotionLink>
-                </Button>
-              </div>
-
+              {/* QUICK LISTING - VISIBLE IMMEDIATELY */}
               <motion.div 
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="mt-12 md:mt-20 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-6 md:gap-10"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="w-full"
               >
-                <div className="flex -space-x-3 md:-space-x-4">
-                  {[1,2,3,4,5].map(i => (
-                    <div key={i} className="h-10 w-10 md:h-14 md:w-14 rounded-full border-[2px] md:border-[3px] border-background bg-slate-800 flex items-center justify-center overflow-hidden ring-4 ring-primary/5 transition-transform hover:scale-110 hover:z-10 cursor-pointer">
-                      <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=chef${i}`} alt="chef" width={56} height={56} />
+                <div className="flex items-center justify-between mb-8 px-2 md:px-4">
+                    <h3 className="text-lg md:text-2xl font-serif italic text-foreground flex items-center gap-3">
+                        Popular <span className="not-italic font-bold text-primary">Nearby</span>
+                    </h3>
+                    <div className="hidden sm:flex gap-2">
+                         <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer transition-colors">
+                            <ArrowRight className="h-5 w-5 rotate-180" />
+                         </div>
+                         <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer transition-colors">
+                            <ArrowRight className="h-5 w-5" />
+                         </div>
                     </div>
-                  ))}
                 </div>
-                <div className="text-center sm:text-left">
-                   <div className="flex justify-center sm:justify-start gap-0.5 md:gap-1 mb-1">
-                      {[1,2,3,4,5].map(i => <Star key={i} className="h-3 md:h-4 w-3 md:w-4 fill-accent text-accent" />)}
-                   </div>
-                   <p className="text-[10px] md:text-sm font-bold text-muted-foreground uppercase tracking-widest italic">Trusted by 200+ Hospitality Leaders</p>
+
+                <div className="relative">
+                    {loading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="h-[300px] rounded-[2rem] bg-card/40 border border-white/5 animate-pulse" />
+                            ))}
+                        </div>
+                    ) : hasSearch ? (
+                        <div className="space-y-12">
+                          {filteredRestaurants.length > 0 && (
+                            <div className="space-y-6">
+                              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Restaurant Matches</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                                {filteredRestaurants.slice(0, 4).map((restaurant, i) => (
+                                  <RestaurantCard key={restaurant.id} restaurant={restaurant} index={i} />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {filteredDishes.length > 0 && (
+                            <div className="space-y-6">
+                              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Dish Matches</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                {filteredDishes.map((dish, i) => (
+                                  <DishCard key={dish.id} dish={dish} index={i} />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {!filteredRestaurants.length && !filteredDishes.length && (
+                             <div className="py-20 text-center bg-card/20 rounded-[3rem] border-2 border-dashed border-white/5">
+                                <p className="text-muted-foreground italic">No results found for "{searchQuery}"</p>
+                             </div>
+                          )}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 overflow-visible pb-10">
+                            {filteredRestaurants.slice(0, 4).map((restaurant, i) => (
+                                <RestaurantCard key={restaurant.id} restaurant={restaurant} index={i} />
+                            ))}
+                        </div>
+                    )}
                 </div>
               </motion.div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, rotate: 5 }}
-              whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-              viewport={{ once: true }}
-              className="relative hidden lg:block perspective-1000 z-0"
-            >
-              {/* Floating Menu Card Overlay */}
-              <motion.div 
-                animate={{ y: [0, -25, 0], rotate: [0, 2, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-12 -left-8 z-30 w-72 p-8 rounded-[2.5rem] bg-card/90 border border-border shadow-2xl backdrop-blur-3xl"
-              >
-                <div className="flex items-center gap-4 mb-8">
-                   <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center text-white shadow-2xl shadow-primary/40">
-                      <Flame className="h-7 w-7 fill-white" />
-                   </div>
-                   <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Bestseller</p>
-                      <p className="text-lg font-bold text-foreground">Wagyu Gold</p>
-                   </div>
-                </div>
-                <div className="space-y-4">
-                   <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: "85%" }}
-                        transition={{ duration: 2, delay: 1 }}
-                        className="h-full bg-primary" 
-                      />
-                   </div>
-                   <div className="flex justify-between items-center">
-                     <span className="text-xs font-bold text-muted-foreground uppercase">Popularity</span>
-                     <span className="text-xs font-black text-primary">85%</span>
-                   </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                animate={{ y: [0, 30, 0], scale: [1, 1.05, 1] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -bottom-6 -right-6 z-30 w-64 p-8 rounded-[2.5rem] bg-secondary border border-secondary/30 shadow-2xl backdrop-blur-2xl text-white"
-              >
-                <div className="flex items-center justify-between mb-6">
-                   <Smartphone className="h-8 w-8" />
-                   <div className="h-4 w-4 rounded-full bg-white animate-ping" />
-                </div>
-                <p className="text-sm font-medium mb-1 uppercase tracking-widest text-white">Active Scans</p>
-                <p className="text-4xl font-serif font-black text-white">1.2M+</p>
-              </motion.div>
-
-              <div className="relative rounded-[3rem] md:rounded-[5rem] overflow-hidden border-[8px] md:border-[12px] border-card shadow-2xl aspect-[4/5] bg-card group">
-                <Image 
-                  src="/hotel.webp" 
-                  alt="Premium Menu Mockup" 
-                  fill 
-                  className="object-cover transition-all duration-1000 group-hover:scale-110 opacity-70"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                <div className="absolute bottom-10 md:bottom-16 left-10 md:left-16 right-10 md:right-16">
-                   <div className="flex gap-4 mb-6 md:mb-8">
-                       <span className="h-1.5 flex-1 bg-white/20 rounded-full overflow-hidden">
-                          <motion.span 
-                            animate={{ x: ["-100%", "200%"] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                            className="block h-full w-1/3 bg-primary" 
-                          />
-                       </span>
-                       <span className="h-1.5 w-12 bg-white/10 rounded-full" />
-                   </div>
-                   <h3 className="text-4xl md:text-5xl font-serif text-white tracking-tight">The <span className="italic block text-white">Palace Grille</span></h3>
-                </div>
-              </div>
-            </motion.div>
+            </div>
           </div>
         </section>
 
-        {/* PREMIUM RESTAURANT SHOWCASE */}
+        {/* RESTAURANT DIRECTORY - CONTINUATION */}
         <section className="py-20 md:py-40 bg-background relative" id="restaurants">
+
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-8 md:gap-12">
                <div className="max-w-2xl">
@@ -480,18 +400,13 @@ export default function LandingClient() {
             </div>
 
             {loading ? (
-              <div className="grid gap-8 md:gap-12 sm:grid-cols-2 lg:grid-cols-3">
-                 {[1,2,3].map(i => (
-                   <div key={i} className="flex flex-col gap-8 h-auto md:h-[600px] rounded-3xl md:rounded-[4rem] bg-slate-900/50 p-6 md:p-10 border border-white/5 overflow-hidden">
-                      <div className="aspect-[16/11] w-full rounded-2xl md:rounded-[3rem] bg-white/5 animate-pulse" />
-                      <div className="space-y-4">
-                        <div className="h-8 md:h-10 w-2/3 bg-white/5 rounded-full animate-pulse" />
-                        <div className="h-5 md:h-6 w-full bg-white/5 rounded-full animate-pulse" />
-                        <div className="h-5 md:h-6 w-1/2 bg-white/5 rounded-full animate-pulse" />
-                      </div>
-                      <div className="mt-auto flex gap-4 pt-8 md:pt-10 border-t border-white/5">
-                        <div className="h-10 md:h-12 w-10 md:w-12 rounded-xl md:rounded-2xl bg-white/5 animate-pulse" />
-                        <div className="h-10 md:h-12 w-10 md:w-12 rounded-xl md:rounded-2xl bg-white/5 animate-pulse" />
+              <div className="grid gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-4">
+                 {[1,2,3,4].map(i => (
+                   <div key={i} className="flex flex-col gap-6 h-auto rounded-[2.5rem] bg-slate-900/50 p-6 border border-white/5 overflow-hidden animate-pulse">
+                      <div className="aspect-square w-full rounded-[2rem] bg-white/5" />
+                      <div className="space-y-3">
+                        <div className="h-8 w-2/3 bg-white/5 rounded-lg" />
+                        <div className="h-4 w-full bg-white/5 rounded-lg" />
                       </div>
                    </div>
                  ))}
@@ -510,7 +425,7 @@ export default function LandingClient() {
                  </div>
               </div>
             ) : filteredRestaurants.length > 0 ? (
-              <div className="grid gap-8 md:gap-12 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {filteredRestaurants.map((restaurant, i) => (
                   <RestaurantCard key={restaurant.id} restaurant={restaurant} index={i} />
                 ))}
@@ -538,7 +453,7 @@ export default function LandingClient() {
         </section>
 
         {/* HOW IT WORKS - ARCHITECTURE */}
-        <section className="py-20 md:py-40 bg-card">
+        <section className="py-20 md:py-40 bg-card" id="features">
            <div className="container mx-auto px-4 md:px-6">
               <div className="grid lg:grid-cols-2 gap-16 md:gap-32 items-center">
                  <div>
@@ -666,7 +581,7 @@ export default function LandingClient() {
                       asChild
                     >
                        <MotionLink 
-                         href="/login"
+                         href="/demo"
                          whileHover={{ scale: 1.05 }}
                          whileTap={{ scale: 0.95 }}
                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
