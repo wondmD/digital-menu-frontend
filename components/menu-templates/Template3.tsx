@@ -8,6 +8,8 @@ import { getImageUrl } from "@/lib/utils"
 import { Search, Loader2, Zap } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import RatingStars from "./RatingStars"
+import { useState } from "react"
 
 export default function Template3({
   hotel,
@@ -22,6 +24,8 @@ export default function Template3({
   const currentCategory = categories.find((c) => c.id === activeCategory)
   const categoryItems = currentCategory?.items || []
 
+  const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; count: number }>>({})
+
   // Ensure we get the correct logo URL field
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
@@ -32,10 +36,10 @@ export default function Template3({
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 font-sans">
       {/* Search Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-6 sticky top-0 z-40">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-5 sm:py-6 sticky top-0 z-40">
         <div className="container max-w-3xl mx-auto space-y-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-black flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black flex items-center gap-2">
                {logoImage ? (
                  <motion.div
                    initial={{ scale: 0.8, opacity: 0 }}
@@ -68,7 +72,7 @@ export default function Template3({
       </div>
 
       {/* Tightly packed categories */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 sticky top-[124px] z-30">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 sticky top-[108px] sm:top-[124px] z-30">
         <div className="container max-w-3xl mx-auto flex gap-2 overflow-x-auto no-scrollbar">
           {categories.map((cat) => (
             <button
@@ -88,7 +92,7 @@ export default function Template3({
       </div>
 
       {/* Efficient List */}
-      <main className="container max-w-3xl mx-auto px-6 py-8">
+      <main className="container max-w-3xl mx-auto px-4 sm:px-6 py-8">
          <div className="space-y-4">
             {itemsLoading ? (
               <div className="flex items-center justify-center py-20">
@@ -122,6 +126,32 @@ export default function Template3({
                     <div className="flex-1 min-w-0 pr-2">
                       <h3 className="font-bold text-slate-900 dark:text-white truncate">{item.name}</h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{item.description}</p>
+                      {(() => {
+                        const baseRating = item.rating ?? 0
+                        const baseCount = item.rating_count ?? 0
+                        const local = localRatings[item.id]
+                        const rating = local?.rating ?? baseRating
+                        const count = local?.count ?? baseCount
+
+                        return (
+                          <div className="mt-2" onClick={(event) => event.stopPropagation()}>
+                            <RatingStars
+                              rating={rating}
+                              count={count}
+                              onRate={(value) => {
+                                setLocalRatings((prev) => ({
+                                  ...prev,
+                                  [item.id]: {
+                                    rating: value,
+                                    count: prev[item.id]?.count ?? baseCount + 1,
+                                  },
+                                }))
+                              }}
+                              sizeClassName="h-3 w-3"
+                            />
+                          </div>
+                        )
+                      })()}
                     </div>
                     <div className="text-right">
                        <p className="font-black text-primary whitespace-nowrap">

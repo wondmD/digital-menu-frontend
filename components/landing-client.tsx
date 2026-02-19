@@ -43,15 +43,23 @@ type Dish = {
   category_name?: string
 }
 
-const SEARCH_PLACEHOLDERS = [
-  "What are you craving today?",
+const RESTAURANT_PLACEHOLDERS = [
   "Search premium restaurants...",
   "Discover secret menus...",
-  "Find the best sushi nearby...",
-  "Explore gourmet steakhouse..."
+  "Explore gourmet steakhouse...",
+  "Find the best cafes nearby...",
+  "Browse top-rated venues..."
 ]
 
-function RestaurantCard({ restaurant, index }: { restaurant: Restaurant; index: number }) {
+const DISH_PLACEHOLDERS = [
+  "What are you craving today?",
+  "Search dishes by name...",
+  "Find the best sushi nearby...",
+  "Explore signature pasta...",
+  "Hunt for spicy specials..."
+]
+
+function RestaurantCard({ restaurant, index, compact = false }: { restaurant: Restaurant; index: number; compact?: boolean }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -61,8 +69,18 @@ function RestaurantCard({ restaurant, index }: { restaurant: Restaurant; index: 
       className="group"
     >
       <Link href={`/menu/${restaurant.slug}`} className="block h-full">
-        <article className="relative h-full flex flex-col bg-card/40 rounded-[2.5rem] p-4 border border-border group-hover:border-primary/40 shadow-xl transition-all duration-500 overflow-hidden backdrop-blur-sm">
-          <div className="relative aspect-square rounded-[2rem] overflow-hidden mb-5">
+        <article
+          className={cn(
+            "relative h-full flex flex-col bg-card/40 border border-border group-hover:border-primary/40 shadow-xl transition-all duration-500 overflow-hidden backdrop-blur-sm",
+            compact ? "rounded-3xl p-3" : "rounded-[2.5rem] p-4"
+          )}
+        >
+          <div
+            className={cn(
+              "relative overflow-hidden",
+              compact ? "aspect-[4/3] rounded-2xl mb-4" : "aspect-square rounded-[2rem] mb-5"
+            )}
+          >
             <Image 
               src={getImageUrl(restaurant.cover_url || restaurant.logo_url) || "/hotel.webp"} 
               alt={restaurant.name} 
@@ -80,13 +98,15 @@ function RestaurantCard({ restaurant, index }: { restaurant: Restaurant; index: 
             </div>
           </div>
 
-          <div className="px-2 flex-1 flex flex-col">
-              <h3 className="text-xl md:text-2xl font-serif tracking-tight group-hover:text-primary transition-colors mb-2 line-clamp-1">{restaurant.name}</h3>
-              <p className="text-muted-foreground text-sm line-clamp-2 leading-relaxed font-medium mb-6">
+          <div className={cn("px-2 flex-1 flex flex-col", compact && "px-1")}>
+              <h3 className={cn("font-serif tracking-tight group-hover:text-primary transition-colors mb-2 line-clamp-1", compact ? "text-lg md:text-xl" : "text-xl md:text-2xl")}>
+                {restaurant.name}
+              </h3>
+              <p className={cn("text-muted-foreground line-clamp-2 leading-relaxed font-medium", compact ? "text-xs mb-4" : "text-sm mb-6")}>
                 {restaurant.description || "The intersection of tradition and innovation curated for you."}
               </p>
               
-              <div className="mt-auto pt-4 border-t border-border/10 flex items-center justify-between text-[11px] font-bold">
+              <div className={cn("mt-auto pt-4 border-t border-border/10 flex items-center justify-between font-bold", compact ? "text-[10px]" : "text-[11px]")}>
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="h-3.5 w-3.5" />
                     <span>{restaurant.delivery_time}</span>
@@ -103,7 +123,7 @@ function RestaurantCard({ restaurant, index }: { restaurant: Restaurant; index: 
   )
 }
 
-function DishCard({ dish, index }: { dish: Dish; index: number }) {
+function DishCard({ dish, index, compact = false }: { dish: Dish; index: number; compact?: boolean }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -112,8 +132,13 @@ function DishCard({ dish, index }: { dish: Dish; index: number }) {
       className="group"
     >
       <Link href={`/menu/${dish.restaurant_slug}`} className="block h-full">
-        <article className="flex gap-4 p-4 bg-card/40 rounded-3xl border border-border group-hover:border-primary/40 transition-all backdrop-blur-sm">
-          <div className="relative h-24 w-24 shrink-0 rounded-2xl overflow-hidden shadow-lg">
+        <article
+          className={cn(
+            "flex gap-4 bg-card/40 rounded-3xl border border-border group-hover:border-primary/40 transition-all backdrop-blur-sm",
+            compact ? "p-3" : "p-4"
+          )}
+        >
+          <div className={cn("relative shrink-0 rounded-2xl overflow-hidden shadow-lg", compact ? "h-20 w-20" : "h-24 w-24")}>
             <Image 
               src={getImageUrl(dish.image_url) || "/hotel.webp"} 
               alt={dish.name} 
@@ -123,12 +148,12 @@ function DishCard({ dish, index }: { dish: Dish; index: number }) {
           </div>
           <div className="flex-1 flex flex-col justify-center min-w-0">
             <div className="flex justify-between items-start mb-1">
-              <h4 className="font-bold text-lg truncate group-hover:text-primary transition-colors">{dish.name}</h4>
-              <span className="text-primary font-black text-sm whitespace-nowrap ml-2">${dish.price}</span>
+              <h4 className={cn("font-bold truncate group-hover:text-primary transition-colors", compact ? "text-base" : "text-lg")}>{dish.name}</h4>
+              <span className={cn("text-primary font-black whitespace-nowrap ml-2", compact ? "text-xs" : "text-sm")}>${dish.price}</span>
             </div>
-            <p className="text-muted-foreground text-xs line-clamp-2 mb-2">{dish.description}</p>
+            <p className={cn("text-muted-foreground line-clamp-2", compact ? "text-[11px] mb-1" : "text-xs mb-2")}>{dish.description}</p>
             <div className="flex items-center gap-2">
-              <div className="px-2 py-0.5 bg-primary/10 text-primary text-[8px] font-black uppercase rounded-md tracking-widest">{dish.restaurant_name}</div>
+              <div className={cn("px-2 py-0.5 bg-primary/10 text-primary font-black uppercase rounded-md tracking-widest", compact ? "text-[7px]" : "text-[8px]")}>{dish.restaurant_name}</div>
             </div>
           </div>
         </article>
@@ -142,6 +167,7 @@ export default function LandingClient() {
   const [dishes, setDishes] = useState<Dish[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [searchMode, setSearchMode] = useState<"restaurants" | "dishes">("restaurants")
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   
   const heroRef = useRef(null)
@@ -155,10 +181,15 @@ export default function LandingClient() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % SEARCH_PLACEHOLDERS.length)
+      const placeholders = searchMode === "dishes" ? DISH_PLACEHOLDERS : RESTAURANT_PLACEHOLDERS
+      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length)
     }, 3000)
     return () => clearInterval(interval)
-  }, [])
+  }, [searchMode])
+
+  useEffect(() => {
+    setPlaceholderIndex(0)
+  }, [searchMode])
 
   useEffect(() => {
     const load = async () => {
@@ -266,9 +297,10 @@ export default function LandingClient() {
                 className="w-full max-w-3xl mx-auto mb-10 md:mb-16 relative group"
               >
                 <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-[2rem] blur opacity-25 group-focus-within:opacity-50 transition duration-1000"></div>
-                <div className="relative flex items-center bg-card/60 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2.5rem] p-2 md:p-3 shadow-2xl focus-within:border-primary/50 transition-all">
+                <div className="relative flex flex-col md:flex-row md:items-center gap-3 bg-card/60 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2.5rem] p-3 md:p-3 shadow-2xl focus-within:border-primary/50 transition-all">
                   <Search className="ml-3 md:ml-6 h-5 md:h-7 w-5 md:w-7 text-muted-foreground group-focus-within:text-primary transition-colors shrink-0" />
-                  <div className="flex-1 relative h-12 md:h-16 flex items-center">
+                  <div className="flex-1 relative flex flex-col">
+                    <div className="relative h-12 md:h-16 flex items-center">
                     <AnimatePresence mode="wait">
                       {!searchQuery && (
                         <motion.p
@@ -278,7 +310,7 @@ export default function LandingClient() {
                           exit={{ opacity: 0, y: -10 }}
                           className="absolute inset-x-0 pl-3 md:pl-5 text-sm md:text-xl font-medium text-muted-foreground pointer-events-none whitespace-nowrap overflow-hidden text-left"
                         >
-                          {SEARCH_PLACEHOLDERS[placeholderIndex]}
+                          {(searchMode === "dishes" ? DISH_PLACEHOLDERS : RESTAURANT_PLACEHOLDERS)[placeholderIndex]}
                         </motion.p>
                       )}
                     </AnimatePresence>
@@ -287,9 +319,10 @@ export default function LandingClient() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
+                    </div>
                   </div>
-                  <Button className="rounded-xl md:rounded-[1.8rem] bg-primary hover:bg-primary/90 font-black px-6 md:px-10 h-10 md:h-14 shadow-xl shadow-primary/20 text-white text-xs md:text-lg uppercase tracking-widest">
-                    Search
+                  <Button className="w-full md:w-auto rounded-xl md:rounded-[1.8rem] bg-primary hover:bg-primary/90 font-black px-6 md:px-10 h-11 md:h-14 shadow-xl shadow-primary/20 text-white text-xs md:text-lg uppercase tracking-widest">
+                    {searchMode === "dishes" ? "Search Food" : "Search Restaurants"}
                   </Button>
                 </div>
               </motion.div>
@@ -301,10 +334,38 @@ export default function LandingClient() {
                 transition={{ delay: 0.5 }}
                 className="w-full"
               >
-                <div className="flex items-center justify-between mb-8 px-2 md:px-4">
-                    <h3 className="text-lg md:text-2xl font-serif italic text-foreground flex items-center gap-3">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8 px-2 md:px-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <h3 className="text-lg md:text-2xl font-serif italic text-foreground flex items-center gap-3">
                         Popular <span className="not-italic font-bold text-primary">Nearby</span>
-                    </h3>
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSearchMode("restaurants")}
+                          className={cn(
+                            "h-8 px-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors",
+                            searchMode === "restaurants"
+                              ? "bg-primary text-white"
+                              : "bg-muted text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          Restaurants
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSearchMode("dishes")}
+                          className={cn(
+                            "h-8 px-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors",
+                            searchMode === "dishes"
+                              ? "bg-primary text-white"
+                              : "bg-muted text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          Food
+                        </button>
+                      </div>
+                    </div>
                     <div className="hidden sm:flex gap-2">
                          <div className="h-10 w-10 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-muted cursor-pointer transition-colors">
                             <ArrowRight className="h-5 w-5 rotate-180" />
@@ -324,39 +385,63 @@ export default function LandingClient() {
                         </div>
                     ) : hasSearch ? (
                         <div className="space-y-12">
-                          {filteredRestaurants.length > 0 && (
+                          {searchMode === "restaurants" && filteredRestaurants.length > 0 && (
                             <div className="space-y-6">
                               <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Restaurant Matches</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                                {filteredRestaurants.slice(0, 4).map((restaurant, i) => (
-                                  <RestaurantCard key={restaurant.id} restaurant={restaurant} index={i} />
+                                {filteredRestaurants.slice(0, 8).map((restaurant, i) => (
+                                  <RestaurantCard key={restaurant.id} restaurant={restaurant} index={i} compact />
                                 ))}
                               </div>
                             </div>
                           )}
                           
-                          {filteredDishes.length > 0 && (
+                          {searchMode === "dishes" && filteredDishes.length > 0 && (
                             <div className="space-y-6">
                               <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Dish Matches</h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                                {filteredDishes.map((dish, i) => (
-                                  <DishCard key={dish.id} dish={dish} index={i} />
+                                {filteredDishes.slice(0, 9).map((dish, i) => (
+                                  <DishCard key={dish.id} dish={dish} index={i} compact />
                                 ))}
                               </div>
                             </div>
                           )}
 
-                          {!filteredRestaurants.length && !filteredDishes.length && (
+                          {searchMode === "restaurants" && !filteredRestaurants.length && (
                              <div className="py-20 text-center bg-card/20 rounded-[3rem] border-2 border-dashed border-white/5">
-                                <p className="text-muted-foreground italic">No results found for "{searchQuery}"</p>
+                                <p className="text-muted-foreground italic">No restaurants found for "{searchQuery}"</p>
+                             </div>
+                          )}
+
+                          {searchMode === "dishes" && !filteredDishes.length && (
+                             <div className="py-20 text-center bg-card/20 rounded-[3rem] border-2 border-dashed border-white/5">
+                                <p className="text-muted-foreground italic">No dishes found for "{searchQuery}"</p>
                              </div>
                           )}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 overflow-visible pb-10">
-                            {filteredRestaurants.slice(0, 4).map((restaurant, i) => (
-                                <RestaurantCard key={restaurant.id} restaurant={restaurant} index={i} />
-                            ))}
+                        <div className="space-y-12">
+                          {searchMode === "restaurants" && (
+                            <div className="space-y-6">
+                              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Popular Restaurants</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                                {filteredRestaurants.slice(0, 6).map((restaurant, i) => (
+                                  <RestaurantCard key={restaurant.id} restaurant={restaurant} index={i} compact />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {searchMode === "dishes" && (
+                            <div className="space-y-6">
+                              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Featured Dishes</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                {filteredDishes.slice(0, 6).map((dish, i) => (
+                                  <DishCard key={dish.id} dish={dish} index={i} compact />
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                     )}
                 </div>
@@ -424,11 +509,22 @@ export default function LandingClient() {
                     <h3 className="text-xl md:text-2xl font-serif text-muted-foreground italic">Loading our featured restaurants...</h3>
                  </div>
               </div>
-            ) : filteredRestaurants.length > 0 ? (
+            ) : searchMode === "restaurants" && filteredRestaurants.length > 0 ? (
               <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {filteredRestaurants.map((restaurant, i) => (
                   <RestaurantCard key={restaurant.id} restaurant={restaurant} index={i} />
                 ))}
+              </div>
+            ) : searchMode === "dishes" ? (
+              <div className="py-20 md:py-40 text-center">
+                <h3 className="text-3xl md:text-5xl font-serif mb-6">Browse Restaurants for Dishes</h3>
+                <p className="text-muted-foreground text-lg max-w-md mx-auto mb-8">Switch to "Restaurants" mode to explore our full restaurant directory.</p>
+                <Button 
+                  onClick={() => setSearchMode("restaurants")}
+                  className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-xl"
+                >
+                  View Restaurants
+                </Button>
               </div>
             ) : (
               <motion.div 
@@ -439,13 +535,23 @@ export default function LandingClient() {
               >
                  <Utensils className="h-16 w-16 md:h-20 md:w-20 mx-auto text-white/5 mb-8 md:mb-10" />
                  <h3 className="text-3xl md:text-5xl font-serif mb-4 md:mb-6">No restaurants found</h3>
-                 <p className="text-muted-foreground text-lg md:text-xl max-w-sm md:max-w-md mx-auto mb-8 md:mb-10 font-medium">Try broadening your search criteria or clearing all active filters.</p>
+                 <p className="text-muted-foreground text-lg md:text-xl max-w-sm md:max-w-md mx-auto mb-8 md:mb-10 font-medium">
+                   {searchMode === "restaurants" 
+                     ? "Try broadening your search criteria or clearing all active filters."
+                     : "Try searching for different dishes or switch to restaurant mode."
+                   }
+                 </p>
                  <Button 
                    variant="outline" 
                    className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold border-primary text-primary hover:bg-primary hover:text-white"
-                   onClick={() => setSearchQuery("")}
+                   onClick={() => {
+                     setSearchQuery("")
+                     if (searchMode === "dishes") {
+                       setSearchMode("restaurants")
+                     }
+                   }}
                  >
-                   Clear all filters
+                   {searchMode === "restaurants" ? "Clear all filters" : "Browse Restaurants"}
                  </Button>
               </motion.div>
             )}

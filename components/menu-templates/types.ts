@@ -11,6 +11,8 @@ export type MenuItem = {
   category_id: string;
   is_available?: boolean;
   available?: boolean;
+  rating?: number;
+  rating_count?: number;
 };
 
 export type Category = {
