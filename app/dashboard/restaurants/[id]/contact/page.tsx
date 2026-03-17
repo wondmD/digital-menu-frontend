@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Save, MapPin, Phone, Mail, Globe } from "lucide-react"
-import { DEFAULT_TIMEZONE, normalizeRestaurantList } from "@/lib/restaurant-normalizers"
+import { DEFAULT_TIMEZONE, findRestaurantById } from "@/lib/restaurant-normalizers"
 
 export default function ContactLocationPage() {
   const params = useParams()
@@ -39,8 +39,7 @@ export default function ContactLocationPage() {
         setLoading(true)
         // Direct GET /my-restaurants/:id 404s, so we use the list.
         const res = await apiFetch<any>("/my-restaurants", { token })
-        const list = normalizeRestaurantList(res)
-        const d = list.find((item: any) => item.id === id)
+        const d = findRestaurantById(res, id)
 
         if (d) {
           setData({
@@ -70,17 +69,19 @@ export default function ContactLocationPage() {
   }, [token, id])
 
   const handleSave = async () => {
+    if (!token || !id) return
     try {
       setSaving(true)
-      const payload = {
-        phone: data.phone,
-        email: data.email,
-        website: data.website,
-        address: data.address,
-        city: data.city,
-        country: data.country,
-        timezone: data.timezone || DEFAULT_TIMEZONE,
-      }
+
+      const payload = new FormData()
+      payload.append("phone", data.phone)
+      payload.append("email", data.email)
+      payload.append("website", data.website)
+      payload.append("address", data.address)
+      payload.append("city", data.city)
+      payload.append("country", data.country)
+      payload.append("timezone", data.timezone || DEFAULT_TIMEZONE)
+
       await apiFetch(`/my-restaurants/${id}`, {
         method: "PATCH",
         token,

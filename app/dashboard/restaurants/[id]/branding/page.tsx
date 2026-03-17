@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Save, Upload, X, Building2, ImageIcon } from "lucide-react"
 import { getImageUrl } from "@/lib/utils"
-import { normalizeRestaurantList } from "@/lib/restaurant-normalizers"
+import { findRestaurantById } from "@/lib/restaurant-normalizers"
 
 const PREDEFINED_THEMES = [
   {
@@ -52,8 +52,8 @@ export default function BrandingPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [draft, setDraft] = useState<any>({ logo: null, cover: null })
-  const [previews, setPreviews] = useState<any>({ logo: null, cover: null })
+  const [draft, setDraft] = useState<{ logo: File | null; cover: File | null }>({ logo: null, cover: null })
+  const [previews, setPreviews] = useState<{ logo: string | null; cover: string | null }>({ logo: null, cover: null })
   const [selectedThemeId, setSelectedThemeId] = useState<string>(PREDEFINED_THEMES[0].id)
 
   const load = async () => {
@@ -62,8 +62,7 @@ export default function BrandingPage() {
       setLoading(true)
       // Direct GET /my-restaurants/:id 404s, so we use the list.
       const res = await apiFetch<any>("/my-restaurants", { token })
-      const list = normalizeRestaurantList(res)
-      const d = list.find((item: any) => item.id === id)
+      const d = findRestaurantById(res, id)
 
       if (d) {
         setPreviews({
@@ -103,6 +102,7 @@ export default function BrandingPage() {
   }
 
   const handleSave = async () => {
+    if (!token || !id) return
     try {
       setSaving(true)
       setUploadProgress(0)
@@ -111,11 +111,9 @@ export default function BrandingPage() {
       formData.append("theme_settings", JSON.stringify(selectedTheme.settings))
       if (draft.logo) {
         formData.append("logo", draft.logo)
-        formData.append("logo_image", draft.logo)
       }
       if (draft.cover) {
         formData.append("cover", draft.cover)
-        formData.append("cover_image", draft.cover)
       }
 
       console.log("[Branding] Saving visuals with keys:", Array.from(formData.keys()))

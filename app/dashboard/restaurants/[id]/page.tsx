@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Save } from "lucide-react"
 import { LoadingSignal } from "@/components/ui/loading-signal"
 import { Switch } from "@/components/ui/switch"
-import { DEFAULT_TIMEZONE, normalizeRestaurantList } from "@/lib/restaurant-normalizers"
+import { DEFAULT_TIMEZONE, findRestaurantById } from "@/lib/restaurant-normalizers"
 
 export default function GeneralInfoPage() {
   const params = useParams()
@@ -43,8 +43,7 @@ export default function GeneralInfoPage() {
     try {
       setLoading(true)
       const res = await apiFetch<any>("/my-restaurants", { token })
-      const list = normalizeRestaurantList(res)
-      const d = list.find((item: any) => item.id === id)
+      const d = findRestaurantById(res, id)
       
       if (d) {
         setData({
@@ -79,6 +78,7 @@ export default function GeneralInfoPage() {
   }, [token, id])
 
   const handleSave = async () => {
+    if (!token || !id) return
     try {
       setSaving(true)
       const normalizedSlug = data.slug.trim().toLowerCase().replace(/\s+/g, "-")
@@ -99,7 +99,7 @@ export default function GeneralInfoPage() {
       })
 
       const verifyRes = await apiFetch<any>("/my-restaurants", { token })
-      const verified = normalizeRestaurantList(verifyRes).find((item: any) => item.id === id)
+      const verified = findRestaurantById(verifyRes, id)
       const slugPersisted = (verified?.slug || "") === normalizedSlug
       const cuisinePersisted = (verified?.cuisine_type || "") === normalizedCuisine
 

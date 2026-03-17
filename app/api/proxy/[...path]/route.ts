@@ -62,13 +62,17 @@ async function handle(request: Request, context: { params: any }) {
   const contentType = request.headers.get("content-type") || ""
   let body: any = null
 
-  if (method !== "GET" && method !== "HEAD" && method !== "DELETE") {
+  if (method !== "GET" && method !== "HEAD") {
     const isPost = method === "POST"
     const lastSeg = pathSegments[pathSegments.length - 1].toLowerCase()
     const isItemsAction = lastSeg === "items"
     const isCategoriesAction = lastSeg === "categories"
 
-    if (contentType.includes("multipart/form-data")) {
+    // DELETE requests may include JSON body for endpoints like gallery remove.
+    const hasBody = Boolean(request.headers.get("content-length")) || Boolean(contentType)
+    if (!hasBody) {
+      body = null
+    } else if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData()
       const newFormData = new FormData()
       
@@ -106,7 +110,15 @@ async function handle(request: Request, context: { params: any }) {
 
       body = newFormData
     } else {
-      const rawBody = await request.json()
+      const rawText = await request.text()
+      let rawBody: Record<string, any> = {}
+      if (rawText) {
+        try {
+          rawBody = JSON.parse(rawText)
+        } catch {
+          rawBody = {}
+        }
+      }
       
       // Extremely aggressive scrubbing for JSON payloads
       const keysToDelete = [
