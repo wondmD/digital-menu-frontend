@@ -8,6 +8,8 @@ import { getImageUrl } from "@/lib/utils"
 import { Search, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import RatingStars from "./RatingStars"
+import { useState } from "react"
 
 export default function Template1({
   hotel,
@@ -22,6 +24,8 @@ export default function Template1({
   const currentCategory = categories.find((c) => c.id === activeCategory)
   const categoryItems = currentCategory?.items || []
 
+  const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; count: number }>>({})
+
   const filteredItems = categoryItems.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -29,14 +33,14 @@ export default function Template1({
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8] dark:bg-[#121210] text-[#1A1A1A] dark:text-[#EAEAEA] font-serif pb-24 transition-colors duration-500">
+    <div className="min-h-screen bg-[#FDFCF8] dark:bg-[#121210] text-[#1A1A1A] dark:text-[#EAEAEA] font-serif pb-24 transition-colors duration-500 overflow-x-hidden">
       {/* Header */}
-      <header className="pt-16 pb-12 px-6 text-center border-b border-[#E5E1D8] dark:border-[#2A2A28]">
+      <header className="pt-12 md:pt-16 pb-8 md:pb-12 px-4 sm:px-6 text-center border-b border-[#E5E1D8] dark:border-[#2A2A28]">
         {logoImage && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative w-24 h-24 mx-auto mb-6"
+            className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6"
           >
             <Image src={logoImage} alt={hotel.name} fill className="object-contain" />
           </motion.div>
@@ -44,7 +48,7 @@ export default function Template1({
         <motion.h1 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-serif tracking-tight mb-4"
+          className="text-3xl sm:text-4xl md:text-5xl font-serif tracking-tight mb-3 sm:mb-4"
         >
           {hotel.name}
         </motion.h1>
@@ -60,7 +64,7 @@ export default function Template1({
 
       {/* Navigation & Search */}
       <div className="sticky top-0 z-30 bg-[#FDFCF8]/90 dark:bg-[#121210]/90 backdrop-blur-md border-b border-[#E5E1D8] dark:border-[#2A2A28]">
-        <div className="container max-w-4xl mx-auto px-6 py-4 space-y-4">
+        <div className="container max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#706C61] dark:text-[#A09D95]" />
             <Input
@@ -71,7 +75,7 @@ export default function Template1({
             />
           </div>
           
-          <div className="flex items-center gap-8 overflow-x-auto pb-2 no-scrollbar">
+          <div className="flex items-center gap-6 sm:gap-8 overflow-x-auto pb-2 no-scrollbar">
             {categories.map((cat) => (
               <button
                 key={cat.id}
@@ -97,7 +101,7 @@ export default function Template1({
       </div>
 
       {/* Content */}
-      <main className="container max-w-4xl mx-auto px-6 py-12">
+      <main className="container max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <div className="space-y-16">
           {itemsLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -114,10 +118,10 @@ export default function Template1({
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.05 }}
                   onClick={() => onItemClick(item)}
-                  className="group cursor-pointer flex flex-col md:flex-row gap-8 items-start"
+                  className="group cursor-pointer flex flex-row gap-4 sm:gap-6 items-start w-full"
                 >
-                  {item.image_url && (
-                    <div className="relative aspect-[4/3] w-full md:w-48 overflow-hidden rounded-sm bg-[#F5F2ED] dark:bg-[#1A1A18]">
+                    {item.image_url && (
+                      <div className="relative h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-36 shrink-0 overflow-hidden rounded-sm bg-[#F5F2ED] dark:bg-[#1A1A18]">
                       <Image
                         src={getImageUrl(item.image_url) || "/placeholder.svg"}
                         alt={item.name}
@@ -126,19 +130,43 @@ export default function Template1({
                       />
                     </div>
                   )}
-                  <div className="flex-1 space-y-3 w-full">
-                    <div className="flex items-baseline justify-between gap-4">
-                      <h3 className="text-2xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA] group-hover:text-primary transition-colors">
+                    <div className="flex-1 space-y-2 w-full min-w-0">
+                      <div className="flex flex-col gap-1 w-full min-w-0">
+                        <h3 className="min-w-0 text-lg sm:text-2xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA] group-hover:text-primary transition-colors break-words">
                         {item.name}
                       </h3>
-                      <div className="h-px flex-1 bg-[#E5E1D8] dark:bg-[#2A2A28] mx-2 hidden md:block" />
-                      <span className="text-xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA]">
+                        <span className="text-base sm:text-xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA]">
                         {item.currency} {item.price.toFixed(2)}
                       </span>
                     </div>
-                    <p className="text-[#706C61] dark:text-[#A09D95] font-sans leading-relaxed max-w-2xl">
+                    <p className="text-sm sm:text-base text-[#706C61] dark:text-[#A09D95] font-sans leading-relaxed max-w-2xl break-words">
                       {item.description}
                     </p>
+                      {(() => {
+                        const baseRating = item.rating ?? 0
+                        const baseCount = item.rating_count ?? 0
+                        const local = localRatings[item.id]
+                        const rating = local?.rating ?? baseRating
+                        const count = local?.count ?? baseCount
+
+                        return (
+                          <div className="pt-1" onClick={(event) => event.stopPropagation()}>
+                            <RatingStars
+                              rating={rating}
+                              count={count}
+                              onRate={(value) => {
+                                setLocalRatings((prev) => ({
+                                  ...prev,
+                                  [item.id]: {
+                                    rating: value,
+                                    count: prev[item.id]?.count ?? baseCount + 1,
+                                  },
+                                }))
+                              }}
+                            />
+                          </div>
+                        )
+                      })()}
                     {item.is_available === false && (
                       <span className="inline-block text-[10px] uppercase tracking-[0.2em] px-2 py-1 bg-[#F5F2ED] dark:bg-[#1A1A18] text-[#706C61] dark:text-[#A09D95] border border-[#E5E1D8] dark:border-[#2A2A28]">
                         Currently Unavailable

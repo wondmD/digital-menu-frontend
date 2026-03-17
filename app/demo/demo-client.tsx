@@ -13,7 +13,15 @@ import Template2 from "@/components/menu-templates/Template2"
 import Template3 from "@/components/menu-templates/Template3"
 import { MenuItem, Category, Restaurant } from "@/components/menu-templates/types"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { cn, getImageUrl } from "@/lib/utils"
+import Image from "next/image"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const DEMO_HOTEL: Restaurant = {
   id: "demo-1",
@@ -37,6 +45,8 @@ const DEMO_CATEGORIES: Category[] = [
         image_url: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800&auto=format&fit=crop&q=60",
         category_id: "cat-1",
         available: true,
+        rating: 4.6,
+        rating_count: 128,
       },
       {
         id: "item-2",
@@ -47,6 +57,8 @@ const DEMO_CATEGORIES: Category[] = [
         image_url: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&auto=format&fit=crop&q=60",
         category_id: "cat-1",
         available: true,
+        rating: 4.3,
+        rating_count: 76,
       }
     ]
   },
@@ -63,6 +75,8 @@ const DEMO_CATEGORIES: Category[] = [
         image_url: "https://images.unsplash.com/photo-1541529086526-db283c563270?w=800&auto=format&fit=crop&q=60",
         category_id: "cat-2",
         available: true,
+        rating: 4.8,
+        rating_count: 203,
       },
       {
         id: "item-4",
@@ -73,6 +87,8 @@ const DEMO_CATEGORIES: Category[] = [
         image_url: "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=800&auto=format&fit=crop&q=60",
         category_id: "cat-2",
         available: true,
+        rating: 4.4,
+        rating_count: 91,
       }
     ]
   }
@@ -82,13 +98,14 @@ export default function DemoClient() {
   const [activeCategory, setActiveCategory] = useState(DEMO_CATEGORIES[0].id)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedTemplate, setSelectedTemplate] = useState("1")
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
 
   const templateProps = {
     hotel: DEMO_HOTEL,
     categories: DEMO_CATEGORIES,
     activeCategory,
     onCategoryChange: setActiveCategory,
-    onItemClick: (item: MenuItem) => console.log("Item clicked", item),
+    onItemClick: setSelectedItem,
     searchQuery,
     onSearchChange: setSearchQuery,
     itemsLoading: false,
@@ -179,14 +196,14 @@ export default function DemoClient() {
 
               {/* Preview */}
               <div className="lg:w-2/3 flex justify-center">
-                 <div className="w-full max-w-[420px] h-[850px] rounded-[3.5rem] overflow-hidden border-[14px] border-slate-900 dark:border-slate-800 shadow-3xl bg-background relative">
+                 <div className="w-full max-w-full lg:max-w-[420px] lg:h-[850px] rounded-2xl lg:rounded-[3.5rem] overflow-visible lg:overflow-hidden border border-border/40 lg:border-[14px] lg:border-slate-900 dark:lg:border-slate-800 shadow-xl lg:shadow-3xl bg-background relative">
                     {/* Notch */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-slate-900 dark:bg-slate-800 rounded-b-3xl z-50 flex items-center justify-center">
+                    <div className="hidden lg:flex absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-slate-900 dark:bg-slate-800 rounded-b-3xl z-50 items-center justify-center">
                         <div className="w-16 h-1.5 bg-slate-800 dark:bg-slate-700 rounded-full" />
                     </div>
                     
-                    <div className="h-full overflow-auto pt-2 no-scrollbar">
-                        <div key={selectedTemplate} className="h-full">
+                    <div className="lg:h-full lg:overflow-auto lg:pt-2 no-scrollbar">
+                        <div key={selectedTemplate} className="lg:h-full">
                             {selectedTemplate === "1" && <Template1 {...templateProps} />}
                             {selectedTemplate === "2" && <Template2 {...templateProps} />}
                             {selectedTemplate === "3" && <Template3 {...templateProps} />}
@@ -198,6 +215,47 @@ export default function DemoClient() {
           </section>
         </div>
       </main>
+
+      <Dialog open={!!selectedItem} onOpenChange={(open) => {
+        if (!open) {
+          setSelectedItem(null)
+        }
+      }}>
+        <DialogContent className="max-w-[95vw] sm:max-w-xl rounded-2xl p-0 overflow-hidden">
+          {selectedItem && (
+            <div className="grid gap-6">
+              <div className="relative aspect-[4/3] w-full bg-muted">
+                <Image
+                  src={getImageUrl(selectedItem.image_url) || "/placeholder.svg"}
+                  alt={selectedItem.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="px-6 pb-6">
+                <DialogHeader className="text-left">
+                  <DialogTitle className="text-2xl font-black tracking-tight">
+                    {selectedItem.name}
+                  </DialogTitle>
+                  <DialogDescription className="text-sm leading-relaxed">
+                    {selectedItem.description}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="text-lg font-black text-primary">
+                    {selectedItem.currency} {selectedItem.price.toFixed(2)}
+                  </span>
+                  {selectedItem.available === false && (
+                    <span className="text-[10px] uppercase tracking-[0.2em] px-2 py-1 bg-muted text-muted-foreground rounded-full">
+                      Unavailable
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

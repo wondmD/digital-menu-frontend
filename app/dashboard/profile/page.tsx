@@ -57,6 +57,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
+import { DEFAULT_TIMEZONE, normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
 type Restaurant = {
   id: string
@@ -112,6 +113,9 @@ export default function ProfilePage() {
     address: string;
     cuisine_type: string;
     is_published: boolean;
+    slug: string;
+    website: string;
+    timezone: string;
     logo: File | null;
     cover: File | null;
     gallery_images: File[];
@@ -126,6 +130,9 @@ export default function ProfilePage() {
     address: "",
     cuisine_type: "",
     is_published: false,
+    slug: "",
+    website: "",
+    timezone: DEFAULT_TIMEZONE,
     logo: null,
     cover: null,
     gallery_images: [],
@@ -149,7 +156,7 @@ export default function ProfilePage() {
           apiFetch<any>("/my-restaurants", { token }),
           apiFetch<any>("/subscription/me", { token }).catch(() => null)
         ])
-        setRestaurants(Array.isArray(restRes) ? restRes : (restRes?.data || []))
+        setRestaurants(normalizeRestaurantList(restRes) as any)
         setSubscription(subRes?.data || subRes)
       } catch (err: any) {
         toast({ title: "Error", description: "Failed to load restaurant data.", variant: "destructive" })
@@ -191,7 +198,7 @@ export default function ProfilePage() {
       await apiFetch(url, { method, token, body: formData })
       
       const res = await apiFetch<any>("/my-restaurants", { token })
-      setRestaurants(Array.isArray(res) ? res : (res?.data || []))
+      setRestaurants(normalizeRestaurantList(res) as any)
       
       toast({ title: editingId ? "Restaurant updated" : "Restaurant added" })
       setOpen(false)
@@ -236,6 +243,7 @@ export default function ProfilePage() {
   const resetDraft = () => {
     setDraft({
       name: "", description: "", city: "", country: "", phone: "", email: "", address: "", cuisine_type: "", is_published: false,
+      slug: "", website: "", timezone: DEFAULT_TIMEZONE,
       logo: null, cover: null, gallery_images: [], keep_gallery_urls: []
     })
     setPreviews({ logo: null, cover: null, gallery: [] })
@@ -321,6 +329,10 @@ export default function ProfilePage() {
                   exit={{ opacity: 0, x: 20 }}
                   className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
                 >
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Slug</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="my-restaurant" value={draft.slug} onChange={e => setDraft(d => ({ ...d, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") }))} />
+                  </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Restaurant Name</Label>
                     <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl focus:ring-primary/20" placeholder="e.g. Harbor View Bistro" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
@@ -436,12 +448,24 @@ export default function ProfilePage() {
                     <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" value={draft.city} onChange={e => setDraft(d => ({ ...d, city: e.target.value }))} />
                   </div>
                   <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Country</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" value={draft.country} onChange={e => setDraft(d => ({ ...d, country: e.target.value }))} />
+                  </div>
+                  <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Phone</Label>
                     <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl font-mono" placeholder="+1..." value={draft.phone} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} />
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Business Email</Label>
                     <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="contact@restaurant.com" value={draft.email} onChange={e => setDraft(d => ({ ...d, email: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Website</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="https://restaurant.com" value={draft.website} onChange={e => setDraft(d => ({ ...d, website: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2 space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Timezone</Label>
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="Africa/Addis_Ababa" value={draft.timezone} onChange={e => setDraft(d => ({ ...d, timezone: e.target.value }))} />
                   </div>
                   <div className="md:col-span-2 flex items-center justify-between p-4 md:p-6 rounded-2xl bg-muted border border-border/50">
                     <div className="space-y-1">
@@ -534,7 +558,7 @@ export default function ProfilePage() {
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 text-[9px] md:text-[10px] font-bold text-muted-foreground truncate">
                                  <div className="flex items-center gap-2"><MapPin className="h-3 w-3 text-primary" /> {res.city || "Location"}</div>
                                  <div className="flex items-center gap-2"><UtensilsCrossed className="h-3 w-3 text-primary" /> {res.cuisine_type || "Cuisine"}</div>
-                                 <div className="flex items-center gap-2"><Activity className="h-3 w-3 text-primary" /> {res.slug ? "Active" : "Pending"}</div>
+                              <div className="flex items-center gap-2"><Activity className="h-3 w-3 text-primary" /> {res.slug ? `/${res.slug}` : "Pending slug"}</div>
                               </div>
                            </div>
 

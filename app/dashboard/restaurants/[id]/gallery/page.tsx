@@ -11,6 +11,13 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Save, Upload, X, ImageIcon, Plus } from "lucide-react"
 import { getImageUrl, getImageUrls } from "@/lib/utils"
+import { findRestaurantById } from "@/lib/restaurant-normalizers"
+
+function isNotFoundError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const msg = err.message.toLowerCase()
+  return msg.includes("404") || msg.includes("not found")
+}
 
 export default function GalleryPage() {
   const params = useParams()
@@ -33,16 +40,15 @@ export default function GalleryPage() {
     try {
       setLoading(true)
       const res = await apiFetch<any>("/my-restaurants", { token })
-      const list = Array.isArray(res) ? res : (res?.data || [])
-      const d = list.find((item: any) => item.id === id)
+      const d = findRestaurantById(res, id)
 
       if (d) {
         // Robust gallery lookup
-        const source = 
-          (d.gallery_urls?.length ? d.gallery_urls : null) || 
-          (d.gallery_image_urls?.length ? d.gallery_image_urls : null) || 
+        const source =
+          (Array.isArray(d.gallery) && d.gallery.length ? d.gallery : null) ||
+          (d.gallery_urls?.length ? d.gallery_urls : null) ||
+          (d.gallery_image_urls?.length ? d.gallery_image_urls : null) ||
           (d.gallery_images?.length ? d.gallery_images : null) ||
-          (d.gallery?.length ? d.gallery : null) ||
           (d.photos?.length ? d.photos : null) ||
           (d.images?.length ? d.images : null)
 
@@ -85,23 +91,88 @@ export default function GalleryPage() {
   }
 
   const handleSave = async () => {
+    if (!token || !id) return
+
     try {
       setSaving(true)
       setUploadProgress(0)
-      const formData = new FormData()
-      
-      // Append URLs we want to keep
-      keepGalleryUrls.forEach(url => formData.append("keep_gallery_urls", url))
-      
-      // Append new files
-      newImages.forEach(file => formData.append("gallery_images", file))
+      const removedUrls = initialGallery.filter((url) => !keepGalleryUrls.includes(url))
 
-      await apiFetchWithProgress(`/my-restaurants/${id}`, {
-        method: "PATCH",
-        token,
-        body: formData,
-        onProgress: (p) => setUploadProgress(p)
-      })
+      if (removedUrls.length === 0 && newImages.length === 0) {
+        toast({ title: "No changes", description: "Gallery is already up to date." })
+        return
+      }
+
+      let usePatchFallback = false
+
+      if (removedUrls.length > 0) {
+        try {
+          await apiFetch(`/my-restaurants/${id}/gallery`, {
+            method: "DELETE",
+            token,
+            body: { image_urls: removedUrls },
+          })
+        } catch (err) {
+          if (isNotFoundError(err)) {
+            usePatchFallback = true
+          } else {
+            throw err
+          }
+        }
+      }
+
+      if (newImages.length > 0 && !usePatchFallback) {
+        const uploadFormData = new FormData()
+        newImages.forEach((file) => {
+          uploadFormData.append("gallery_images", file)
+        })
+
+        const uploadMethod = keepGalleryUrls.length === 0 ? "PUT" : "POST"
+
+        try {
+          await apiFetchWithProgress(`/my-restaurants/${id}/gallery`, {
+            method: uploadMethod,
+            token,
+            body: uploadFormData,
+            onProgress: (p) => setUploadProgress(p),
+          })
+        } catch (err) {
+          if (isNotFoundError(err)) {
+            usePatchFallback = true
+          } else {
+            throw err
+          }
+        }
+      }
+
+      if (usePatchFallback) {
+        if (removedUrls.length > 0) {
+          toast({
+            title: "Partial support on this backend",
+            description: "This server version cannot remove existing gallery images from the dashboard yet. New uploads can still be added.",
+            variant: "destructive",
+          })
+        }
+
+        if (newImages.length === 0) {
+          await load()
+          return
+        }
+
+        const fallbackForm = new FormData()
+
+        newImages.forEach((file) => {
+          fallbackForm.append("gallery_images", file)
+        })
+
+        await apiFetchWithProgress(`/my-restaurants/${id}`, {
+          method: "PATCH",
+          token,
+          body: fallbackForm,
+          onProgress: (p) => setUploadProgress(p),
+        })
+      }
+
       toast({ title: "Success", description: "Gallery updated" })
       
       // Reset local state and refetch
@@ -140,7 +211,7 @@ export default function GalleryPage() {
         </Button>
       </div>
 
-      <Card className="bg-card/40 border-border/50 rounded-2xl min-h-[400px]">
+      <Card className="bg-card/40 border-border/50 rounded-2xl min-h-100">
         <CardContent className="pt-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {/* Existing Images */}
