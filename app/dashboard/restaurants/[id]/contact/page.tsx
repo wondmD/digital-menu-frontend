@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Save, MapPin, Phone, Mail, Globe } from "lucide-react"
+import { DEFAULT_TIMEZONE, normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
 export default function ContactLocationPage() {
   const params = useParams()
@@ -24,9 +25,11 @@ export default function ContactLocationPage() {
   const [data, setData] = useState({
     phone: "",
     email: "",
+    website: "",
     address: "",
     city: "",
-    country: "Ethiopia"
+    country: "",
+    timezone: DEFAULT_TIMEZONE,
   })
 
   useEffect(() => {
@@ -36,16 +39,18 @@ export default function ContactLocationPage() {
         setLoading(true)
         // Direct GET /my-restaurants/:id 404s, so we use the list.
         const res = await apiFetch<any>("/my-restaurants", { token })
-        const list = Array.isArray(res) ? res : (res?.data || [])
+        const list = normalizeRestaurantList(res)
         const d = list.find((item: any) => item.id === id)
 
         if (d) {
           setData({
             phone: d.phone || "",
             email: d.email || "",
+            website: d.website || "",
             address: d.address || "",
             city: d.city || "",
-            country: d.country || "Ethiopia"
+            country: d.country || "",
+            timezone: d.timezone || DEFAULT_TIMEZONE,
           })
         } else {
           throw new Error("Restaurant not found in your account")
@@ -67,10 +72,19 @@ export default function ContactLocationPage() {
   const handleSave = async () => {
     try {
       setSaving(true)
+      const payload = {
+        phone: data.phone,
+        email: data.email,
+        website: data.website,
+        address: data.address,
+        city: data.city,
+        country: data.country,
+        timezone: data.timezone || DEFAULT_TIMEZONE,
+      }
       await apiFetch(`/my-restaurants/${id}`, {
         method: "PATCH",
         token,
-        body: data // apiFetch will handle JSON.stringify
+        body: payload
       })
       toast({ title: "Success", description: "Contact details updated" })
       router.refresh()
@@ -127,6 +141,17 @@ export default function ContactLocationPage() {
                       className="bg-background border-border/50 h-12 rounded-xl" 
                    />
                 </div>
+                 <div className="space-y-2 md:col-span-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                     <Globe className="h-3 w-3" /> Website
+                   </Label>
+                   <Input
+                     value={data.website}
+                     placeholder="https://restaurant.com"
+                     onChange={e => setData(d => ({ ...d, website: e.target.value }))}
+                     className="bg-background border-border/50 h-12 rounded-xl"
+                   />
+                 </div>
              </div>
           </CardContent>
         </Card>
@@ -155,11 +180,21 @@ export default function ContactLocationPage() {
                    </Label>
                    <Input 
                       value={data.country} 
-                      disabled
-                      className="bg-muted border-border/50 h-12 rounded-xl opacity-60" 
+                     placeholder="e.g. Ethiopia"
+                     onChange={e => setData(d => ({ ...d, country: e.target.value }))}
+                     className="bg-background border-border/50 h-12 rounded-xl"
                    />
                 </div>
              </div>
+               <div className="space-y-2">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Timezone</Label>
+                 <Input
+                   value={data.timezone}
+                   placeholder="Africa/Addis_Ababa"
+                   onChange={e => setData(d => ({ ...d, timezone: e.target.value }))}
+                   className="bg-background border-border/50 h-12 rounded-xl"
+                 />
+               </div>
              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
                    Full Address

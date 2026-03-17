@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Save, Upload, X, ImageIcon, Plus } from "lucide-react"
 import { getImageUrl, getImageUrls } from "@/lib/utils"
+import { normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
 export default function GalleryPage() {
   const params = useParams()
@@ -33,16 +34,16 @@ export default function GalleryPage() {
     try {
       setLoading(true)
       const res = await apiFetch<any>("/my-restaurants", { token })
-      const list = Array.isArray(res) ? res : (res?.data || [])
+      const list = normalizeRestaurantList(res)
       const d = list.find((item: any) => item.id === id)
 
       if (d) {
         // Robust gallery lookup
-        const source = 
-          (d.gallery_urls?.length ? d.gallery_urls : null) || 
-          (d.gallery_image_urls?.length ? d.gallery_image_urls : null) || 
+        const source =
+          (Array.isArray(d.gallery) && d.gallery.length ? d.gallery : null) ||
+          (d.gallery_urls?.length ? d.gallery_urls : null) ||
+          (d.gallery_image_urls?.length ? d.gallery_image_urls : null) ||
           (d.gallery_images?.length ? d.gallery_images : null) ||
-          (d.gallery?.length ? d.gallery : null) ||
           (d.photos?.length ? d.photos : null) ||
           (d.images?.length ? d.images : null)
 
@@ -89,12 +90,25 @@ export default function GalleryPage() {
       setSaving(true)
       setUploadProgress(0)
       const formData = new FormData()
+      const galleryJson = keepGalleryUrls.map((url) => ({ url }))
       
       // Append URLs we want to keep
-      keepGalleryUrls.forEach(url => formData.append("keep_gallery_urls", url))
+      keepGalleryUrls.forEach(url => {
+        formData.append("keep_gallery_urls", url)
+        formData.append("gallery_urls", url)
+        formData.append("existing_gallery_urls", url)
+      })
+      formData.append("gallery", JSON.stringify(galleryJson))
       
       // Append new files
-      newImages.forEach(file => formData.append("gallery_images", file))
+      newImages.forEach(file => {
+        formData.append("gallery_images", file)
+        formData.append("gallery_image_files", file)
+        formData.append("gallery_files", file)
+        formData.append("gallery_image", file)
+        formData.append("images", file)
+        formData.append("gallery", file)
+      })
 
       await apiFetchWithProgress(`/my-restaurants/${id}`, {
         method: "PATCH",
@@ -102,7 +116,31 @@ export default function GalleryPage() {
         body: formData,
         onProgress: (p) => setUploadProgress(p)
       })
-      toast({ title: "Success", description: "Gallery updated" })
+
+      const verifyRes = await apiFetch<any>("/my-restaurants", { token })
+      const list = normalizeRestaurantList(verifyRes)
+      const verified = list.find((item: any) => item.id === id)
+      const persistedUrls = getImageUrls(
+        verified?.gallery ||
+        verified?.gallery_urls ||
+        verified?.gallery_image_urls ||
+        verified?.gallery_images ||
+        []
+      )
+
+      const keptPersisted = keepGalleryUrls.every((url) => persistedUrls.includes(url))
+      const grewAfterUpload = newImages.length === 0 || persistedUrls.length > keepGalleryUrls.length
+      const persistedEnough = keptPersisted && grewAfterUpload
+
+      if (newImages.length > 0 && !persistedEnough) {
+        toast({
+          title: "Gallery not fully persisted",
+          description: "Upload request succeeded, but backend did not return expected gallery updates.",
+          variant: "destructive",
+        })
+      } else {
+        toast({ title: "Success", description: "Gallery updated" })
+      }
       
       // Reset local state and refetch
       setNewImages([])
@@ -140,7 +178,7 @@ export default function GalleryPage() {
         </Button>
       </div>
 
-      <Card className="bg-card/40 border-border/50 rounded-2xl min-h-[400px]">
+      <Card className="bg-card/40 border-border/50 rounded-2xl min-h-100">
         <CardContent className="pt-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {/* Existing Images */}

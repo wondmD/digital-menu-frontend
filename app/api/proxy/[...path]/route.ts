@@ -53,7 +53,7 @@ async function handle(request: Request, context: { params: any }) {
   const queryParams = new URLSearchParams(url.search)
   const paramsToDelete = [
     "restaurant_id", "category_id", "restaurantId", "categoryId",
-    "slug", "restaurant_slug", "RestaurantSlug"
+    "RestaurantSlug"
   ]
   paramsToDelete.forEach(p => queryParams.delete(p))
   const queryString = queryParams.toString() ? `?${queryParams.toString()}` : ""
@@ -77,7 +77,6 @@ async function handle(request: Request, context: { params: any }) {
         const k = key.toLowerCase().replace(/[^a-z0-9]/g, "")
         // Extremely aggressive scrubbing of any field that sounds like slug or id
         if (k === "restaurantid" || k === "categoryid" || 
-            k === "slug" || k === "restaurantslug" || 
             k === "id" || k === "restaurant_id") {
           console.log(`\x1b[33m[API Proxy Scrub]\x1b[0m Removed field: ${key}`)
           continue
@@ -112,7 +111,7 @@ async function handle(request: Request, context: { params: any }) {
       // Extremely aggressive scrubbing for JSON payloads
       const keysToDelete = [
         "restaurant_id", "category_id", "restaurantId", "categoryId", 
-        "RestaurantID", "CategoryID", "slug", "Slug", "restaurant_slug", "RestaurantSlug"
+        "RestaurantID", "CategoryID", "RestaurantSlug"
       ]
       
       keysToDelete.forEach(key => {

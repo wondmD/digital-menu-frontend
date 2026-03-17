@@ -12,6 +12,34 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Save, Upload, X, Building2, ImageIcon } from "lucide-react"
 import { getImageUrl } from "@/lib/utils"
+import { normalizeRestaurantList } from "@/lib/restaurant-normalizers"
+
+const PREDEFINED_THEMES = [
+  {
+    id: "classic-elegance",
+    name: "Classic Elegance",
+    description: "Warm, premium dining look with subtle contrast.",
+    settings: { preset: "classic-elegance", primary: "#B45309", accent: "#F59E0B", surface: "light" },
+  },
+  {
+    id: "modern-luxe",
+    name: "Modern Luxe",
+    description: "Dark, bold style for upscale modern restaurants.",
+    settings: { preset: "modern-luxe", primary: "#E11D48", accent: "#FB7185", surface: "dark" },
+  },
+  {
+    id: "fresh-organic",
+    name: "Fresh Organic",
+    description: "Soft and natural palette for healthy/organic brands.",
+    settings: { preset: "fresh-organic", primary: "#15803D", accent: "#4ADE80", surface: "light" },
+  },
+  {
+    id: "royal-night",
+    name: "Royal Night",
+    description: "High-contrast evening dining with elegant highlights.",
+    settings: { preset: "royal-night", primary: "#4338CA", accent: "#818CF8", surface: "dark" },
+  },
+] as const
 
 export default function BrandingPage() {
   const params = useParams()
@@ -26,6 +54,7 @@ export default function BrandingPage() {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [draft, setDraft] = useState<any>({ logo: null, cover: null })
   const [previews, setPreviews] = useState<any>({ logo: null, cover: null })
+  const [selectedThemeId, setSelectedThemeId] = useState<string>(PREDEFINED_THEMES[0].id)
 
   const load = async () => {
     if (!token || !id) return
@@ -33,14 +62,19 @@ export default function BrandingPage() {
       setLoading(true)
       // Direct GET /my-restaurants/:id 404s, so we use the list.
       const res = await apiFetch<any>("/my-restaurants", { token })
-      const list = Array.isArray(res) ? res : (res?.data || [])
+      const list = normalizeRestaurantList(res)
       const d = list.find((item: any) => item.id === id)
 
       if (d) {
         setPreviews({
-          logo: d.logo_url || d.logo_image_url || d.logo || null,
-          cover: d.cover_url || d.cover_image_url || d.cover || null
+          logo: d.logo_url || null,
+          cover: d.cover_image_url || null
         })
+        const preset = d.theme_settings?.preset
+        const matched = PREDEFINED_THEMES.find((theme) => theme.id === preset)
+        if (matched) {
+          setSelectedThemeId(matched.id)
+        }
       } else {
         throw new Error("Restaurant not found in your account")
       }
@@ -69,17 +103,20 @@ export default function BrandingPage() {
   }
 
   const handleSave = async () => {
-    if (!draft.logo && !draft.cover) {
-      toast({ title: "No changes", description: "Please upload a logo or cover image first." })
-      return
-    }
-
     try {
       setSaving(true)
       setUploadProgress(0)
       const formData = new FormData()
-      if (draft.logo) formData.append("logo", draft.logo)
-      if (draft.cover) formData.append("cover", draft.cover)
+      const selectedTheme = PREDEFINED_THEMES.find((theme) => theme.id === selectedThemeId) || PREDEFINED_THEMES[0]
+      formData.append("theme_settings", JSON.stringify(selectedTheme.settings))
+      if (draft.logo) {
+        formData.append("logo", draft.logo)
+        formData.append("logo_image", draft.logo)
+      }
+      if (draft.cover) {
+        formData.append("cover", draft.cover)
+        formData.append("cover_image", draft.cover)
+      }
 
       console.log("[Branding] Saving visuals with keys:", Array.from(formData.keys()))
 
@@ -206,6 +243,31 @@ export default function BrandingPage() {
             Save Branding Changes
           </Button>
         </div>
+
+        <Card className="bg-card/40 border-border/50 rounded-2xl overflow-hidden">
+          <CardHeader>
+            <CardTitle>Theme Style</CardTitle>
+            <CardDescription>Choose a predefined visual theme. This saves to `theme_settings` automatically.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid md:grid-cols-2 gap-4">
+            {PREDEFINED_THEMES.map((theme) => (
+              <button
+                key={theme.id}
+                type="button"
+                onClick={() => setSelectedThemeId(theme.id)}
+                className={`text-left p-4 rounded-xl border transition-all ${selectedThemeId === theme.id ? "border-primary bg-primary/5" : "border-border bg-background hover:border-primary/40"}`}
+              >
+                <p className="font-bold text-sm">{theme.name}</p>
+                <p className="text-xs text-muted-foreground mt-1">{theme.description}</p>
+                <div className="flex items-center gap-2 mt-3">
+                  <span className="h-4 w-4 rounded-full border" style={{ backgroundColor: theme.settings.primary }} />
+                  <span className="h-4 w-4 rounded-full border" style={{ backgroundColor: theme.settings.accent }} />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{theme.settings.surface}</span>
+                </div>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
