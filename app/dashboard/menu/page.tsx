@@ -86,6 +86,34 @@ type MenuItem = {
   category_id: string
 }
 
+function extractList(payload: any): any[] {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload?.data?.items)) return payload.data.items
+  if (Array.isArray(payload?.data?.data)) return payload.data.data
+  if (Array.isArray(payload?.items)) return payload.items
+  if (Array.isArray(payload?.results)) return payload.results
+  return []
+}
+
+function normalizeItem(raw: any): MenuItem {
+  return {
+    ...raw,
+    id: String(raw?.id || raw?.ID || raw?.uuid || `temp-${Math.random()}`),
+    name: String(raw?.name || "Untitled Asset"),
+    description: raw?.description || "",
+    price: Number(raw?.price || 0),
+    currency: String(raw?.currency || "USD"),
+    image: raw?.image,
+    images: raw?.images,
+    image_url: raw?.image_url,
+    image_urls: raw?.image_urls,
+    category_id: String(raw?.category_id || ""),
+    is_available: Boolean(raw?.available ?? raw?.is_available ?? true),
+    available: Boolean(raw?.available ?? raw?.is_available ?? true),
+  }
+}
+
 function MenuManagementContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
@@ -188,6 +216,16 @@ function MenuManagementContent() {
     })
   }, [items, searchQuery, availabilityFilter])
 
+  const refreshItems = async (targetRestaurantId: string, targetCategoryId: string) => {
+    if (!token || !targetRestaurantId || !targetCategoryId) {
+      setItems([])
+      return
+    }
+    const res = await apiFetch<any>(`/my-restaurants/${targetRestaurantId}/categories/${targetCategoryId}/items`, { token })
+    const itemsList = extractList(res)
+    setItems(itemsList.map(normalizeItem))
+  }
+
   // Initial Load: Restaurants
   useEffect(() => {
     if (!ready) return
@@ -241,13 +279,7 @@ function MenuManagementContent() {
       try {
         const res = await apiFetch<any>(`/my-restaurants/${restaurantId}/categories`, { token })
         
-        let list: Category[] = []
-        if (Array.isArray(res)) {
-          list = res
-        } else if (res && typeof res === 'object') {
-          const raw = res.data || res.items || res
-          list = Array.isArray(raw) ? raw : (raw.items || [])
-        }
+        const list = extractList(res) as Category[]
 
         setCategories(list)
         
@@ -280,38 +312,9 @@ function MenuManagementContent() {
       try {
         setItemsLoading(true)
         const res = await apiFetch<any>(`/my-restaurants/${restaurantId}/categories/${categoryId}/items`, { token })
-        
         if (!active) return
-
-        let itemsList: any[] = []
-        if (Array.isArray(res)) {
-          itemsList = res
-        } else if (res && typeof res === 'object') {
-          // Exhaustive check for array placement including the provided CURL response structure
-          if (Array.isArray(res.data)) {
-            itemsList = res.data
-          } else if (res.data && typeof res.data === 'object') {
-             if (Array.isArray(res.data.items)) itemsList = res.data.items
-             else if (Array.isArray(res.data.data)) itemsList = res.data.data
-             else if (Array.isArray(res.data.results)) itemsList = res.data.results
-          } else if (Array.isArray(res.items)) {
-            itemsList = res.items
-          } else if (Array.isArray(res.results)) {
-            itemsList = res.results
-          }
-        }
-
-        // Safety map and ensuring data availability
-        const sanitizedItems = itemsList.map((item: any) => ({
-          ...item,
-          id: item.id || item.ID || item.uuid || `temp-${Math.random()}`,
-          name: item.name || "Untitled Asset",
-          price: item.price || 0,
-          currency: item.currency || "USD",
-          is_available: item.available ?? item.is_available ?? true
-        }))
-
-        setItems(sanitizedItems)
+        const itemsList = extractList(res)
+        setItems(itemsList.map(normalizeItem))
       } catch (err: any) {
         if (active) setItems([])
         console.error("Error loading items:", err)
@@ -391,8 +394,7 @@ function MenuManagementContent() {
       formData.append("price", itemDraft.price.toString())
       formData.append("currency", itemDraft.currency)
       
-      // Items are live by default as per user request
-      formData.append("is_available", "true")
+      formData.append("is_available", String(itemDraft.is_available))
       formData.append("is_published", "true")
       
       itemDraft.images.forEach((img) => {
@@ -410,28 +412,9 @@ function MenuManagementContent() {
       })
       toast({ title: activeItem ? "Item updated" : "Item created" })
       setUploadProgress(0)
-      setAddItemOpen(false)
-      setEditItemOpen(false)
-      
-      const res = await apiFetch<any>(`/my-restaurants/${restaurantId}/categories/${categoryId}/items`, { token })
-      
-      let itemsList: any[] = []
-      if (Array.isArray(res)) {
-        itemsList = res
-      } else if (res && typeof res === 'object') {
-        if (Array.isArray(res.data)) itemsList = res.data
-        else if (res.data && typeof res.data === 'object' && Array.isArray(res.data.items)) itemsList = res.data.items
-        else if (res.items && Array.isArray(res.items)) itemsList = res.items
-      }
-
-      setItems(itemsList.map((item: any) => ({
-        ...item,
-        id: item.id || item.ID || item.uuid || `temp-${Math.random()}`,
-        name: item.name || "Untitled Asset",
-        price: item.price || 0,
-        currency: item.currency || "USD",
-        is_available: item.available ?? item.is_available ?? true
-      })))
+      setItemPanelOpen(false)
+      setActiveItem(null)
+      await refreshItems(restaurantId, categoryId)
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" })
     } finally {
@@ -449,26 +432,7 @@ function MenuManagementContent() {
       })
       toast({ title: "Item deleted" })
       setDeleteItemOpen(false)
-      
-      const res = await apiFetch<any>(`/my-restaurants/${restaurantId}/categories/${categoryId}/items`, { token })
-      
-      let itemsList: any[] = []
-      if (Array.isArray(res)) {
-        itemsList = res
-      } else if (res && typeof res === 'object') {
-        if (Array.isArray(res.data)) itemsList = res.data
-        else if (res.data && typeof res.data === 'object' && Array.isArray(res.data.items)) itemsList = res.data.items
-        else if (res.items && Array.isArray(res.items)) itemsList = res.items
-      }
-
-      setItems(itemsList.map((item: any) => ({
-        ...item,
-        id: item.id || item.ID || item.uuid || `temp-${Math.random()}`,
-        name: item.name || "Untitled Asset",
-        price: item.price || 0,
-        currency: item.currency || "USD",
-        is_available: item.available ?? item.is_available ?? true
-      })))
+      await refreshItems(restaurantId, categoryId)
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" })
     } finally {
@@ -728,7 +692,7 @@ function MenuManagementContent() {
                                 </div>
                              </div>
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 group-hover:text-primary transition-all text-muted-foreground/40" onClick={() => { setActiveItem(item); setItemPanelOpen(true); }}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 group-hover:text-primary transition-all text-muted-foreground/40" onClick={() => { setActiveItem(item); setItemDraft({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "0", currency: item.currency || "USD", is_available: isAvailable, images: getImageUrls(rawImages) }); setItemPanelOpen(true); }}>
                              <ChevronRight className="h-5 w-5 transform group-hover:translate-x-0.5 transition-transform" />
                           </Button>
                         </div>

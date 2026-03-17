@@ -26,9 +26,11 @@ export default function Template1({
 
   const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; count: number }>>({})
 
-  const filteredItems = categoryItems.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const query = searchQuery.toLowerCase()
+  const filteredItems = categoryItems.filter((item) => {
+    if (!query) return true
+    return item.name.toLowerCase().includes(query) || (item.description || "").toLowerCase().includes(query)
+  })
 
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
