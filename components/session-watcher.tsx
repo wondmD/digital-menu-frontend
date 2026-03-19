@@ -7,7 +7,8 @@ export function SessionWatcher() {
   const { data: session } = useSession()
 
   useEffect(() => {
-    if ((session?.user as any)?.error === "RefreshAccessTokenError") {
+    const authError = (session?.user as any)?.error
+    if (authError === "SessionExpired" || authError === "RefreshAccessTokenError") {
       signOut({ callbackUrl: "/login" })
     }
   }, [session])

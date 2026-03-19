@@ -96,17 +96,10 @@ async function handle(request: Request, context: { params: any }) {
         }
       }
 
-      // Inject snake_case IDs ONLY for creation endpoints, matching the Postman document
-      // and backend requirements while avoiding collisions on update/delete endpoints.
-      if (isPost) {
-        if (rId && (isItemsAction || isCategoriesAction)) {
-          newFormData.append("restaurant_id", rId)
-        }
-        if (cId && isItemsAction) {
-          console.log(`\x1b[32m[API Proxy Inject]\x1b[0m Injected category_id: ${cId}`)
-          newFormData.append("category_id", cId)
-        }
-      }
+      // Do not inject IDs from path into body for create endpoints.
+      // Item/category routes already include identifiers in the URL and some backend
+      // versions derive SQL values from path params; duplicating IDs in body can
+      // produce column/value count mismatches.
 
       body = newFormData
     } else {
@@ -133,16 +126,7 @@ async function handle(request: Request, context: { params: any }) {
         }
       })
 
-      // Inject IDs for POST requests
-      if (isPost) {
-        if (rId && (isItemsAction || isCategoriesAction)) {
-          rawBody.restaurant_id = rId
-        }
-        if (cId && isItemsAction) {
-          console.log(`\x1b[32m[API Proxy Inject]\x1b[0m Injected category_id: ${cId}`)
-          rawBody.category_id = cId
-        }
-      }
+      // Do not inject IDs from path into JSON body for create endpoints.
 
       body = JSON.stringify(rawBody)
     }

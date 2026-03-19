@@ -1,13 +1,11 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Star, Sparkles, Clock, ChefHat } from "lucide-react"
+import { Sparkles, Clock, ChefHat } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 type Restaurant = {
   name: string
-  rating?: number
-  review_count?: number
   cuisine_type?: string
   opening_hours?: string
 }
@@ -19,17 +17,17 @@ interface ExperienceHighlightsSectionProps {
 export function ExperienceHighlightsSection({ hotel }: ExperienceHighlightsSectionProps) {
   const stats = [
     {
-      title: "Guest Rating",
-      value: hotel.rating ? `${hotel.rating.toFixed(1)}/5` : "4.9/5",
-      subtitle: hotel.review_count ? `${hotel.review_count}+ reviews` : "500+ reviews",
-      icon: Star,
+      title: "Chef's Signature",
+      value: "Seasonal Tasting",
+      subtitle: "Curated by our kitchen team",
+      icon: ChefHat,
       accent: "from-amber-500/20 to-amber-500/5",
     },
     {
       title: "Signature Cuisine",
       value: hotel.cuisine_type || "Seasonal Contemporary",
       subtitle: "Chef curated menu",
-      icon: ChefHat,
+      icon: Sparkles,
       accent: "from-primary/20 to-primary/5",
     },
     {
@@ -43,7 +41,7 @@ export function ExperienceHighlightsSection({ hotel }: ExperienceHighlightsSecti
       title: "Atmosphere",
       value: "Elegant & Warm",
       subtitle: "Designed for celebrations",
-      icon: Sparkles,
+      icon: ChefHat,
       accent: "from-rose-500/20 to-rose-500/5",
     },
   ]

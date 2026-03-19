@@ -250,7 +250,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
           </div>
           
           <Button variant="outline" size="sm" asChild className="rounded-xl border-border bg-muted text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted h-8 md:h-10 px-4 md:px-6">
-             <Link href="/menu/golden-leaf">View site</Link>
+             <Link href="/golden-leaf">View site</Link>
           </Button>
         </header>
 

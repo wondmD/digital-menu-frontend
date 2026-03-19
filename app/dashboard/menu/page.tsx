@@ -382,34 +382,68 @@ function MenuManagementContent() {
     if (!token || !itemDraft.name.trim() || !restaurantId || !categoryId) return
     try {
       setSavingItem(true)
+      const numericPrice = Number(itemDraft.price || 0)
+      if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
+        toast({ title: "Invalid price", description: "Please enter a valid price greater than 0.", variant: "destructive" })
+        return
+      }
+
+      if (!activeItem && itemDraft.images.some((img) => img instanceof File)) {
+        toast({
+          title: "Image will be uploaded after create",
+          description: "This backend requires creating the item first. Save once, then edit the item to add images.",
+        })
+      }
+
       const method = activeItem ? "PATCH" : "POST"
       const url = activeItem
         ? `/my-restaurants/${restaurantId}/categories/${categoryId}/items/${activeItem.id}`
         : `/my-restaurants/${restaurantId}/categories/${categoryId}/items`
-      
-      // Use FormData to support image uploads
-      const formData = new FormData()
-      formData.append("name", itemDraft.name.trim())
-      formData.append("description", itemDraft.description.trim())
-      formData.append("price", itemDraft.price.toString())
-      formData.append("currency", itemDraft.currency)
-      
-      formData.append("is_available", String(itemDraft.is_available))
-      formData.append("is_published", "true")
-      
-      itemDraft.images.forEach((img) => {
-        if (img instanceof File) {
-          formData.append("image", img)
+
+      const buildFormData = (minimal: boolean) => {
+        const fd = new FormData()
+        fd.append("name", itemDraft.name.trim())
+        fd.append("price", String(numericPrice))
+        fd.append("currency", itemDraft.currency || "ETB")
+        fd.append("is_available", String(itemDraft.is_available))
+
+        if (!minimal) {
+          fd.append("description", itemDraft.description.trim())
         }
-      })
+
+        // Keep uploads only for edit until create endpoint accepts files consistently.
+        if (activeItem) {
+          const newFiles = itemDraft.images.filter((img): img is File => img instanceof File)
+          for (const file of newFiles) {
+            fd.append("image", file)
+          }
+        }
+
+        return fd
+      }
 
       setUploadProgress(0)
-      await apiFetchWithProgress(url, { 
-        method, 
-        token, 
-        body: formData,
-        onProgress: (pct) => setUploadProgress(pct)
-      })
+      try {
+        await apiFetchWithProgress(url, {
+          method,
+          token,
+          body: buildFormData(false),
+          onProgress: (pct) => setUploadProgress(pct),
+        })
+      } catch (err: any) {
+        const msg = String(err?.message || "")
+        const shouldRetryMinimal = !activeItem && (msg.includes("SQLSTATE 42601") || msg.includes("more expression than target columns"))
+        if (!shouldRetryMinimal) {
+          throw err
+        }
+
+        await apiFetchWithProgress(url, {
+          method,
+          token,
+          body: buildFormData(true),
+          onProgress: (pct) => setUploadProgress(pct),
+        })
+      }
       toast({ title: activeItem ? "Item updated" : "Item created" })
       setUploadProgress(0)
       setItemPanelOpen(false)

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getImageUrl } from "@/lib/utils"
 import { SocialLinks } from "@/components/restaurant/SocialLinks"
-import { Clock, Star, MapPin, Phone, Mail, Utensils, Sparkles } from "lucide-react"
+import { Clock, MapPin, Phone, Mail, Utensils, Sparkles } from "lucide-react"
 
 type Restaurant = {
   id: string
@@ -22,8 +22,6 @@ type Restaurant = {
   cover_url?: string
   cuisine_type?: string
   opening_hours?: string
-  rating?: number
-  review_count?: number
   instagram_url?: string
   facebook_url?: string
   twitter_url?: string
@@ -140,17 +138,6 @@ export function HeroSection({
               <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-bold text-white leading-tight mb-4">
                 {hotel.name}
               </h1>
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-6">
-                <div className="flex items-center gap-1 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-                  <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                  <span className="text-white font-semibold">
-                    {hotel.rating ? `${hotel.rating}/5` : "4.9"}
-                  </span>
-                </div>
-                <div className="text-white/80 text-sm">
-                  ({hotel.review_count || "500"}+ reviews)
-                </div>
-              </div>
             </motion.div>
 
             {/* Tagline */}
@@ -200,7 +187,7 @@ export function HeroSection({
                 <Button 
                   size="lg" 
                   variant="secondary" 
-                  className="w-full sm:w-auto rounded-xl px-8 h-14 text-base font-semibold bg-white/10 text-white border border-white/30 backdrop-blur-sm hover:bg-white/20 transition-all duration-300" 
+                  className="w-full sm:w-auto rounded-xl px-8 h-14 text-base font-semibold bg-white text-slate-900 border border-white/40 backdrop-blur-sm hover:bg-white/90 dark:bg-white dark:text-slate-900 transition-all duration-300" 
                   asChild
                 >
                   <Link href="#reservation">
@@ -213,7 +200,7 @@ export function HeroSection({
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="w-full sm:w-auto rounded-xl px-8 h-14 text-base font-semibold border-white/30 text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300" 
+                  className="w-full sm:w-auto rounded-xl px-8 h-14 text-base font-semibold bg-white/95 text-slate-900 border border-white/40 hover:bg-white dark:bg-white/15 dark:text-white dark:border-white/30 dark:hover:bg-white/20 backdrop-blur-sm transition-all duration-300" 
                   asChild
                 >
                   <a href={mapLink} target="_blank" rel="noreferrer">
@@ -234,7 +221,7 @@ export function HeroSection({
               {hotel.address && (
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  <span className="text-sm">{hotel.address.split(",")[0]}</span>
+                  <span className="text-sm">{hotel.address}</span>
                 </div>
               )}
               {hotel.phone && (
@@ -267,16 +254,15 @@ export function HeroSection({
                 transition={{ duration: 0.8, delay: 0.5 }}
                 className="relative"
               >
-                <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 rounded-3xl p-2">
+                <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 rounded-3xl overflow-hidden border border-white/30 bg-white/10 backdrop-blur-md p-4">
                   <Image 
                     src={logo} 
                     alt={hotel.name} 
                     fill 
-                    className="object-contain drop-shadow-2xl" 
+                    className="object-contain p-2 drop-shadow-2xl" 
                   />
                 </div>
-                <div className="absolute inset-0 rounded-[2rem] border border-white/30" />
-                <div className="absolute inset-0 rounded-[2rem] border border-white/10 translate-x-2 translate-y-2" />
+                <div className="absolute inset-0 rounded-[2rem] border border-white/10 pointer-events-none" />
               </motion.div>
             )}
 

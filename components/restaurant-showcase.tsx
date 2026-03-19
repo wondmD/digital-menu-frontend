@@ -6,6 +6,7 @@ import { motion } from "framer-motion"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { apiFetch } from "@/lib/api-client"
+import { fetchPublicRestaurantBySlugOrId } from "@/lib/public-restaurant"
 import { getImageUrl } from "@/lib/utils"
 import { normalizeRestaurant, type ManagedRestaurant } from "@/lib/restaurant-normalizers"
 import { Button } from "@/components/ui/button"
@@ -52,6 +53,24 @@ type EventItem = {
 interface RestaurantShowcaseProps {
   hotelSlug: string
   initialData?: any
+}
+
+const GEO_TAG_REGEX = /\s*\[geo:([-+]?\d*\.?\d+),\s*([-+]?\d*\.?\d+)\]\s*$/i
+const COORDINATE_ADDRESS_REGEX = /^\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*$/
+
+function normalizeAddress(address: string): string {
+  if (!address) return ""
+  return address.replace(GEO_TAG_REGEX, "").trim()
+}
+
+function parseCoordinateAddress(address: string): { lat: number; lng: number } | null {
+  const match = address.match(COORDINATE_ADDRESS_REGEX)
+  if (!match) return null
+
+  const lat = Number(match[1])
+  const lng = Number(match[2])
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  return { lat, lng }
 }
 
 type RestaurantVisualTheme = {
@@ -157,18 +176,30 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
   }, [])
 
   useEffect(() => {
-    if (initialData) return
-
     const loadRestaurant = async () => {
       try {
-        setLoading(true)
-        const res = (await apiFetch("/restaurants/" + hotelSlug)) as any
-        const data = res?.data || res
+        if (!initialData) {
+          setLoading(true)
+        }
+        setError(null)
+
+        let data = await fetchPublicRestaurantBySlugOrId(hotelSlug)
+        if (!data) {
+          const res = (await apiFetch("/restaurants/" + hotelSlug)) as any
+          data = res?.data || res
+        }
+
+        if (!data) {
+          throw new Error("Restaurant not found")
+        }
+
         setRestaurant(normalizeRestaurant(data))
       } catch (err: any) {
         setError(err?.message || "Failed to load restaurant")
       } finally {
-        setLoading(false)
+        if (!initialData) {
+          setLoading(false)
+        }
       }
     }
 
@@ -179,14 +210,16 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
     if (!restaurant) return
 
     const loadExtras = async () => {
+      const restaurantIdentifier = String(restaurant.id || hotelSlug)
+
       try {
-        const categoriesRes = (await apiFetch("/restaurants/" + hotelSlug + "/categories")) as any
+        const categoriesRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/categories")) as any
         const categories = extractList(categoriesRes)
 
         const collected: MenuItem[] = []
         for (const category of categories.slice(0, 6)) {
           try {
-            const itemsRes = (await apiFetch("/restaurants/" + hotelSlug + "/categories/" + category.id + "/items")) as any
+            const itemsRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/categories/" + category.id + "/items")) as any
             const items = extractList(itemsRes)
             for (const item of items.slice(0, 8)) {
               collected.push({
@@ -212,7 +245,7 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
       }
 
       try {
-        const eventsRes = (await apiFetch("/restaurants/" + hotelSlug + "/events")) as any
+        const eventsRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/events")) as any
         setEvents(extractList(eventsRes))
       } catch {
         setEvents([])
@@ -303,17 +336,30 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
     }))
   }, [events])
 
+  const locationAddress = useMemo(() => normalizeAddress(restaurant?.address || ""), [restaurant])
+  const locationCoordinates = useMemo(() => parseCoordinateAddress(locationAddress), [locationAddress])
+
   const mapLink = useMemo(() => {
-    if (!restaurant?.address) return ""
-    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(restaurant.address)
-  }, [restaurant?.address])
+    if (locationCoordinates) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${locationCoordinates.lat},${locationCoordinates.lng}`
+    }
+    if (locationAddress) {
+      return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(locationAddress)
+    }
+    return ""
+  }, [locationCoordinates, locationAddress])
 
   const mapSrc = useMemo(() => {
-    if (!restaurant?.address) return ""
-    return "https://www.google.com/maps?q=" + encodeURIComponent(restaurant.address) + "&output=embed"
-  }, [restaurant?.address])
+    if (locationCoordinates) {
+      return `https://www.google.com/maps?q=${locationCoordinates.lat},${locationCoordinates.lng}&z=17&output=embed`
+    }
+    if (locationAddress) {
+      return "https://www.google.com/maps?q=" + encodeURIComponent(locationAddress) + "&output=embed"
+    }
+    return ""
+  }, [locationCoordinates, locationAddress])
 
-  const menuLink = "/menu/" + hotelSlug + "/list"
+  const menuLink = "/" + hotelSlug + "/list"
 
   const visualTheme = useMemo(() => resolveRestaurantTheme(restaurant?.theme_settings), [restaurant?.theme_settings])
 
@@ -372,7 +418,7 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
     slug: restaurant.slug || hotelSlug,
     description: restaurant.description,
     tagline: (restaurant as any).tagline,
-    address: restaurant.address,
+    address: locationAddress,
     phone: restaurant.phone,
     email: restaurant.email,
     logo_url: restaurant.logo_url,

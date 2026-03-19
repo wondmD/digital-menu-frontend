@@ -2,6 +2,10 @@ import { type NextAuthOptions } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { apiFetch } from "@/lib/api-client"
 
+const ONE_DAY_SECONDS = 24 * 60 * 60
+const REMEMBER_ME_SECONDS = 30 * ONE_DAY_SECONDS
+const DEFAULT_SESSION_SECONDS = ONE_DAY_SECONDS
+
 export const authOptions: NextAuthOptions = {
   providers: [
     Credentials({
@@ -9,6 +13,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        remember: { label: "Remember", type: "text" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
@@ -42,16 +47,20 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: REMEMBER_ME_SECONDS,
   },
   callbacks: {
     async jwt({ token, user }) {
       // 1. Initial login - populate JWT with user data
       if (user) {
         const u = user as any
+        const remember = Boolean(u.remember)
+        const now = Date.now()
         token.accessToken = u.accessToken
         token.refreshToken = u.refreshToken
-        token.remember = u.remember
+        token.remember = remember
+        token.refreshFailureCount = 0
+        token.sessionExpiresAt = now + (remember ? REMEMBER_ME_SECONDS : DEFAULT_SESSION_SECONDS) * 1000
         
         // Decode expiry from token if possible
         try {
@@ -68,6 +77,14 @@ export const authOptions: NextAuthOptions = {
       // 2. Check if token is still valid (with a 2-minute safety buffer)
       const safetyBuffer = 2 * 60 * 1000
       const now = Date.now()
+
+      // Respect remember-me duration per device/session.
+      if (token.sessionExpiresAt && now >= (token.sessionExpiresAt as number)) {
+        return {
+          ...token,
+          error: "SessionExpired",
+        }
+      }
       
       if (token.accessTokenExpires && now < (token.accessTokenExpires as number) - safetyBuffer) {
         return token
@@ -111,13 +128,18 @@ export const authOptions: NextAuthOptions = {
           accessToken: newAccessToken,
           refreshToken: newRefreshToken,
           accessTokenExpires: newExpiry,
+          refreshFailureCount: 0,
+          error: undefined,
         }
       } catch (error) {
         console.error("[Auth] RefreshAccessTokenError:", error)
+        const nextFailureCount = Number(token.refreshFailureCount || 0) + 1
+        const shouldForceSignOut = !token.remember || nextFailureCount >= 3
         
         return {
           ...token,
-          error: "RefreshAccessTokenError",
+          refreshFailureCount: nextFailureCount,
+          error: shouldForceSignOut ? "RefreshAccessTokenError" : undefined,
         }
       }
     },
@@ -127,6 +149,7 @@ export const authOptions: NextAuthOptions = {
         ;(session.user as any).refreshToken = token.refreshToken
         ;(session.user as any).error = token.error
         ;(session.user as any).remember = token.remember
+        ;(session.user as any).refreshFailureCount = token.refreshFailureCount
       }
       return session
     },

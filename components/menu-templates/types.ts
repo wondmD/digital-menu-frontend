@@ -11,8 +11,6 @@ export type MenuItem = {
   category_id: string;
   is_available?: boolean;
   available?: boolean;
-  rating?: number;
-  rating_count?: number;
 };
 
 export type Category = {
@@ -29,6 +27,7 @@ export type Restaurant = {
   description?: string;
   is_published?: boolean;
   image_url?: string | string[];
+  template_number?: number | string;
   public_template?: number | string;
 };
 
