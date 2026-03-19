@@ -3,6 +3,7 @@
 import { MenuItem, TemplateProps } from "./types"
 import { motion } from "framer-motion"
 import Image from "next/image"
+import { useState } from "react"
 import { getImageUrl } from "@/lib/utils"
 import { Search, Loader2, Sparkles, Heart } from "lucide-react"
 import { Input } from "@/components/ui/input"

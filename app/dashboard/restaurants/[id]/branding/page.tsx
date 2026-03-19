@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Save, Upload, X, Building2, ImageIcon } from "lucide-react"
 import { getImageUrl } from "@/lib/utils"
-import { findRestaurantById } from "@/lib/restaurant-normalizers"
+import { normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
 function findRestaurantByRouteId(input: any, routeId: string) {
   const list = normalizeRestaurantList(input)
@@ -33,7 +33,6 @@ export default function BrandingPage() {
   const [draft, setDraft] = useState<{ logo: File | null; cover: File | null }>({ logo: null, cover: null })
   const [previews, setPreviews] = useState<{ logo: string | null; cover: string | null }>({ logo: null, cover: null })
   const [canonicalRestaurantId, setCanonicalRestaurantId] = useState<string>(id)
-  const [selectedThemeId, setSelectedThemeId] = useState<string>(PREDEFINED_THEMES[0].id)
 
   const load = async () => {
     if (!token || !id) return
@@ -42,7 +41,6 @@ export default function BrandingPage() {
       // Direct GET /my-restaurants/:id 404s, so we use the list.
       const res = await apiFetch<any>("/my-restaurants", { token })
       const d = findRestaurantByRouteId(res, id)
-      const d = findRestaurantById(res, id)
 
       if (d) {
         setCanonicalRestaurantId(String(d.id || id))
@@ -97,10 +95,6 @@ export default function BrandingPage() {
       }
       if (draft.cover) {
         mediaFormData.append("cover", draft.cover)
-        formData.append("logo", draft.logo)
-      }
-      if (draft.cover) {
-        formData.append("cover", draft.cover)
       }
 
       await apiFetchWithProgress(`/my-restaurants/${targetRestaurantId}`, {

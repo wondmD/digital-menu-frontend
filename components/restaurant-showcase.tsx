@@ -1,8 +1,5 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { motion } from "framer-motion"
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -25,7 +22,6 @@ import { LocationSection } from "@/components/restaurant/LocationSection"
 import { ReservationSection } from "@/components/restaurant/ReservationSection"
 import { FooterSection } from "@/components/restaurant/FooterSection"
 import { FloatingSocialCTA } from "@/components/restaurant/FloatingSocialCTA"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 type MenuItem = {
   id: string
@@ -75,6 +71,8 @@ function parseCoordinateAddress(address: string): { lat: number; lng: number } |
   const lng = Number(match[2])
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
   return { lat, lng }
+}
+
 type RestaurantVisualTheme = {
   primary: string
   accent: string
@@ -183,18 +181,18 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
         if (!initialData) {
           setLoading(true)
         }
-        const data = await fetchPublicRestaurantBySlugOrId(hotelSlug)
+        setError(null)
+
+        let data = await fetchPublicRestaurantBySlugOrId(hotelSlug)
+        if (!data) {
+          const res = (await apiFetch("/restaurants/" + hotelSlug)) as any
+          data = res?.data || res
+        }
+
         if (!data) {
           throw new Error("Restaurant not found")
         }
-        setRestaurant(normalizeRestaurant(data))
-      } catch (err: any) {
-        if (!initialData) {
-          setError(err?.message || "Failed to load restaurant")
-        }
-        setLoading(true)
-        const res = (await apiFetch("/restaurants/" + hotelSlug)) as any
-        const data = res?.data || res
+
         setRestaurant(normalizeRestaurant(data))
       } catch (err: any) {
         setError(err?.message || "Failed to load restaurant")
@@ -216,17 +214,12 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
 
       try {
         const categoriesRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/categories")) as any
-
-    const loadExtras = async () => {
-      try {
-        const categoriesRes = (await apiFetch("/restaurants/" + hotelSlug + "/categories")) as any
         const categories = extractList(categoriesRes)
 
         const collected: MenuItem[] = []
         for (const category of categories.slice(0, 6)) {
           try {
             const itemsRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/categories/" + category.id + "/items")) as any
-            const itemsRes = (await apiFetch("/restaurants/" + hotelSlug + "/categories/" + category.id + "/items")) as any
             const items = extractList(itemsRes)
             for (const item of items.slice(0, 8)) {
               collected.push({
@@ -253,7 +246,6 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
 
       try {
         const eventsRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/events")) as any
-        const eventsRes = (await apiFetch("/restaurants/" + hotelSlug + "/events")) as any
         setEvents(extractList(eventsRes))
       } catch {
         setEvents([])
@@ -368,17 +360,6 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
   }, [locationCoordinates, locationAddress])
 
   const menuLink = "/" + hotelSlug + "/list"
-  const mapLink = useMemo(() => {
-    if (!restaurant?.address) return ""
-    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(restaurant.address)
-  }, [restaurant?.address])
-
-  const mapSrc = useMemo(() => {
-    if (!restaurant?.address) return ""
-    return "https://www.google.com/maps?q=" + encodeURIComponent(restaurant.address) + "&output=embed"
-  }, [restaurant?.address])
-
-  const menuLink = "/menu/" + hotelSlug + "/list"
 
   const visualTheme = useMemo(() => resolveRestaurantTheme(restaurant?.theme_settings), [restaurant?.theme_settings])
 
@@ -438,7 +419,6 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
     description: restaurant.description,
     tagline: (restaurant as any).tagline,
     address: locationAddress,
-    address: restaurant.address,
     phone: restaurant.phone,
     email: restaurant.email,
     logo_url: restaurant.logo_url,
@@ -456,9 +436,6 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
   }
 
   return (
-    <main className="bg-background text-foreground">
-      <div className="fixed right-4 top-4 z-50 rounded-xl border border-border/60 bg-background/80 shadow-lg backdrop-blur-md">
-        <ThemeToggle />
     <main className="bg-background text-foreground" style={themedStyle}>
       <div className="fixed right-4 top-4 z-50">
         <Button
