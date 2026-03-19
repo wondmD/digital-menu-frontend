@@ -76,8 +76,8 @@ function normalizeMenuItem(item: any, fallbackCategoryId: string): MenuItem {
     available: Boolean(item?.available ?? item?.is_available ?? true),
     image: item?.image,
     images: item?.images,
-    image_url: resolvedPrimaryImage,
-    image_urls: resolvedImageUrls.length > 0 ? resolvedImageUrls : undefined,
+    image_url: item?.image_url || item?.image?.url || item?.images?.[0]?.url,
+    image_urls: Array.isArray(item?.image_urls) ? item.image_urls : undefined,
     rating: Number(item?.rating || 0),
     rating_count: Number(item?.rating_count || 0),
   }
@@ -103,6 +103,9 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
   const selectedTemplate = Number(
     (hotel as any)?.template_number || hotel?.public_template || (hotel as any)?.template || 1
   )
+  // Determine template (1, 2, or 3)
+  // We'll look for a 'public_template' or 'template' field, defaulting to 1
+  const selectedTemplate = Number(hotel?.public_template || (hotel as any)?.template || 1)
 
   useEffect(() => {
     const loadData = async () => {
@@ -122,6 +125,19 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
           }
         } catch (err) {
           if (!currentHotel || !currentHotel.id) {
+        // 1. Load Restaurant if missing
+        if (!currentHotel || !currentHotel.id) {
+          try {
+            const rRes = await apiFetch<any>("/restaurants/" + hotelSlug)
+            const rData = rRes?.data || rRes
+            const rList = extractList(rData)
+            currentHotel = Array.isArray(rData) ? rData[0] : (rData || rList[0])
+            if (currentHotel) {
+              setHotel(currentHotel)
+            } else {
+              throw new Error("No restaurant data found")
+            }
+          } catch (err) {
             console.error("Failed to load restaurant details:", err)
             setError("Restaurant details could not be loaded.")
             setLoading(false)
@@ -153,6 +169,15 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                   name: String(cat?.name || "Category"),
                   description: cat?.description || "",
                   items: itData.map((it: any) => normalizeMenuItem(it, String(cat?.id || ""))),
+                }
+              } catch {
+                return {
+                  ...cat,
+                  id: String(cat?.id || ""),
+                  name: String(cat?.name || "Category"),
+                  description: cat?.description || "",
+                  items: [],
+                }
                 }
               } catch {
                 return {

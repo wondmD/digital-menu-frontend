@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
+import Link from "next/link"
+import { motion } from "framer-motion"
+import { Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
 import { apiFetch } from "@/lib/api-client"
 import { fetchPublicRestaurantBySlugOrId } from "@/lib/public-restaurant"
 import { getImageUrl } from "@/lib/utils"
@@ -12,6 +17,7 @@ import { HeroSection } from "@/components/restaurant/HeroSection"
 import { ExperienceHighlightsSection } from "@/components/restaurant/ExperienceHighlightsSection"
 import { StorySection } from "@/components/restaurant/StorySection"
 import { TopMenusSection } from "@/components/restaurant/TopMenusSection"
+import { MenuPreviewSection } from "@/components/restaurant/MenuPreviewSection"
 import { GallerySection } from "@/components/restaurant/GallerySection"
 import { TestimonialsSection } from "@/components/restaurant/TestimonialsSection"
 import { EventsSection } from "@/components/restaurant/EventsSection"
@@ -29,6 +35,7 @@ type MenuItem = {
   currency?: string
   image_url?: string
   category_name?: string
+  rating?: number
   prep_time?: string
   is_available?: boolean
 }
@@ -68,6 +75,56 @@ function parseCoordinateAddress(address: string): { lat: number; lng: number } |
   const lng = Number(match[2])
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
   return { lat, lng }
+type RestaurantVisualTheme = {
+  primary: string
+  accent: string
+  secondary: string
+  surface: "light" | "dark" | ""
+}
+
+const THEME_PRESET_DEFAULTS: Record<string, RestaurantVisualTheme> = {
+  "classic-elegance": { primary: "#B45309", accent: "#F59E0B", secondary: "#92400E", surface: "light" },
+  "modern-luxe": { primary: "#E11D48", accent: "#FB7185", secondary: "#9F1239", surface: "dark" },
+  "fresh-organic": { primary: "#15803D", accent: "#4ADE80", secondary: "#166534", surface: "light" },
+  "royal-night": { primary: "#4338CA", accent: "#818CF8", secondary: "#312E81", surface: "dark" },
+}
+
+function isHexColor(value: unknown): value is string {
+  return typeof value === "string" && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value)
+}
+
+function parseThemeSettings(input: unknown): Record<string, any> {
+  if (!input) return {}
+  if (typeof input === "string") {
+    try {
+      const parsed = JSON.parse(input)
+      return parsed && typeof parsed === "object" ? parsed : {}
+    } catch {
+      return {}
+    }
+  }
+  return typeof input === "object" ? (input as Record<string, any>) : {}
+}
+
+function resolveRestaurantTheme(themeSettings: unknown): RestaurantVisualTheme {
+  const parsed = parseThemeSettings(themeSettings)
+  const preset = typeof parsed.preset === "string" ? parsed.preset : ""
+  const presetBase = THEME_PRESET_DEFAULTS[preset] || {
+    primary: "#E63946",
+    accent: "#F4A261",
+    secondary: "#2A9D8F",
+    surface: "",
+  }
+
+  const surfaceRaw = typeof parsed.surface === "string" ? parsed.surface.toLowerCase() : ""
+  const surface = surfaceRaw === "light" || surfaceRaw === "dark" ? surfaceRaw : presetBase.surface
+
+  return {
+    primary: isHexColor(parsed.primary) ? parsed.primary : presetBase.primary,
+    accent: isHexColor(parsed.accent) ? parsed.accent : presetBase.accent,
+    secondary: isHexColor(parsed.secondary) ? parsed.secondary : presetBase.secondary,
+    surface,
+  }
 }
 
 function extractList(payload: any): any[] {
@@ -105,6 +162,7 @@ function fallbackTestimonials(name: string) {
 }
 
 export default function RestaurantShowcase({ hotelSlug, initialData }: RestaurantShowcaseProps) {
+  const { setTheme, resolvedTheme } = useTheme()
   const [restaurant, setRestaurant] = useState<ManagedRestaurant | null>(
     initialData ? normalizeRestaurant(initialData) : null
   )
@@ -112,6 +170,12 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
   const [events, setEvents] = useState<EventItem[]>([])
   const [loading, setLoading] = useState(!initialData)
   const [error, setError] = useState<string | null>(null)
+  const [isThemeMounted, setIsThemeMounted] = useState(false)
+  const appliedSurfaceRef = useRef<string>("")
+
+  useEffect(() => {
+    setIsThemeMounted(true)
+  }, [])
 
   useEffect(() => {
     const loadRestaurant = async () => {
@@ -128,6 +192,12 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
         if (!initialData) {
           setError(err?.message || "Failed to load restaurant")
         }
+        setLoading(true)
+        const res = (await apiFetch("/restaurants/" + hotelSlug)) as any
+        const data = res?.data || res
+        setRestaurant(normalizeRestaurant(data))
+      } catch (err: any) {
+        setError(err?.message || "Failed to load restaurant")
       } finally {
         if (!initialData) {
           setLoading(false)
@@ -146,12 +216,17 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
 
       try {
         const categoriesRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/categories")) as any
+
+    const loadExtras = async () => {
+      try {
+        const categoriesRes = (await apiFetch("/restaurants/" + hotelSlug + "/categories")) as any
         const categories = extractList(categoriesRes)
 
         const collected: MenuItem[] = []
         for (const category of categories.slice(0, 6)) {
           try {
             const itemsRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/categories/" + category.id + "/items")) as any
+            const itemsRes = (await apiFetch("/restaurants/" + hotelSlug + "/categories/" + category.id + "/items")) as any
             const items = extractList(itemsRes)
             for (const item of items.slice(0, 8)) {
               collected.push({
@@ -162,6 +237,7 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
                 currency: item.currency || "$",
                 image_url: getImageUrl(item.image_url || item.image?.url || item.images?.[0]?.url) || undefined,
                 category_name: category.name || "Featured",
+                rating: Number(item.rating || 4.7),
                 prep_time: item.prep_time || "15 min",
                 is_available: item.is_available !== false,
               })
@@ -177,6 +253,7 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
 
       try {
         const eventsRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/events")) as any
+        const eventsRes = (await apiFetch("/restaurants/" + hotelSlug + "/events")) as any
         setEvents(extractList(eventsRes))
       } catch {
         setEvents([])
@@ -241,10 +318,18 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
       currency: item.currency || "$",
       image_url: item.image_url,
       category: item.category_name,
+      rating: item.rating || 4.8,
       prep_time: item.prep_time || "15 min",
       is_signature: index < 3,
       is_popular: index >= 3 && index < 6,
       dietary_tags: [],
+    }))
+  }, [menuItems])
+
+  const menuPreview = useMemo(() => {
+    return menuItems.slice(0, 6).map((item) => ({
+      ...item,
+      description: item.description || "A house favorite made fresh to order.",
     }))
   }, [menuItems])
 
@@ -283,6 +368,39 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
   }, [locationCoordinates, locationAddress])
 
   const menuLink = "/" + hotelSlug + "/list"
+  const mapLink = useMemo(() => {
+    if (!restaurant?.address) return ""
+    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(restaurant.address)
+  }, [restaurant?.address])
+
+  const mapSrc = useMemo(() => {
+    if (!restaurant?.address) return ""
+    return "https://www.google.com/maps?q=" + encodeURIComponent(restaurant.address) + "&output=embed"
+  }, [restaurant?.address])
+
+  const menuLink = "/menu/" + hotelSlug + "/list"
+
+  const visualTheme = useMemo(() => resolveRestaurantTheme(restaurant?.theme_settings), [restaurant?.theme_settings])
+
+  const themedStyle = useMemo(() => {
+    return {
+      "--primary": visualTheme.primary,
+      "--ring": visualTheme.primary,
+      "--accent": visualTheme.accent,
+      "--secondary": visualTheme.secondary,
+      "--sidebar-primary": visualTheme.primary,
+      "--sidebar-ring": visualTheme.primary,
+    } as CSSProperties
+  }, [visualTheme])
+
+  useEffect(() => {
+    if (!visualTheme.surface || !isThemeMounted) return
+    const restaurantKey = String(restaurant?.id || hotelSlug)
+    const applyKey = restaurantKey + ":" + visualTheme.surface
+    if (appliedSurfaceRef.current === applyKey) return
+    setTheme(visualTheme.surface)
+    appliedSurfaceRef.current = applyKey
+  }, [visualTheme.surface, isThemeMounted, restaurant?.id, hotelSlug, setTheme])
 
   if (loading) {
     return (
@@ -320,12 +438,15 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
     description: restaurant.description,
     tagline: (restaurant as any).tagline,
     address: locationAddress,
+    address: restaurant.address,
     phone: restaurant.phone,
     email: restaurant.email,
     logo_url: restaurant.logo_url,
     cover_url: restaurant.cover_image_url || restaurant.cover_url,
     cuisine_type: restaurant.cuisine_type,
     opening_hours: (restaurant as any).opening_hours,
+    rating: Number((restaurant as any).rating || 4.8),
+    review_count: Number((restaurant as any).review_count || (restaurant as any).rating_count || 500),
     instagram_url: (restaurant as any).instagram_url,
     facebook_url: (restaurant as any).facebook_url,
     twitter_url: (restaurant as any).twitter_url,
@@ -338,6 +459,18 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
     <main className="bg-background text-foreground">
       <div className="fixed right-4 top-4 z-50 rounded-xl border border-border/60 bg-background/80 shadow-lg backdrop-blur-md">
         <ThemeToggle />
+    <main className="bg-background text-foreground" style={themedStyle}>
+      <div className="fixed right-4 top-4 z-50">
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-11 w-11 rounded-full border-border/60 bg-card/80 backdrop-blur"
+          onClick={() => setTheme((resolvedTheme || "light") === "dark" ? "light" : "dark")}
+          aria-label="Toggle light and dark mode"
+        >
+          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+        </Button>
       </div>
 
       <HeroSection
@@ -352,6 +485,7 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
       <ExperienceHighlightsSection hotel={heroRestaurant as any} />
       <StorySection hotel={heroRestaurant as any} coverImage={getImageUrl(restaurant.cover_image_url || restaurant.cover_url) || undefined} />
       <TopMenusSection items={topMenus} menuLink={menuLink} />
+      <MenuPreviewSection items={menuPreview as any} menuLink={menuLink} loading={false} />
       <GallerySection images={galleryImages} />
       <TestimonialsSection testimonials={fallbackTestimonials(restaurant.name || "Our Restaurant")} />
       <EventsSection events={eventCards as any} />

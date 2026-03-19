@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Save } from "lucide-react"
 import { LoadingSignal } from "@/components/ui/loading-signal"
 import { Switch } from "@/components/ui/switch"
-import { DEFAULT_TIMEZONE, normalizeRestaurantList } from "@/lib/restaurant-normalizers"
+import { DEFAULT_TIMEZONE, findRestaurantById } from "@/lib/restaurant-normalizers"
 
 function findRestaurantByRouteId(input: any, routeId: string) {
   const list = normalizeRestaurantList(input)
@@ -50,6 +50,7 @@ export default function GeneralInfoPage() {
       setLoading(true)
       const res = await apiFetch<any>("/my-restaurants", { token })
       const d = findRestaurantByRouteId(res, id)
+      const d = findRestaurantById(res, id)
       
       if (d) {
         setCanonicalRestaurantId(String(d.id || id))
@@ -156,6 +157,10 @@ export default function GeneralInfoPage() {
 
       verified = verified || (await fetchVerifiedRestaurant())
       cuisinePersisted = (verified?.cuisine_type || "") === normalizedCuisine
+      const verifyRes = await apiFetch<any>("/my-restaurants", { token })
+      const verified = findRestaurantById(verifyRes, id)
+      const slugPersisted = (verified?.slug || "") === normalizedSlug
+      const cuisinePersisted = (verified?.cuisine_type || "") === normalizedCuisine
 
       if (!slugPersisted || !cuisinePersisted) {
         const failed: string[] = []

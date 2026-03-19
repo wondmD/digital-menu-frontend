@@ -22,6 +22,8 @@ export default function Template1({
   const currentCategory = categories.find((c) => c.id === activeCategory)
   const categoryItems = currentCategory?.items || []
 
+  const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; count: number }>>({})
+
   const query = searchQuery.toLowerCase()
   const filteredItems = categoryItems.filter((item) => {
     if (!query) return true

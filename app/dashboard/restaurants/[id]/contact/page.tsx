@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2, Save, MapPin, Phone, Mail, Globe, Crosshair } from "lucide-react"
 import { DEFAULT_TIMEZONE, normalizeRestaurantList } from "@/lib/restaurant-normalizers"
+import { Loader2, Save, MapPin, Phone, Mail, Globe } from "lucide-react"
+import { DEFAULT_TIMEZONE, findRestaurantById } from "@/lib/restaurant-normalizers"
 
 const LocationPickerMap = dynamic(
   () => import("@/components/restaurant/location-picker-map").then((m) => m.LocationPickerMap),
@@ -91,7 +93,7 @@ export default function ContactLocationPage() {
         setLoading(true)
         // Direct GET /my-restaurants/:id 404s, so we use the list.
         const res = await apiFetch<any>("/my-restaurants", { token })
-        const d = findRestaurantByRouteId(res, id)
+        const d = findRestaurantById(res, id)
 
         if (d) {
           setCanonicalRestaurantId(String(d.id || id))
@@ -150,6 +152,8 @@ export default function ContactLocationPage() {
       setSaving(true)
       const targetRestaurantId = canonicalRestaurantId || id
       const normalizedAddress = formatCoordinateAddress(coordinates)
+    try {
+      setSaving(true)
 
       const payload = new FormData()
       payload.append("phone", data.phone)
@@ -165,6 +169,12 @@ export default function ContactLocationPage() {
       }
 
       await apiFetch(`/my-restaurants/${targetRestaurantId}`, {
+      payload.append("address", data.address)
+      payload.append("city", data.city)
+      payload.append("country", data.country)
+      payload.append("timezone", data.timezone || DEFAULT_TIMEZONE)
+
+      await apiFetch(`/my-restaurants/${id}`, {
         method: "PATCH",
         token,
         body: payload

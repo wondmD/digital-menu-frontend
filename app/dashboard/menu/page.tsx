@@ -409,6 +409,20 @@ function MenuManagementContent() {
 
         if (!minimal) {
           fd.append("description", itemDraft.description.trim())
+      
+      // Use FormData to support image uploads
+      const formData = new FormData()
+      formData.append("name", itemDraft.name.trim())
+      formData.append("description", itemDraft.description.trim())
+      formData.append("price", itemDraft.price.toString())
+      formData.append("currency", itemDraft.currency)
+      
+      formData.append("is_available", String(itemDraft.is_available))
+      formData.append("is_published", "true")
+      
+      itemDraft.images.forEach((img) => {
+        if (img instanceof File) {
+          formData.append("image", img)
         }
 
         // Keep uploads only for edit until create endpoint accepts files consistently.
