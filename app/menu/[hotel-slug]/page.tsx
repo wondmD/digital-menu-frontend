@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from "next"
-import { apiFetch } from "@/lib/api-client"
+import { fetchPublicRestaurantBySlugOrId } from "@/lib/public-restaurant"
 import HotelMenuClient from "@/components/hotel-menu-client"
 import { getImageUrl } from "@/lib/utils"
 
@@ -15,8 +15,7 @@ export async function generateMetadata(
   const hotelSlug = resolvedParams["hotel-slug"]
 
   try {
-    const res = await apiFetch<any>(`/restaurants/${hotelSlug}`)
-    const hotel = res?.data || res
+    const hotel = await fetchPublicRestaurantBySlugOrId(hotelSlug)
 
     if (!hotel) {
       return {
@@ -80,8 +79,7 @@ export default async function HotelMenuLandingPage({ params }: Props) {
   // Fetch initial data on the server for faster load and better SEO
   let initialData = null
   try {
-    const res = await apiFetch<any>(`/restaurants/${hotelSlug}`)
-    initialData = res?.data || res
+    initialData = await fetchPublicRestaurantBySlugOrId(hotelSlug)
   } catch (err) {
     console.error("Failed to fetch hotel data on server:", err)
   }
@@ -108,7 +106,7 @@ export default async function HotelMenuLandingPage({ params }: Props) {
                 streetAddress: initialData.address,
               },
               telephone: initialData.phone,
-              url: `https://digital-menu-frontend-nine.vercel.app/menu/${hotelSlug}`,
+              url: `https://digital-menu-frontend-nine.vercel.app/${hotelSlug}`,
             }),
           }}
         />

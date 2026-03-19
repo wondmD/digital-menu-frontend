@@ -282,7 +282,7 @@ export default function DashboardPage() {
                             </Link>
                          </Button>
                          <Button variant="ghost" size="icon" className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-muted/50 border border-border/50 hover:bg-muted hover:border-border text-muted-foreground/40 hover:text-foreground transition-all flex-1 md:flex-none" asChild>
-                            <Link href={`/menu/${res.slug}`} target="_blank">
+                           <Link href={`/${res.slug}`} target="_blank">
                                <ExternalLink className="h-4 w-4 md:h-5 md:w-5" />
                             </Link>
                          </Button>

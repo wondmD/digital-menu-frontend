@@ -37,10 +37,48 @@ type Restaurant = {
   id: string; 
   name: string; 
   slug?: string;
-  public_template?: number | string;
+  template_number?: number | string;
   logo?: string;
   logo_url?: string;
   logo_image_url?: string;
+}
+
+function extractList(payload: any): any[] {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload?.data?.items)) return payload.data.items
+  if (Array.isArray(payload?.items)) return payload.items
+  if (Array.isArray(payload?.results)) return payload.results
+  return []
+}
+
+function resolveTemplateNumber(value: any): number {
+  const parsed = Number(value?.template_number)
+  if (!Number.isFinite(parsed)) return 1
+  if (parsed < 1) return 1
+  if (parsed > 3) return 3
+  return parsed
+}
+
+function parseTemplateNumber(value: any): number | null {
+  const parsed = Number(value?.template_number)
+  if (!Number.isFinite(parsed)) return null
+  if (parsed < 1 || parsed > 3) return null
+  return parsed
+}
+
+function normalizeRestaurant(row: any): Restaurant {
+  const id = String(
+    row?.id || row?.restaurant_id || row?.restaurantId || row?.ID || row?.uuid || ""
+  )
+
+  return {
+    ...row,
+    id,
+    name: String(row?.name || "Restaurant"),
+    slug: row?.slug || row?.restaurant_slug || row?.restaurantSlug,
+    template_number: resolveTemplateNumber(row),
+  }
 }
 
 export default function QRPage() {
@@ -112,10 +150,12 @@ export default function QRPage() {
     const load = async () => {
       try {
         setLoading(true)
-        const res = await apiFetch<{ data: Restaurant[] }>("/my-restaurants", { token })
-        const list = res?.data || []
+        const res = await apiFetch<any>("/my-restaurants", { token })
+        const list = extractList(res).map(normalizeRestaurant).filter((r) => Boolean(r.id))
         setRestaurants(list)
-        if (list.length && !selectedId) setSelectedId(list[0].id)
+        if (list.length && (!selectedId || !list.some((r) => r.id === selectedId))) {
+          setSelectedId(list[0].id)
+        }
       } catch (err: any) {
         toast({ title: "Could not load restaurants", description: err?.message, variant: "destructive" })
       } finally {
@@ -131,8 +171,8 @@ export default function QRPage() {
   )
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
-  const identifier = selected?.slug || selected?.id
-  const menuUrl = identifier ? `${origin}/menu/${identifier}` : ""
+  const identifier = selected?.slug
+  const menuUrl = identifier ? `${origin}/${identifier}` : ""
 
   const handleCopy = async () => {
     if (!menuUrl) return
@@ -149,29 +189,75 @@ export default function QRPage() {
   }
 
   const handleTemplateChange = async (templateId: number) => {
-    if (!selectedId || !token || updatingTemplate) return
+    if (!selectedId || !token || updatingTemplate || !selected) return
+    if (![1, 2, 3].includes(templateId)) return
     
     try {
       setUpdatingTemplate(true)
-      await apiFetch(`/my-restaurants/${selectedId}`, {
+
+      // Optimistically reflect the selected template in UI.
+      setRestaurants((prev) =>
+        prev.map((r) => (r.id === selected.id ? { ...r, template_number: templateId } : r))
+      )
+
+      // Contract: template_number is a numeric field (1, 2, or 3).
+      const formData = new FormData()
+      formData.append("template_number", String(templateId))
+      await apiFetch(`/my-restaurants/${selected.id}`, {
         method: "PATCH",
         token,
-        body: { public_template: templateId }
+        body: formData,
       })
+
+      // Verify persisted value from a fresh list fetch first.
+      const refreshedListRes = await apiFetch<any>("/my-restaurants", { token })
+      const refreshedList = extractList(refreshedListRes).map(normalizeRestaurant)
+      const refreshedSelected = refreshedList.find((r) => r.id === selected.id)
+      const persistedTemplate = parseTemplateNumber(refreshedSelected)
+
+      // Fallback verification against public restaurant payload when slug exists.
+      let publicTemplate: number | null = null
+      if (persistedTemplate !== templateId && selected.id) {
+        try {
+          const publicRes = await apiFetch<any>(`/restaurants/${selected.id}`)
+          const publicRow = publicRes?.data || publicRes
+          publicTemplate = parseTemplateNumber(publicRow)
+        } catch {
+          // Ignore fallback verification failure and rely on owner list result.
+        }
+      }
+
+      // Only fail when an endpoint explicitly returns a different numeric template_number.
+      const explicitMismatch =
+        (persistedTemplate !== null && persistedTemplate !== templateId) ||
+        (publicTemplate !== null && publicTemplate !== templateId)
+
+      if (explicitMismatch) {
+        throw new Error("Template update request was accepted, but backend returned a different template_number.")
+      }
       
       // Update local state
-      setRestaurants(prev => prev.map(r => 
-        r.id === selectedId ? { ...r, public_template: templateId } : r
-      ))
+      setRestaurants(
+        refreshedList.length > 0
+          ? refreshedList
+          : prev => prev.map((r) =>
+              r.id === selected.id
+                ? { ...r, template_number: templateId }
+                : r
+            )
+      )
       
       toast({
         title: "Template updated",
-        description: `Template ${templateId} has been updated successfully.`,
+        description:
+          persistedTemplate === null && publicTemplate === null
+            ? `Template ${templateId} selected. Backend accepted update but does not return template_number in read response.`
+            : `Template ${templateId} is now active for ${selected.name}.`,
       })
     } catch (err: any) {
       toast({
         title: "Update Failed",
-        description: err.message,
+        description: err?.message || "Could not persist template change.",
         variant: "destructive"
       })
     } finally {
@@ -179,7 +265,7 @@ export default function QRPage() {
     }
   }
 
-  const currentTemplate = Number(selected?.public_template) || 1
+  const currentTemplate = resolveTemplateNumber(selected)
 
   if (!ready) {
     return (
@@ -194,7 +280,7 @@ export default function QRPage() {
     <div className="max-w-6xl mx-auto space-y-8 pb-20 px-4 md:px-0">
       {/* 1. QR CODE SETTINGS */}
       <div className="relative overflow-hidden rounded-3xl bg-card/40 border border-border/60 p-1 px-1">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-transparent opacity-50" />
+        <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-transparent to-transparent opacity-50" />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8 gap-6">
           <div className="space-y-3 text-center md:text-left">
             <Badge className="bg-primary/10 text-primary border border-primary/20 font-black text-[9px] uppercase tracking-[0.4em] px-4 py-1.5 rounded-full w-fit mx-auto md:mx-0">
@@ -208,7 +294,7 @@ export default function QRPage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 w-full md:min-w-[280px]">
+          <div className="flex flex-col gap-3 w-full md:min-w-70">
             <Label className="text-[9px] uppercase font-black tracking-[0.4em] text-muted-foreground ml-2 text-center md:text-left">Currently customizing</Label>
             <div className="relative group">
               <Hotel className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
@@ -309,7 +395,7 @@ export default function QRPage() {
           {/* QR Side Card: QR code */}
           <div className="lg:col-span-5 space-y-6 md:space-y-8">
             <Card className="bg-card border border-border/60 rounded-3xl p-8 md:p-10 flex flex-col items-center shadow-xl relative overflow-hidden group">
-               <div className="absolute inset-0 bg-primary/[0.02] opacity-0 group-hover:opacity-100 transition-opacity" />
+               <div className="absolute inset-0 bg-primary/2 opacity-0 group-hover:opacity-100 transition-opacity" />
                <div className="relative z-10 p-4 rounded-3xl bg-white shadow-xl">
                  <div className="h-48 w-48 md:h-56 md:w-56 bg-white rounded-xl flex items-center justify-center p-2">
                     <img 
@@ -339,7 +425,7 @@ export default function QRPage() {
             </Card>
 
             <div className="p-6 md:p-8 rounded-2xl bg-primary/10 border border-primary/20 space-y-3 relative overflow-hidden">
-               <div className="absolute top-0 right-0 h-24 w-24 bg-primary/10 blur-[40px] rounded-full" />
+               <div className="absolute top-0 right-0 h-24 w-24 bg-primary/10 blur-2xl rounded-full" />
                <div className="flex items-center gap-3 text-primary relative z-10">
                   <div className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />
                   <p className="text-[9px] font-black uppercase tracking-[0.5em]">Placement tip</p>
@@ -498,7 +584,7 @@ export default function QRPage() {
 
       {/* Template Preview Dialog */}
       <Dialog open={previewTemplate !== null} onOpenChange={(open) => !open && setPreviewTemplate(null)}>
-        <DialogContent className="max-w-[100vw] md:max-w-[95vw] w-full md:w-[1200px] h-full md:h-[90vh] p-0 overflow-hidden border-none rounded-none md:rounded-[3rem]">
+        <DialogContent className="max-w-[100vw] md:max-w-[95vw] w-full md:w-300 h-full md:h-[90vh] p-0 overflow-hidden border-none rounded-none md:rounded-[3rem]">
           <div className="h-full w-full bg-background overflow-y-auto custom-scrollbar">
              <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -572,7 +658,7 @@ export default function QRPage() {
 
       {/* 5. PRINT OPTIONS DIALOG */}
       <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
-        <DialogContent className="max-w-md bg-card border-border rounded-[2rem] p-8">
+        <DialogContent className="max-w-md bg-card border-border rounded-4xl p-8">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black uppercase tracking-tight">Print Options</DialogTitle>
           </DialogHeader>
@@ -612,7 +698,7 @@ export default function QRPage() {
       </Dialog>
 
       {/* Print Areas (Hidden on screen) */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[9999]">
+      <div className="hidden print:block fixed inset-0 bg-white z-9999">
          <style>{`
            @media print {
              body * { visibility: hidden !important; }
@@ -638,11 +724,11 @@ export default function QRPage() {
                 <img 
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(menuUrl)}`}
                   alt="Menu QR"
-                  className="h-[4in] w-[4in]"
+                  className="h-96 w-96"
                 />
                 <div className="mt-8 space-y-2">
                    <p className="text-2xl font-black uppercase tracking-[0.4em] text-black">Scan to View Menu</p>
-                   <p className="text-lg font-bold text-gray-400 font-serif italic text-black">{selected.name}</p>
+                   <p className="text-lg font-bold text-black font-serif italic">{selected.name}</p>
                 </div>
               </div>
             ) : (

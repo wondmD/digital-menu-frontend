@@ -10,7 +10,7 @@ export function AuthSessionProvider({ children, session }: { children: ReactNode
     <SessionProvider 
       session={session} 
       refetchInterval={5 * 60} // Refetch session every 5 minutes
-      refetchOnWindowFocus={true}
+      refetchOnWindowFocus={false}
     >
       <SessionWatcher />
       {children}

@@ -9,8 +9,6 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import RatingStars from "./RatingStars"
-import { useState } from "react"
 
 export default function Template2({
   hotel,
@@ -25,11 +23,11 @@ export default function Template2({
   const currentCategory = categories.find((c) => c.id === activeCategory)
   const categoryItems = currentCategory?.items || []
 
-  const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; count: number }>>({})
-
-  const filteredItems = categoryItems.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const query = searchQuery.toLowerCase()
+  const filteredItems = categoryItems.filter((item) => {
+    if (!query) return true
+    return item.name.toLowerCase().includes(query) || (item.description || "").toLowerCase().includes(query)
+  })
 
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
@@ -54,7 +52,7 @@ export default function Template2({
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter mb-3 sm:mb-4 break-words">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter mb-3 sm:mb-4 wrap-break-word">
               {hotel.name}
             </h1>
             <div className="flex flex-wrap items-center gap-2">
@@ -62,7 +60,7 @@ export default function Template2({
                 Most Loved
               </Badge>
               <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
-              <p className="text-muted-foreground font-semibold break-words">
+              <p className="text-muted-foreground font-semibold wrap-break-word">
                 Casual Dining & Treats
               </p>
             </div>
@@ -106,6 +104,23 @@ export default function Template2({
 
       {/* Grid Layout */}
       <main className="container max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
+        <motion.section
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 rounded-3xl border border-border bg-card/85 p-5 sm:p-7 shadow-sm"
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-muted-foreground">Now Browsing</p>
+          <h2 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight wrap-break-word">
+            {currentCategory?.name || "Chef Collection"}
+          </h2>
+          <p className="mt-2 text-sm sm:text-base text-muted-foreground leading-relaxed">
+            {currentCategory?.description || "Colorful plates, balanced textures, and guest favorites chosen for this section."}
+          </p>
+          <div className="mt-4 inline-flex rounded-full bg-muted px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+            {filteredItems.length} item{filteredItems.length === 1 ? "" : "s"}
+          </div>
+        </motion.section>
+
         {itemsLoading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-6">
               <div className="relative">
@@ -127,7 +142,7 @@ export default function Template2({
                   onClick={() => onItemClick(item)}
                   className="flex flex-col bg-card rounded-2xl sm:rounded-[2.5rem] border border-border shadow-md overflow-hidden cursor-pointer group hover:shadow-2xl transition-all duration-500 w-full min-w-0"
                 >
-                  <div className="relative aspect-[3/2] sm:aspect-[1/1.1] overflow-hidden">
+                  <div className="relative aspect-3/2 sm:aspect-[1/1.1] overflow-hidden">
                     <Image
                       src={getImageUrl(item.image_url) || "/placeholder.svg"}
                       alt={item.name}
@@ -140,6 +155,13 @@ export default function Template2({
                           {item.currency} {item.price.toFixed(2)}
                        </Badge>
                     </div>
+                    {(item.is_available === false || item.available === false) && (
+                      <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5">
+                        <Badge className="bg-rose-600 text-white border-none font-bold py-1.5 px-3 rounded-xl shadow-lg">
+                          Sold Out
+                        </Badge>
+                      </div>
+                    )}
                     {idx % 3 === 0 && (
                        <div className="absolute top-4 right-4 sm:top-5 sm:right-5 h-9 w-9 sm:h-10 sm:w-10 bg-rose-500 rounded-full flex items-center justify-center shadow-lg text-white">
                           <Heart className="h-5 w-5 fill-current" />
@@ -147,37 +169,12 @@ export default function Template2({
                     )}
                   </div>
                   <div className="p-4 sm:p-8 flex flex-col items-center text-center gap-3">
-                    <h3 className="text-xl sm:text-2xl font-black tracking-tight group-hover:text-primary transition-colors break-words">
+                    <h3 className="text-xl sm:text-2xl font-black tracking-tight group-hover:text-primary transition-colors wrap-break-word">
                       {item.name}
                     </h3>
-                    <p className="text-sm text-muted-foreground font-medium line-clamp-2 leading-relaxed break-words">
+                    <p className="text-sm text-muted-foreground font-medium line-clamp-2 leading-relaxed wrap-break-word">
                       {item.description}
                     </p>
-                    {(() => {
-                      const baseRating = item.rating ?? 0
-                      const baseCount = item.rating_count ?? 0
-                      const local = localRatings[item.id]
-                      const rating = local?.rating ?? baseRating
-                      const count = local?.count ?? baseCount
-
-                      return (
-                        <div className="pt-2" onClick={(event) => event.stopPropagation()}>
-                          <RatingStars
-                            rating={rating}
-                            count={count}
-                            onRate={(value) => {
-                              setLocalRatings((prev) => ({
-                                ...prev,
-                                [item.id]: {
-                                  rating: value,
-                                  count: prev[item.id]?.count ?? baseCount + 1,
-                                },
-                              }))
-                            }}
-                          />
-                        </div>
-                      )
-                    })()}
                   </div>
                 </motion.div>
               ))}

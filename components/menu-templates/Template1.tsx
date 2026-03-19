@@ -8,8 +8,6 @@ import { getImageUrl } from "@/lib/utils"
 import { Search, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import RatingStars from "./RatingStars"
-import { useState } from "react"
 
 export default function Template1({
   hotel,
@@ -24,11 +22,11 @@ export default function Template1({
   const currentCategory = categories.find((c) => c.id === activeCategory)
   const categoryItems = currentCategory?.items || []
 
-  const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; count: number }>>({})
-
-  const filteredItems = categoryItems.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const query = searchQuery.toLowerCase()
+  const filteredItems = categoryItems.filter((item) => {
+    if (!query) return true
+    return item.name.toLowerCase().includes(query) || (item.description || "").toLowerCase().includes(query)
+  })
 
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
@@ -103,6 +101,25 @@ export default function Template1({
       {/* Content */}
       <main className="container max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-12">
         <div className="space-y-16">
+          <motion.section
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl border border-[#E5E1D8] dark:border-[#2A2A28] bg-white/70 dark:bg-[#171715]/70 backdrop-blur p-5 sm:p-7"
+          >
+            <p className="text-[10px] font-sans font-bold uppercase tracking-[0.24em] text-[#706C61] dark:text-[#A09D95]">
+              Currently Serving
+            </p>
+            <h2 className="mt-2 text-2xl sm:text-3xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA] wrap-break-word">
+              {currentCategory?.name || "Featured Dishes"}
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-[#706C61] dark:text-[#A09D95] leading-relaxed">
+              {currentCategory?.description || "Handcrafted selections with balanced flavor and premium ingredients."}
+            </p>
+            <div className="mt-4 inline-flex rounded-full border border-[#E5E1D8] dark:border-[#2A2A28] bg-[#F5F2ED] dark:bg-[#1A1A18] px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-[#706C61] dark:text-[#A09D95]">
+              {filteredItems.length} item{filteredItems.length === 1 ? "" : "s"}
+            </div>
+          </motion.section>
+
           {itemsLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-[#706C61]" />
@@ -111,6 +128,9 @@ export default function Template1({
           ) : filteredItems.length > 0 ? (
             <div className="grid gap-12">
               {filteredItems.map((item, idx) => (
+                (() => {
+                  const itemImage = getImageUrl(item.image_url || item.image || item.images || item.image_urls)
+                  return (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -120,10 +140,10 @@ export default function Template1({
                   onClick={() => onItemClick(item)}
                   className="group cursor-pointer flex flex-row gap-4 sm:gap-6 items-start w-full"
                 >
-                    {item.image_url && (
+                    {itemImage && (
                       <div className="relative h-20 w-20 sm:h-24 sm:w-24 md:h-28 md:w-36 shrink-0 overflow-hidden rounded-sm bg-[#F5F2ED] dark:bg-[#1A1A18]">
                       <Image
-                        src={getImageUrl(item.image_url) || "/placeholder.svg"}
+                        src={itemImage || "/placeholder.svg"}
                         alt={item.name}
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -132,41 +152,16 @@ export default function Template1({
                   )}
                     <div className="flex-1 space-y-2 w-full min-w-0">
                       <div className="flex flex-col gap-1 w-full min-w-0">
-                        <h3 className="min-w-0 text-lg sm:text-2xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA] group-hover:text-primary transition-colors break-words">
+                        <h3 className="min-w-0 text-lg sm:text-2xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA] group-hover:text-primary transition-colors wrap-break-word">
                         {item.name}
                       </h3>
                         <span className="text-base sm:text-xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA]">
                         {item.currency} {item.price.toFixed(2)}
                       </span>
                     </div>
-                    <p className="text-sm sm:text-base text-[#706C61] dark:text-[#A09D95] font-sans leading-relaxed max-w-2xl break-words">
+                    <p className="text-sm sm:text-base text-[#706C61] dark:text-[#A09D95] font-sans leading-relaxed max-w-2xl wrap-break-word">
                       {item.description}
                     </p>
-                      {(() => {
-                        const baseRating = item.rating ?? 0
-                        const baseCount = item.rating_count ?? 0
-                        const local = localRatings[item.id]
-                        const rating = local?.rating ?? baseRating
-                        const count = local?.count ?? baseCount
-
-                        return (
-                          <div className="pt-1" onClick={(event) => event.stopPropagation()}>
-                            <RatingStars
-                              rating={rating}
-                              count={count}
-                              onRate={(value) => {
-                                setLocalRatings((prev) => ({
-                                  ...prev,
-                                  [item.id]: {
-                                    rating: value,
-                                    count: prev[item.id]?.count ?? baseCount + 1,
-                                  },
-                                }))
-                              }}
-                            />
-                          </div>
-                        )
-                      })()}
                     {item.is_available === false && (
                       <span className="inline-block text-[10px] uppercase tracking-[0.2em] px-2 py-1 bg-[#F5F2ED] dark:bg-[#1A1A18] text-[#706C61] dark:text-[#A09D95] border border-[#E5E1D8] dark:border-[#2A2A28]">
                         Currently Unavailable
@@ -174,6 +169,8 @@ export default function Template1({
                     )}
                   </div>
                 </motion.div>
+                  )
+                })()
               ))}
             </div>
           ) : (

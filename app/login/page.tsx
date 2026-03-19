@@ -24,8 +24,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     const storedEmail = localStorage.getItem("rememberEmail")
+    const keepStation = localStorage.getItem("keepMeAtStation")
     if (storedEmail) {
       setSavedEmail(storedEmail)
+      setRemember(true)
+    } else if (keepStation === "true") {
       setRemember(true)
     }
   }, [])
@@ -43,8 +46,10 @@ export default function LoginPage() {
 
     if (remember) {
       localStorage.setItem("rememberEmail", email)
+      localStorage.setItem("keepMeAtStation", "true")
     } else {
       localStorage.removeItem("rememberEmail")
+      localStorage.removeItem("keepMeAtStation")
     }
     setLoading(true)
     try {

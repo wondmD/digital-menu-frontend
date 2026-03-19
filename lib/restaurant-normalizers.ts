@@ -27,6 +27,25 @@ export type ManagedRestaurant = {
 
 export const DEFAULT_TIMEZONE = "UTC"
 
+function toArray(value: any): any[] {
+  return Array.isArray(value) ? value : []
+}
+
+export function extractApiList(input: any): any[] {
+  if (Array.isArray(input)) return input
+
+  const data = input?.data
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.items)) return data.items
+
+  if (Array.isArray(input?.items)) return input.items
+
+  // Some endpoints may return a single object in data.
+  if (data && typeof data === "object") return [data]
+
+  return []
+}
+
 export function normalizeRestaurant(raw: any): ManagedRestaurant {
   if (!raw) return { id: "" }
 
@@ -63,6 +82,9 @@ export function normalizeRestaurant(raw: any): ManagedRestaurant {
 }
 
 export function normalizeRestaurantList(input: any): ManagedRestaurant[] {
-  const list = Array.isArray(input) ? input : input?.data || []
-  return list.map(normalizeRestaurant)
+  return toArray(extractApiList(input)).map(normalizeRestaurant)
+}
+
+export function findRestaurantById(input: any, restaurantId: string): ManagedRestaurant | null {
+  return normalizeRestaurantList(input).find((item) => item.id === restaurantId) || null
 }

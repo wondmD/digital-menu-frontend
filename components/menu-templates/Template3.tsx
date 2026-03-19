@@ -8,8 +8,6 @@ import { getImageUrl } from "@/lib/utils"
 import { Search, Loader2, Zap } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import RatingStars from "./RatingStars"
-import { useState } from "react"
 
 export default function Template3({
   hotel,
@@ -24,14 +22,14 @@ export default function Template3({
   const currentCategory = categories.find((c) => c.id === activeCategory)
   const categoryItems = currentCategory?.items || []
 
-  const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; count: number }>>({})
-
   // Ensure we get the correct logo URL field
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
-  const filteredItems = categoryItems.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const query = searchQuery.toLowerCase()
+  const filteredItems = categoryItems.filter((item) => {
+    if (!query) return true
+    return item.name.toLowerCase().includes(query) || (item.description || "").toLowerCase().includes(query)
+  })
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 font-sans">
@@ -72,7 +70,7 @@ export default function Template3({
       </div>
 
       {/* Tightly packed categories */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 sticky top-[108px] sm:top-[124px] z-30">
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 sticky top-27 sm:top-31 z-30">
         <div className="container max-w-3xl mx-auto flex gap-2 overflow-x-auto no-scrollbar">
           {categories.map((cat) => (
             <button
@@ -93,6 +91,23 @@ export default function Template3({
 
       {/* Efficient List */}
       <main className="container max-w-3xl mx-auto px-4 sm:px-6 py-8">
+         <motion.section
+           initial={{ opacity: 0, y: 8 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="mb-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5"
+         >
+           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Selected Category</p>
+           <h2 className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white wrap-break-word">
+             {currentCategory?.name || "Highlights"}
+           </h2>
+           <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+             {currentCategory?.description || "Fast, flavorful picks designed for quick decisions and great taste."}
+           </p>
+           <span className="mt-3 inline-flex rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">
+             {filteredItems.length} item{filteredItems.length === 1 ? "" : "s"}
+           </span>
+         </motion.section>
+
          <div className="space-y-4">
             {itemsLoading ? (
               <div className="flex items-center justify-center py-20">
@@ -101,6 +116,9 @@ export default function Template3({
             ) : filteredItems.length > 0 ? (
               <div className="grid gap-2">
                 {filteredItems.map((item, idx) => (
+                  (() => {
+                    const itemImage = getImageUrl(item.image_url || item.image || item.images || item.image_urls)
+                    return (
                   <motion.div
                     key={item.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -109,10 +127,10 @@ export default function Template3({
                     onClick={() => onItemClick(item)}
                     className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all active:scale-[0.98]"
                   >
-                    {item.image_url ? (
+                    {itemImage ? (
                       <div className="relative h-16 w-16 shrink-0 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
                         <Image
-                          src={getImageUrl(item.image_url) || "/placeholder.svg"}
+                          src={itemImage || "/placeholder.svg"}
                           alt={item.name}
                           fill
                           className="object-cover"
@@ -126,39 +144,18 @@ export default function Template3({
                     <div className="flex-1 min-w-0 pr-2">
                       <h3 className="font-bold text-slate-900 dark:text-white truncate">{item.name}</h3>
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{item.description}</p>
-                      {(() => {
-                        const baseRating = item.rating ?? 0
-                        const baseCount = item.rating_count ?? 0
-                        const local = localRatings[item.id]
-                        const rating = local?.rating ?? baseRating
-                        const count = local?.count ?? baseCount
-
-                        return (
-                          <div className="mt-2" onClick={(event) => event.stopPropagation()}>
-                            <RatingStars
-                              rating={rating}
-                              count={count}
-                              onRate={(value) => {
-                                setLocalRatings((prev) => ({
-                                  ...prev,
-                                  [item.id]: {
-                                    rating: value,
-                                    count: prev[item.id]?.count ?? baseCount + 1,
-                                  },
-                                }))
-                              }}
-                              sizeClassName="h-3 w-3"
-                            />
-                          </div>
-                        )
-                      })()}
                     </div>
                     <div className="text-right">
                        <p className="font-black text-primary whitespace-nowrap">
                           {item.currency} {item.price.toFixed(item.price % 1 === 0 ? 0 : 2)}
                        </p>
+                        {(item.is_available === false || item.available === false) && (
+                         <p className="text-[10px] font-bold uppercase tracking-wide text-rose-500 mt-1">Sold Out</p>
+                        )}
                     </div>
                   </motion.div>
+                    )
+                  })()
                 ))}
               </div>
             ) : (

@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from "next"
-import { apiFetch } from "@/lib/api-client"
+import { fetchPublicRestaurantBySlugOrId } from "@/lib/public-restaurant"
 import MenuListClient from "@/components/menu-list-client"
 
 interface Props {
@@ -14,8 +14,7 @@ export async function generateMetadata(
   const hotelSlug = resolvedParams["hotel-slug"]
 
   try {
-    const res = await apiFetch<any>(`/restaurants/${hotelSlug}`)
-    const hotel = res?.data || res
+    const hotel = await fetchPublicRestaurantBySlugOrId(hotelSlug)
 
     if (!hotel) {
       return {
@@ -44,8 +43,7 @@ export default async function MenuListViewPage({ params }: Props) {
   
   let hotel = null
   try {
-    const res = await apiFetch<any>(`/restaurants/${hotelSlug}`)
-    hotel = res?.data || res
+    hotel = await fetchPublicRestaurantBySlugOrId(hotelSlug)
   } catch (err) {}
 
   return <MenuListClient hotelSlug={hotelSlug} initialHotel={hotel} />

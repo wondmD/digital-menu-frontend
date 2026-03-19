@@ -15,6 +15,11 @@ import { LoadingSignal } from "@/components/ui/loading-signal"
 import { Switch } from "@/components/ui/switch"
 import { DEFAULT_TIMEZONE, normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
+function findRestaurantByRouteId(input: any, routeId: string) {
+  const list = normalizeRestaurantList(input)
+  return list.find((item) => item.id === routeId || item.slug === routeId) || null
+}
+
 export default function GeneralInfoPage() {
   const params = useParams()
   const id = params.id as string
@@ -25,6 +30,7 @@ export default function GeneralInfoPage() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [canonicalRestaurantId, setCanonicalRestaurantId] = useState<string>(id)
   const [data, setData] = useState({
     slug: "",
     name: "",
@@ -43,10 +49,10 @@ export default function GeneralInfoPage() {
     try {
       setLoading(true)
       const res = await apiFetch<any>("/my-restaurants", { token })
-      const list = normalizeRestaurantList(res)
-      const d = list.find((item: any) => item.id === id)
+      const d = findRestaurantByRouteId(res, id)
       
       if (d) {
+        setCanonicalRestaurantId(String(d.id || id))
         setData({
           slug: d.slug || "",
           name: d.name || "",
@@ -79,10 +85,17 @@ export default function GeneralInfoPage() {
   }, [token, id])
 
   const handleSave = async () => {
+    if (!token || !id) return
     try {
       setSaving(true)
+      const targetRestaurantId = canonicalRestaurantId || id
       const normalizedSlug = data.slug.trim().toLowerCase().replace(/\s+/g, "-")
       const normalizedCuisine = data.cuisine_type.trim()
+      const fetchVerifiedRestaurant = async () => {
+        const verifyRes = await apiFetch<any>("/my-restaurants", { token })
+        return findRestaurantByRouteId(verifyRes, targetRestaurantId) || findRestaurantByRouteId(verifyRes, id)
+      }
+
       const formData = new FormData()
       formData.append("slug", normalizedSlug)
       formData.append("name", data.name.trim())
@@ -92,16 +105,57 @@ export default function GeneralInfoPage() {
       formData.append("timezone", data.timezone || DEFAULT_TIMEZONE)
       formData.append("is_published", String(data.is_published))
 
-      await apiFetch(`/my-restaurants/${id}`, {
+      await apiFetch(`/my-restaurants/${targetRestaurantId}`, {
         method: "PATCH",
         token,
         body: formData
       })
 
-      const verifyRes = await apiFetch<any>("/my-restaurants", { token })
-      const verified = normalizeRestaurantList(verifyRes).find((item: any) => item.id === id)
-      const slugPersisted = (verified?.slug || "") === normalizedSlug
-      const cuisinePersisted = (verified?.cuisine_type || "") === normalizedCuisine
+      let verified = await fetchVerifiedRestaurant()
+      let slugPersisted = (verified?.slug || "") === normalizedSlug
+      let cuisinePersisted = (verified?.cuisine_type || "") === normalizedCuisine
+
+      // Some backend builds map slug to different field names on PATCH.
+      if (!slugPersisted) {
+        const slugAttempts: Array<FormData | Record<string, any>> = [
+          (() => {
+            const fd = new FormData()
+            fd.append("slug", normalizedSlug)
+            return fd
+          })(),
+          (() => {
+            const fd = new FormData()
+            fd.append("restaurant_slug", normalizedSlug)
+            return fd
+          })(),
+          (() => {
+            const fd = new FormData()
+            fd.append("RestaurantSlug", normalizedSlug)
+            return fd
+          })(),
+          { slug: normalizedSlug },
+          { restaurant_slug: normalizedSlug },
+          { RestaurantSlug: normalizedSlug },
+        ]
+
+        for (const attemptBody of slugAttempts) {
+          try {
+            await apiFetch(`/my-restaurants/${targetRestaurantId}`, {
+              method: "PATCH",
+              token,
+              body: attemptBody,
+            })
+            verified = await fetchVerifiedRestaurant()
+            slugPersisted = (verified?.slug || "") === normalizedSlug
+            if (slugPersisted) break
+          } catch {
+            // Ignore individual attempt failures and continue trying compatible variants.
+          }
+        }
+      }
+
+      verified = verified || (await fetchVerifiedRestaurant())
+      cuisinePersisted = (verified?.cuisine_type || "") === normalizedCuisine
 
       if (!slugPersisted || !cuisinePersisted) {
         const failed: string[] = []

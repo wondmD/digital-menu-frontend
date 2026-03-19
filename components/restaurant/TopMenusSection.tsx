@@ -16,7 +16,6 @@ type TopMenuItem = {
   currency?: string
   image_url?: string
   category?: string
-  rating?: number
   prep_time?: string
   is_signature?: boolean
   is_popular?: boolean
@@ -85,10 +84,7 @@ export function TopMenusSection({ items, menuLink, className }: TopMenusSectionP
                     </div>
                     <div className="absolute bottom-4 left-4 right-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-semibold">{item.rating || 4.9}</span>
-                        </div>
+                        <div />
                         {item.prep_time && (
                           <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
                             <Clock className="h-3 w-3" />
@@ -157,10 +153,6 @@ export function TopMenusSection({ items, menuLink, className }: TopMenusSectionP
                         <span className="text-white font-semibold">
                           {item.currency || "$"}{item.price}
                         </span>
-                        <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
-                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs font-semibold">{item.rating || 4.7}</span>
-                        </div>
                       </div>
                     </div>
                   </div>

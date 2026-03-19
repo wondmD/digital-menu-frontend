@@ -6,7 +6,7 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Star, ArrowRight, Loader2 } from "lucide-react"
+import { ArrowRight, Loader2 } from "lucide-react"
 import { getImageUrl } from "@/lib/utils"
 
 type MenuPreviewItem = {
@@ -17,7 +17,6 @@ type MenuPreviewItem = {
   description?: string
   image_url?: string
   category_name?: string
-  rating?: number
   is_spicy?: boolean
   is_vegetarian?: boolean
   is_popular?: boolean
@@ -136,16 +135,6 @@ export function MenuPreviewSection({ items, loading, menuLink }: MenuPreviewSect
                       </Badge>
                     )}
                   </div>
-
-                  {/* Rating */}
-                  {item.rating && (
-                    <div className="absolute top-4 right-4">
-                      <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-semibold">{item.rating}</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Item Content */}
@@ -174,21 +163,11 @@ export function MenuPreviewSection({ items, loading, menuLink }: MenuPreviewSect
                       {item.description}
                     </p>
                   )}
-
-                  {/* Quick Stats */}
-                  <div className="flex items-center gap-4 pt-2">
-                    {item.rating && (
-                      <div className="flex items-center gap-1 text-sm">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-medium">{item.rating}</span>
-                      </div>
-                    )}
-                    {item.is_popular && (
-                      <span className="text-sm text-muted-foreground">
-                        Customer Favorite
-                      </span>
-                    )}
-                  </div>
+                  {item.is_popular && (
+                    <div className="pt-2">
+                      <span className="text-sm text-muted-foreground">Customer Favorite</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>

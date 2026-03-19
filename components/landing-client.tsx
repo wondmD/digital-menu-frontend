@@ -6,7 +6,6 @@ import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -16,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { 
   QrCode, Smartphone, Sparkles, Search, Utensils, MapPin, 
-  Loader2, ArrowRight, Star, Clock, ShoppingBag, Flame, 
+  Loader2, ArrowRight, Clock, ShoppingBag, Flame, 
   ChefHat, Zap, Play, CheckCircle2, Menu as MenuIcon
 } from "lucide-react"
 import { useEffect, useState, useMemo, useRef } from "react"
@@ -36,9 +35,16 @@ type Restaurant = {
   cover_url?: string
   address?: string
   cuisine_type?: string
-  rating?: number | string
-  rating_count?: number
   delivery_time?: string
+}
+
+function getRestaurantIdentifier(restaurant: any): string {
+  const value =
+    restaurant?.slug ||
+    restaurant?.restaurant_slug ||
+    restaurant?.hotel_slug
+
+  return value ? String(value) : ""
 }
 
 type Dish = {
@@ -50,24 +56,7 @@ type Dish = {
   restaurant_name: string
   restaurant_slug: string
   category_name?: string
-  rating?: number
-  rating_count?: number
 }
-
-type ReviewEntry = {
-  rating: number
-  text: string
-  created_at: string
-}
-
-type ReviewAggregate = {
-  rating: number
-  count: number
-  reviews: ReviewEntry[]
-}
-
-const RESTAURANT_REVIEW_STORAGE_KEY = "home-restaurant-reviews-v1"
-const DISH_REVIEW_STORAGE_KEY = "home-dish-reviews-v1"
 
 const RESTAURANT_PLACEHOLDERS = [
   "Search premium restaurants...",
@@ -89,13 +78,14 @@ function RestaurantCard({
   restaurant,
   index,
   compact = false,
-  onReview,
 }: {
   restaurant: Restaurant
   index: number
   compact?: boolean
-  onReview: (restaurant: Restaurant) => void
 }) {
+  const restaurantIdentifier = getRestaurantIdentifier(restaurant)
+  const menuHref = restaurantIdentifier ? `/${restaurantIdentifier}` : "/"
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -104,7 +94,7 @@ function RestaurantCard({
       viewport={{ once: true }}
       className="group"
     >
-      <Link href={`/menu/${restaurant.slug}`} className="block h-full">
+      <Link href={menuHref} className="block h-full">
         <article
           className={cn(
             "relative h-full flex flex-col bg-card/40 border border-border group-hover:border-primary/40 shadow-xl transition-all duration-500 overflow-hidden backdrop-blur-sm",
@@ -125,7 +115,7 @@ function RestaurantCard({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-60" />
             <div className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Star className="h-4 w-4 fill-primary" />
+              <CheckCircle2 className="h-4 w-4" />
             </div>
             <div className="absolute bottom-4 left-4">
                 <div className="px-4 py-1 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-[9px] font-black uppercase tracking-widest text-white italic">
@@ -147,26 +137,7 @@ function RestaurantCard({
                     <Clock className="h-3.5 w-3.5" />
                     <span>{restaurant.delivery_time}</span>
                 </div>
-                <div className="flex items-center gap-2 text-primary">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span>{restaurant.rating} {restaurant.rating_count ? `(${restaurant.rating_count})` : ""}</span>
-                </div>
               </div>
-
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  onReview(restaurant)
-                }}
-                className={cn(
-                  "mt-3 w-full rounded-xl border border-primary/30 bg-primary/10 text-primary font-black uppercase tracking-wider transition-colors hover:bg-primary/20",
-                  compact ? "h-8 text-[9px]" : "h-9 text-[10px]"
-                )}
-              >
-                Rate & Review
-              </button>
           </div>
         </article>
       </Link>
@@ -179,13 +150,11 @@ function DishCard({
   index,
   compact = false,
   onSelect,
-  onReview,
 }: {
   dish: Dish
   index: number
   compact?: boolean
   onSelect: (dish: Dish) => void
-  onReview: (dish: Dish) => void
 }) {
   return (
     <motion.div
@@ -228,25 +197,6 @@ function DishCard({
             <p className={cn("text-muted-foreground line-clamp-2", compact ? "text-[11px] mb-1" : "text-xs mb-2")}>{dish.description}</p>
             <div className="flex items-center justify-between gap-2">
               <div className={cn("px-2 py-0.5 bg-primary/10 text-primary font-black uppercase rounded-md tracking-widest", compact ? "text-[7px]" : "text-[8px]")}>{dish.restaurant_name}</div>
-              <div className="text-[10px] font-bold text-primary flex items-center gap-1">
-                <Star className="h-3.5 w-3.5 fill-primary" />
-                <span>{(dish.rating || 0).toFixed(1)}{dish.rating_count ? ` (${dish.rating_count})` : ""}</span>
-              </div>
-            </div>
-            <div className="mt-2">
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  onReview(dish)
-                }}
-                className={cn(
-                  "w-full rounded-lg border border-primary/30 bg-primary/10 text-primary font-black uppercase tracking-wider hover:bg-primary/20",
-                  compact ? "h-7 text-[8px]" : "h-8 text-[9px]"
-                )}
-              >
-                Rate Dish
-              </button>
             </div>
           </div>
         </article>
@@ -262,11 +212,6 @@ export default function LandingClient() {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchMode, setSearchMode] = useState<"restaurants" | "dishes">("restaurants")
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
-  const [restaurantReviews, setRestaurantReviews] = useState<Record<string, ReviewAggregate>>({})
-  const [dishReviews, setDishReviews] = useState<Record<string, ReviewAggregate>>({})
-  const [reviewTarget, setReviewTarget] = useState<{ type: "restaurant" | "dish"; id: string; name: string } | null>(null)
-  const [reviewRating, setReviewRating] = useState(5)
-  const [reviewText, setReviewText] = useState("")
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   
   const heroRef = useRef(null)
@@ -291,54 +236,41 @@ export default function LandingClient() {
   }, [searchMode])
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-    try {
-      const storedRestaurantReviews = window.localStorage.getItem(RESTAURANT_REVIEW_STORAGE_KEY)
-      const storedDishReviews = window.localStorage.getItem(DISH_REVIEW_STORAGE_KEY)
-      if (storedRestaurantReviews) setRestaurantReviews(JSON.parse(storedRestaurantReviews))
-      if (storedDishReviews) setDishReviews(JSON.parse(storedDishReviews))
-    } catch {
-      setRestaurantReviews({})
-      setDishReviews({})
-    }
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    window.localStorage.setItem(RESTAURANT_REVIEW_STORAGE_KEY, JSON.stringify(restaurantReviews))
-  }, [restaurantReviews])
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    window.localStorage.setItem(DISH_REVIEW_STORAGE_KEY, JSON.stringify(dishReviews))
-  }, [dishReviews])
-
-  useEffect(() => {
     const load = async () => {
       try {
         setLoading(true)
         const res = await apiFetch<any>("/restaurants")
         const restaurantList = Array.isArray(res) ? res : (res?.data || [])
         
-        const enhancedRestaurants = restaurantList.map((r: any) => ({
-          ...r,
-          rating: (Math.random() * (5 - 4) + 4).toFixed(1),
-          delivery_time: ["15-25", "20-30", "30-45"][Math.floor(Math.random() * 3)] + " min"
-        }))
+        const enhancedRestaurants: Restaurant[] = restaurantList
+          .map((r: any) => {
+            const identifier = getRestaurantIdentifier(r)
+            if (!identifier || !r?.name) return null
+
+            return {
+              ...r,
+              id: String(r.id || identifier),
+              slug: identifier,
+              name: String(r.name),
+              delivery_time: ["15-25", "20-30", "30-45"][Math.floor(Math.random() * 3)] + " min",
+            }
+          })
+          .filter((restaurant: Restaurant | null): restaurant is Restaurant => restaurant !== null)
+
         setRestaurants(enhancedRestaurants)
 
         const featuredDishes: Dish[] = []
         for (const rest of enhancedRestaurants.slice(0, 8)) {
-          const restaurantIdentifier = rest.slug || rest.id
-          if (!restaurantIdentifier) continue
+          const restaurantId = rest.id
+          if (!restaurantId) continue
 
           try {
-            const categoriesRes = await apiFetch<any>(`/restaurants/${restaurantIdentifier}/categories`)
+            const categoriesRes = await apiFetch<any>(`/restaurants/${restaurantId}/categories`)
             const categories = Array.isArray(categoriesRes) ? categoriesRes : (categoriesRes?.data || [])
 
             for (const category of categories.slice(0, 4)) {
               try {
-                const itemsRes = await apiFetch<any>(`/restaurants/${restaurantIdentifier}/categories/${category.id}/items`)
+                const itemsRes = await apiFetch<any>(`/restaurants/${restaurantId}/categories/${category.id}/items`)
                 const items = Array.isArray(itemsRes) ? itemsRes : (itemsRes?.data || [])
 
                 items.slice(0, 4).forEach((item: any) => {
@@ -352,8 +284,6 @@ export default function LandingClient() {
                     restaurant_name: rest.name,
                     restaurant_slug: rest.slug || String(rest.id),
                     category_name: category.name,
-                    rating: Number(item.rating || 0),
-                    rating_count: Number(item.rating_count || 0),
                   })
                 })
               } catch {
@@ -394,95 +324,6 @@ export default function LandingClient() {
       d.category_name?.toLowerCase().includes(searchQuery.toLowerCase())
     )
   , [dishes, searchQuery])
-
-  const restaurantsWithReviews = useMemo(() => {
-    return restaurants.map((restaurant) => {
-      const local = restaurantReviews[restaurant.id]
-      if (!local) return restaurant
-      return {
-        ...restaurant,
-        rating: local.rating.toFixed(1),
-        rating_count: local.count,
-      }
-    })
-  }, [restaurants, restaurantReviews])
-
-  const dishesWithReviews = useMemo(() => {
-    return dishes.map((dish) => {
-      const key = `${dish.restaurant_slug}:${dish.id}`
-      const local = dishReviews[key]
-      if (!local) return dish
-      return {
-        ...dish,
-        rating: local.rating,
-        rating_count: local.count,
-      }
-    })
-  }, [dishes, dishReviews])
-
-  const filteredRestaurantsWithReviews = useMemo(() => {
-    const restaurantById = new Map(restaurantsWithReviews.map((restaurant) => [restaurant.id, restaurant]))
-    return filteredRestaurants.map((restaurant) => restaurantById.get(restaurant.id) || restaurant)
-  }, [filteredRestaurants, restaurantsWithReviews])
-
-  const filteredDishesWithReviews = useMemo(() => {
-    const dishByCompositeId = new Map(dishesWithReviews.map((dish) => [`${dish.restaurant_slug}:${dish.id}`, dish]))
-    return filteredDishes.map((dish) => dishByCompositeId.get(`${dish.restaurant_slug}:${dish.id}`) || dish)
-  }, [filteredDishes, dishesWithReviews])
-
-  const submitReview = () => {
-    if (!reviewTarget) return
-    const content = reviewText.trim()
-    if (!content) return
-
-    const newReview: ReviewEntry = {
-      rating: reviewRating,
-      text: content,
-      created_at: new Date().toISOString(),
-    }
-
-    if (reviewTarget.type === "restaurant") {
-      setRestaurantReviews((previous) => {
-        const current = previous[reviewTarget.id] || { rating: 0, count: 0, reviews: [] }
-        const nextCount = current.count + 1
-        const nextRating = ((current.rating * current.count) + reviewRating) / nextCount
-        return {
-          ...previous,
-          [reviewTarget.id]: {
-            rating: Number(nextRating.toFixed(1)),
-            count: nextCount,
-            reviews: [newReview, ...current.reviews].slice(0, 20),
-          },
-        }
-      })
-    } else {
-      setDishReviews((previous) => {
-        const current = previous[reviewTarget.id] || { rating: 0, count: 0, reviews: [] }
-        const nextCount = current.count + 1
-        const nextRating = ((current.rating * current.count) + reviewRating) / nextCount
-        return {
-          ...previous,
-          [reviewTarget.id]: {
-            rating: Number(nextRating.toFixed(1)),
-            count: nextCount,
-            reviews: [newReview, ...current.reviews].slice(0, 20),
-          },
-        }
-      })
-    }
-
-    setReviewText("")
-    setReviewRating(5)
-    setReviewTarget(null)
-  }
-
-  const activeReviews = useMemo(() => {
-    if (!reviewTarget) return [] as ReviewEntry[]
-    if (reviewTarget.type === "restaurant") {
-      return restaurantReviews[reviewTarget.id]?.reviews || []
-    }
-    return dishReviews[reviewTarget.id]?.reviews || []
-  }, [reviewTarget, restaurantReviews, dishReviews])
 
   const hasSearch = searchQuery.length > 0
 
@@ -618,35 +459,33 @@ export default function LandingClient() {
                         </div>
                     ) : hasSearch ? (
                         <div className="space-y-12">
-                          {searchMode === "restaurants" && filteredRestaurantsWithReviews.length > 0 && (
+                          {searchMode === "restaurants" && filteredRestaurants.length > 0 && (
                             <div className="space-y-6">
                               <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Restaurant Matches</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                                {filteredRestaurantsWithReviews.slice(0, 8).map((restaurant, i) => (
+                                {filteredRestaurants.slice(0, 8).map((restaurant, i) => (
                                   <RestaurantCard
                                     key={restaurant.id}
                                     restaurant={restaurant}
                                     index={i}
                                     compact
-                                    onReview={(restaurantRecord) => setReviewTarget({ type: "restaurant", id: restaurantRecord.id, name: restaurantRecord.name })}
                                   />
                                 ))}
                               </div>
                             </div>
                           )}
                           
-                          {searchMode === "dishes" && filteredDishesWithReviews.length > 0 && (
+                          {searchMode === "dishes" && filteredDishes.length > 0 && (
                             <div className="space-y-6">
                               <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Dish Matches</h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                                {filteredDishesWithReviews.slice(0, 9).map((dish, i) => (
+                                {filteredDishes.slice(0, 9).map((dish, i) => (
                                   <DishCard
                                     key={`${dish.restaurant_slug}-${dish.id}`}
                                     dish={dish}
                                     index={i}
                                     compact
                                     onSelect={setSelectedDish}
-                                    onReview={(dishRecord) => setReviewTarget({ type: "dish", id: `${dishRecord.restaurant_slug}:${dishRecord.id}`, name: dishRecord.name })}
                                   />
                                 ))}
                               </div>
@@ -659,7 +498,7 @@ export default function LandingClient() {
                              </div>
                           )}
 
-                            {searchMode === "dishes" && !filteredDishesWithReviews.length && (
+                             {searchMode === "dishes" && !filteredDishes.length && (
                              <div className="py-20 text-center bg-card/20 rounded-[3rem] border-2 border-dashed border-white/5">
                                 <p className="text-muted-foreground italic">No dishes found for "{searchQuery}"</p>
                              </div>
@@ -671,13 +510,12 @@ export default function LandingClient() {
                             <div className="space-y-6">
                               <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Popular Restaurants</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                                {filteredRestaurantsWithReviews.slice(0, 6).map((restaurant, i) => (
+                                {filteredRestaurants.slice(0, 6).map((restaurant, i) => (
                                   <RestaurantCard
                                     key={restaurant.id}
                                     restaurant={restaurant}
                                     index={i}
                                     compact
-                                    onReview={(restaurantRecord) => setReviewTarget({ type: "restaurant", id: restaurantRecord.id, name: restaurantRecord.name })}
                                   />
                                 ))}
                               </div>
@@ -688,14 +526,13 @@ export default function LandingClient() {
                             <div className="space-y-6">
                               <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Featured Dishes</h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                                {filteredDishesWithReviews.slice(0, 6).map((dish, i) => (
+                                {filteredDishes.slice(0, 6).map((dish, i) => (
                                   <DishCard
                                     key={`${dish.restaurant_slug}-${dish.id}`}
                                     dish={dish}
                                     index={i}
                                     compact
                                     onSelect={setSelectedDish}
-                                    onReview={(dishRecord) => setReviewTarget({ type: "dish", id: `${dishRecord.restaurant_slug}:${dishRecord.id}`, name: dishRecord.name })}
                                   />
                                 ))}
                               </div>
@@ -768,28 +605,26 @@ export default function LandingClient() {
                     <h3 className="text-xl md:text-2xl font-serif text-muted-foreground italic">Loading our featured restaurants...</h3>
                  </div>
               </div>
-            ) : searchMode === "restaurants" && filteredRestaurantsWithReviews.length > 0 ? (
+            ) : searchMode === "restaurants" && filteredRestaurants.length > 0 ? (
               <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {filteredRestaurantsWithReviews.map((restaurant, i) => (
+                {filteredRestaurants.map((restaurant, i) => (
                   <RestaurantCard
                     key={restaurant.id}
                     restaurant={restaurant}
                     index={i}
-                    onReview={(restaurantRecord) => setReviewTarget({ type: "restaurant", id: restaurantRecord.id, name: restaurantRecord.name })}
                   />
                 ))}
               </div>
-            ) : searchMode === "dishes" && filteredDishesWithReviews.length > 0 ? (
+            ) : searchMode === "dishes" && filteredDishes.length > 0 ? (
               <div className="space-y-6">
                 <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Dish Directory</h4>
                 <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredDishesWithReviews.map((dish, i) => (
+                  {filteredDishes.map((dish, i) => (
                     <DishCard
                       key={`${dish.restaurant_slug}-${dish.id}`}
                       dish={dish}
                       index={i}
                       onSelect={setSelectedDish}
-                      onReview={(dishRecord) => setReviewTarget({ type: "dish", id: `${dishRecord.restaurant_slug}:${dishRecord.id}`, name: dishRecord.name })}
                     />
                   ))}
                 </div>
@@ -996,28 +831,14 @@ export default function LandingClient() {
                   <span className="text-lg font-black text-primary">${selectedDish.price}</span>
                 </div>
 
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-1 text-primary font-bold">
-                    <Star className="h-4 w-4 fill-primary" />
-                    <span>{(selectedDish.rating || 0).toFixed(1)} {selectedDish.rating_count ? `(${selectedDish.rating_count})` : "(0)"}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="text-xs font-black uppercase tracking-widest text-primary hover:underline"
-                    onClick={() => setReviewTarget({ type: "dish", id: `${selectedDish.restaurant_slug}:${selectedDish.id}`, name: selectedDish.name })}
-                  >
-                    Rate this dish
-                  </button>
-                </div>
-
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <Button asChild className="sm:flex-1 rounded-xl">
-                    <Link href={`/menu/${selectedDish.restaurant_slug}/list`}>
+                    <Link href={`/${selectedDish.restaurant_slug}/list`}>
                       Go to Menu
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="sm:flex-1 rounded-xl">
-                    <Link href={`/menu/${selectedDish.restaurant_slug}`}>
+                    <Link href={`/${selectedDish.restaurant_slug}`}>
                       Restaurant Page
                     </Link>
                   </Button>
@@ -1025,70 +846,6 @@ export default function LandingClient() {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!reviewTarget} onOpenChange={(open) => !open && setReviewTarget(null)}>
-        <DialogContent className="max-w-lg rounded-3xl border border-border/60 bg-background">
-          <DialogHeader className="space-y-2">
-            <DialogTitle className="text-2xl font-serif">Rate & Review</DialogTitle>
-            <DialogDescription>
-              Share your experience for {reviewTarget?.name || "this selection"}.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-5">
-            <div className="flex items-center gap-2">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setReviewRating(value)}
-                  className="transition-transform hover:scale-110"
-                  aria-label={`Set rating ${value}`}
-                >
-                  <Star className={cn("h-7 w-7", value <= reviewRating ? "fill-primary text-primary" : "text-muted-foreground")} />
-                </button>
-              ))}
-              <span className="ml-2 text-sm font-bold text-primary">{reviewRating}/5</span>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Your Review</p>
-              <Textarea
-                value={reviewText}
-                onChange={(event) => setReviewText(event.target.value)}
-                placeholder="Tell others what you liked..."
-                className="min-h-28 rounded-xl"
-              />
-            </div>
-
-            {activeReviews.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Recent Reviews</p>
-                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                  {activeReviews.slice(0, 3).map((entry, index) => (
-                    <div key={`${entry.created_at}-${index}`} className="rounded-xl border border-border/60 bg-card/50 p-3">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-black text-primary">{entry.rating}/5</span>
-                        <span className="text-muted-foreground">{new Date(entry.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{entry.text}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" className="rounded-xl" onClick={() => setReviewTarget(null)}>
-                Cancel
-              </Button>
-              <Button type="button" className="rounded-xl" onClick={submitReview} disabled={!reviewText.trim()}>
-                Submit Review
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 
