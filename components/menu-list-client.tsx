@@ -30,6 +30,35 @@ interface MenuListClientProps {
     initialItems?: MenuItem[]
 }
 
+function extractList(payload: any): any[] {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload?.data?.items)) return payload.data.items
+  if (Array.isArray(payload?.items)) return payload.items
+  if (Array.isArray(payload?.results)) return payload.results
+  return []
+}
+
+function normalizeMenuItem(item: any, fallbackCategoryId: string): MenuItem {
+  return {
+    ...item,
+    id: String(item?.id || item?.ID || item?.uuid || `item-${Math.random()}`),
+    name: String(item?.name || "Menu Item"),
+    description: String(item?.description || ""),
+    price: Number(item?.price || 0),
+    currency: String(item?.currency || "ETB"),
+    category_id: String(item?.category_id || fallbackCategoryId || ""),
+    is_available: Boolean(item?.available ?? item?.is_available ?? true),
+    available: Boolean(item?.available ?? item?.is_available ?? true),
+    image: item?.image,
+    images: item?.images,
+    image_url: item?.image_url || item?.image?.url || item?.images?.[0]?.url,
+    image_urls: Array.isArray(item?.image_urls) ? item.image_urls : undefined,
+    rating: Number(item?.rating || 0),
+    rating_count: Number(item?.rating_count || 0),
+  }
+}
+
 export default function MenuListClient({ hotelSlug, initialHotel, initialCategories = [], initialItems = [] }: MenuListClientProps) {
   const [hotel, setHotel] = useState<Restaurant | null>(initialHotel || null)
   const [categories, setCategories] = useState<Category[]>(initialCategories)
@@ -43,7 +72,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
 
   // Determine template (1, 2, or 3)
   // We'll look for a 'public_template' or 'template' field, defaulting to 1
-  const selectedTemplate = hotel?.public_template || (hotel as any)?.template || 1
+  const selectedTemplate = Number(hotel?.public_template || (hotel as any)?.template || 1)
 
   useEffect(() => {
     const loadData = async () => {
@@ -55,9 +84,10 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
         // 1. Load Restaurant if missing
         if (!currentHotel || !currentHotel.id) {
           try {
-            const rRes = await apiFetch<any>(`/restaurants/${hotelSlug}`)
+            const rRes = await apiFetch<any>("/restaurants/" + hotelSlug)
             const rData = rRes?.data || rRes
-            currentHotel = Array.isArray(rData) ? rData[0] : rData
+            const rList = extractList(rData)
+            currentHotel = Array.isArray(rData) ? rData[0] : (rData || rList[0])
             if (currentHotel) {
               setHotel(currentHotel)
             } else {
@@ -81,26 +111,36 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
 
         try {
           setItemsLoading(true)
-          const cRes = await apiFetch<any>(`/restaurants/${restaurantIdForMenu}/categories`)
-          const cData = cRes?.data || cRes || []
-          
-          if (Array.isArray(cData)) {
-            // Fetch items for each category
-            const categoriesWithItems = await Promise.all(
-              cData.map(async (cat: any) => {
-                try {
-                  const itRes = await apiFetch<any>(`/restaurants/${restaurantIdForMenu}/categories/${cat.id}/items`)
-                  const itData = itRes?.data || itRes || []
-                  return { ...cat, items: itData }
-                } catch (e) {
-                  return { ...cat, items: [] }
+          const cRes = await apiFetch<any>("/restaurants/" + restaurantIdForMenu + "/categories")
+          const categoryRows = extractList(cRes)
+
+          const categoriesWithItems = await Promise.all(
+            categoryRows.map(async (cat: any) => {
+              try {
+                const itRes = await apiFetch<any>("/restaurants/" + restaurantIdForMenu + "/categories/" + cat.id + "/items")
+                const itData = extractList(itRes)
+                return {
+                  ...cat,
+                  id: String(cat?.id || ""),
+                  name: String(cat?.name || "Category"),
+                  description: cat?.description || "",
+                  items: itData.map((it: any) => normalizeMenuItem(it, String(cat?.id || ""))),
                 }
-              })
-            )
-            setCategories(categoriesWithItems)
-            if (categoriesWithItems.length > 0 && !activeCategory) {
-              setActiveCategory(categoriesWithItems[0].id)
-            }
+              } catch {
+                return {
+                  ...cat,
+                  id: String(cat?.id || ""),
+                  name: String(cat?.name || "Category"),
+                  description: cat?.description || "",
+                  items: [],
+                }
+              }
+            })
+          )
+
+          setCategories(categoriesWithItems)
+          if (categoriesWithItems.length > 0 && !activeCategory) {
+            setActiveCategory(categoriesWithItems[0].id)
           }
         } catch (err) {
           console.error("Failed to load categories/items:", err)
@@ -157,9 +197,10 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
   return (
     <div className="relative">
       {/* Template Switcher Logic */}
-      {Number(selectedTemplate) === 1 && <Template1 {...templateProps} />}
-      {Number(selectedTemplate) === 2 && <Template2 {...templateProps} />}
-      {Number(selectedTemplate) === 3 && <Template3 {...templateProps} />}
+      {selectedTemplate === 1 && <Template1 {...templateProps} />}
+      {selectedTemplate === 2 && <Template2 {...templateProps} />}
+      {selectedTemplate === 3 && <Template3 {...templateProps} />}
+      {[1, 2, 3].includes(selectedTemplate) ? null : <Template1 {...templateProps} />}
 
       {/* Shared Item Detail Drawer */}
       <Drawer open={!!selectedItem} onOpenChange={(open) => {
@@ -255,7 +296,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                         <span className="bg-primary/5 text-primary px-3 py-1 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase border border-primary/10">
                            {categories.find(c => String(c.id) === String(selectedItem.category_id))?.name || "Selection"}
                         </span>
-                        {selectedItem.is_available === false && (
+                        {(selectedItem.is_available === false || selectedItem.available === false) && (
                           <span className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 px-3 py-1 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase border border-rose-100 dark:border-rose-900/30">
                              Sold Out
                           </span>

@@ -29,9 +29,11 @@ export default function Template3({
   // Ensure we get the correct logo URL field
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
-  const filteredItems = categoryItems.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const query = searchQuery.toLowerCase()
+  const filteredItems = categoryItems.filter((item) => {
+    if (!query) return true
+    return item.name.toLowerCase().includes(query) || (item.description || "").toLowerCase().includes(query)
+  })
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 font-sans">
@@ -157,6 +159,9 @@ export default function Template3({
                        <p className="font-black text-primary whitespace-nowrap">
                           {item.currency} {item.price.toFixed(item.price % 1 === 0 ? 0 : 2)}
                        </p>
+                        {(item.is_available === false || item.available === false) && (
+                         <p className="text-[10px] font-bold uppercase tracking-wide text-rose-500 mt-1">Sold Out</p>
+                        )}
                     </div>
                   </motion.div>
                 ))}

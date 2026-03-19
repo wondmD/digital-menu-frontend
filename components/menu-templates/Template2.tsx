@@ -27,9 +27,11 @@ export default function Template2({
 
   const [localRatings, setLocalRatings] = useState<Record<string, { rating: number; count: number }>>({})
 
-  const filteredItems = categoryItems.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const query = searchQuery.toLowerCase()
+  const filteredItems = categoryItems.filter((item) => {
+    if (!query) return true
+    return item.name.toLowerCase().includes(query) || (item.description || "").toLowerCase().includes(query)
+  })
 
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
@@ -140,6 +142,13 @@ export default function Template2({
                           {item.currency} {item.price.toFixed(2)}
                        </Badge>
                     </div>
+                    {(item.is_available === false || item.available === false) && (
+                      <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5">
+                        <Badge className="bg-rose-600 text-white border-none font-bold py-1.5 px-3 rounded-xl shadow-lg">
+                          Sold Out
+                        </Badge>
+                      </div>
+                    )}
                     {idx % 3 === 0 && (
                        <div className="absolute top-4 right-4 sm:top-5 sm:right-5 h-9 w-9 sm:h-10 sm:w-10 bg-rose-500 rounded-full flex items-center justify-center shadow-lg text-white">
                           <Heart className="h-5 w-5 fill-current" />
