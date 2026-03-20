@@ -36,7 +36,6 @@ interface HeroSectionProps {
   logoImage?: string | null
   menuLink: string
   mapLink: string
-  reservationEnabled: boolean
 }
 
 export function HeroSection({
@@ -45,21 +44,9 @@ export function HeroSection({
   logoImage,
   menuLink,
   mapLink,
-  reservationEnabled,
 }: HeroSectionProps) {
-  const heroImage = coverImage || getImageUrl(
-    hotel.cover_url ||
-    (hotel as any).cover_image_url ||
-    (hotel as any).cover_image ||
-    (hotel as any).cover
-  ) || "/hotel.webp"
-
-  const logo = logoImage || getImageUrl(
-    hotel.logo_url ||
-    (hotel as any).logo_image_url ||
-    (hotel as any).logo_image ||
-    (hotel as any).logo
-  )
+  const heroImage = coverImage || getImageUrl(hotel.cover_url || hotel.logo_url) || "/placeholder.svg"
+  const logo = logoImage || getImageUrl(hotel.logo_url)
 
   return (
     <section className="relative w-full overflow-hidden min-h-screen flex items-center">
@@ -182,19 +169,6 @@ export function HeroSection({
                   View Menu
                 </Link>
               </Button>
-              
-              {reservationEnabled && (
-                <Button 
-                  size="lg" 
-                  variant="secondary" 
-                  className="w-full sm:w-auto rounded-xl px-8 h-14 text-base font-semibold bg-white text-slate-900 border border-white/40 backdrop-blur-sm hover:bg-white/90 dark:bg-white dark:text-slate-900 transition-all duration-300" 
-                  asChild
-                >
-                  <Link href="#reservation">
-                    Reserve Table
-                  </Link>
-                </Button>
-              )}
               
               {mapLink && (
                 <Button 

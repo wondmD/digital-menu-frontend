@@ -12,6 +12,8 @@ import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
 import { Logo } from "@/components/logo"
 
+const ETHIOPIA_DIAL_CODE = "+251"
+
 export default function RegisterPage() {
   const { toast } = useToast()
   const router = useRouter()
@@ -24,7 +26,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
-    phone: "",
+    phone: ETHIOPIA_DIAL_CODE,
     password: ""
   })
 
@@ -35,6 +37,13 @@ export default function RegisterPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
+
+    if (name === "phone") {
+      const cleaned = value.replace(/[^\d+\s()-]/g, "")
+      setFormData((prev) => ({ ...prev, phone: cleaned }))
+      return
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }))
     
     if (name === "password") {
@@ -49,6 +58,20 @@ export default function RegisterPage() {
       triggerShake()
       return false
     }
+
+    const normalizedPhone = normalizeEthiopianPhone(formData.phone)
+    if (!normalizedPhone) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid Ethiopian number (e.g. +251912345678 or 0912345678).",
+        variant: "destructive",
+      })
+      triggerShake()
+      return false
+    }
+
+    setFormData((prev) => ({ ...prev, phone: normalizedPhone }))
+
     if (!formData.email.includes("@")) {
       toast({ title: "Invalid Mail", description: "Please enter a valid work email.", variant: "destructive" })
       triggerShake()
@@ -65,12 +88,37 @@ export default function RegisterPage() {
     return { message: "Perfectly seasoned! This key is ready for the vault. ✨", isValid: true }
   }
 
+  const normalizeEthiopianPhone = (rawPhone: string): string | null => {
+    const compact = rawPhone.replace(/[\s()-]/g, "")
+
+    if (compact.startsWith("+251")) {
+      const local = compact.slice(4)
+      return /^[79]\d{8}$/.test(local) ? `+251${local}` : null
+    }
+
+    if (compact.startsWith("251")) {
+      const local = compact.slice(3)
+      return /^[79]\d{8}$/.test(local) ? `+251${local}` : null
+    }
+
+    if (/^0[79]\d{8}$/.test(compact)) {
+      return `+251${compact.slice(1)}`
+    }
+
+    if (/^[79]\d{8}$/.test(compact)) {
+      return `+251${compact}`
+    }
+
+    return null
+  }
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     
     // If user hits Enter on Step 1, move to Step 2
     if (step === 1) {
       if (validateStep1()) {
+        setPassError(null)
         setStep(2)
       }
       return
@@ -163,18 +211,15 @@ export default function RegisterPage() {
         </div>
 
         <div className="bg-card/40 backdrop-blur-3xl border border-border rounded-[3.5rem] p-8 md:p-14 shadow-2xl">
-          <header className="mb-12">
-            <div className="flex flex-col md:flex-row md:items-center gap-6 mb-8">
-               <Logo width={160} height={50} />
-               <div className="h-10 w-px bg-border hidden md:block" />
-               <div>
-                  <h1 className="text-3xl md:text-4xl font-serif text-foreground tracking-tight">Claim Your Kitchen 🍽️</h1>
-                  <p className="text-muted-foreground font-medium">Join the elite circle of digital restaurant owners.</p>
-               </div>
+          <header className="mb-12 text-center">
+            <div className="mx-auto mb-8 w-fit">
+              <Logo width={220} height={72} />
             </div>
+            <h1 className="text-3xl md:text-4xl font-serif text-foreground tracking-tight">Claim Your Kitchen 🍽️</h1>
+            <p className="mt-2 text-muted-foreground font-medium">Join the elite circle of digital restaurant owners.</p>
           </header>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} noValidate className="space-y-8">
             <div className="relative overflow-hidden min-h-[340px]">
                <AnimatePresence mode="wait">
                   {step === 1 ? (
@@ -192,7 +237,7 @@ export default function RegisterPage() {
                             name="full_name" 
                             value={formData.full_name}
                             onChange={handleInputChange}
-                            placeholder="Johnathan Silver" 
+                            placeholder="Abebe Kebede" 
                             required 
                             className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all" 
                           />
@@ -208,7 +253,7 @@ export default function RegisterPage() {
                             type="email" 
                             value={formData.email}
                             onChange={handleInputChange}
-                            placeholder="manager@establishment.com" 
+                            placeholder="manager@addiskitchen.et" 
                             required 
                             className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all" 
                           />
@@ -224,8 +269,14 @@ export default function RegisterPage() {
                             type="tel" 
                             value={formData.phone}
                             onChange={handleInputChange}
-                            placeholder="+1 (555) 000- luxury" 
-                            required 
+                            onFocus={() => {
+                              if (!formData.phone.trim()) {
+                                setFormData((prev) => ({ ...prev, phone: ETHIOPIA_DIAL_CODE }))
+                              }
+                            }}
+                            placeholder="+251 912 345 678" 
+                            inputMode="tel"
+                            autoComplete="tel-national"
                             className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all" 
                           />
                           <Smartphone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
@@ -255,7 +306,6 @@ export default function RegisterPage() {
                           value={formData.password}
                           onChange={handleInputChange}
                           autoFocus
-                          required 
                           className={cn(
                             "h-20 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground px-8 text-2xl tracking-[0.3em] transition-all",
                             passError && !passError.includes("Perfectly") && "border-red-500/50 bg-red-500/5",

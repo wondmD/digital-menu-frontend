@@ -198,4 +198,30 @@
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
+
+  /* Dashboard contrast pass: keep visual hierarchy but avoid unreadable gray text. */
+  .dashboard-readable .text-muted-foreground {
+    color: color-mix(in oklab, var(--foreground) 86%, transparent) !important;
+  }
+
+  .dashboard-readable [class*="text-muted-foreground/"] {
+    color: color-mix(in oklab, var(--foreground) 82%, transparent) !important;
+  }
+
+  .dashboard-readable [class*="border-border/"] {
+    border-color: color-mix(in oklab, var(--foreground) 18%, transparent) !important;
+  }
+
+  .dashboard-surface-polish [data-slot="card"] {
+    border-color: color-mix(in oklab, var(--foreground) 22%, transparent) !important;
+    box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 10%, transparent), var(--tw-shadow, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+  }
+
+  .dashboard-surface-polish [class*="border-b"] {
+    border-bottom-color: color-mix(in oklab, var(--foreground) 18%, transparent) !important;
+  }
+
+  .dashboard-surface-polish [class*="border-t"] {
+    border-top-color: color-mix(in oklab, var(--foreground) 18%, transparent) !important;
+  }
 }

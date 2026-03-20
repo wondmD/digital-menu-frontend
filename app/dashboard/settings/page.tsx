@@ -203,7 +203,7 @@ export default function SettingsPage() {
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className="h-14 md:h-16 rounded-xl md:rounded-2xl border-border/60 bg-muted/30 font-black px-6 md:px-8 text-lg md:text-xl text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 transition-all border-2"
-                        placeholder="Full name"
+                        placeholder="Abebe Kebede"
                         disabled={saving}
                       />
                     </div>
@@ -219,7 +219,7 @@ export default function SettingsPage() {
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           className="h-14 md:h-16 rounded-xl md:rounded-2xl border-border/60 bg-muted/30 font-black px-6 md:px-8 text-lg md:text-xl text-foreground placeholder:text-muted-foreground/50 focus:border-primary/40 transition-all border-2"
-                          placeholder="+..."
+                          placeholder="+251912345678"
                           disabled={saving}
                         />
                       </div>

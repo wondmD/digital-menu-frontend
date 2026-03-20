@@ -325,7 +325,7 @@ export default function CategoriesPage() {
         <div className="relative flex-1 w-full group">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
-            placeholder="SEARCH CATEGORIES..." 
+            placeholder="SEARCH ETHIOPIAN CATEGORIES..." 
             className="pl-14 border-none bg-transparent h-12 md:h-16 text-lg md:text-xl font-black tracking-widest placeholder:text-muted-foreground/30 focus-visible:ring-0 text-foreground uppercase w-full" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -470,7 +470,7 @@ export default function CategoriesPage() {
                       <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Category Name</Label>
                       <Input
                         className="h-14 md:h-20 rounded-xl md:rounded-[1.5rem] border-2 border-border/60 bg-muted/40 text-xl md:text-2xl font-black px-6 md:px-8 text-foreground placeholder:text-muted-foreground/30 focus-visible:ring-primary/20 focus-visible:border-primary/50 transition-all uppercase tracking-tighter shadow-xl"
-                        placeholder="E.G. MAIN COURSE"
+                        placeholder="E.G. BEYAYNETU"
                         value={newName}
                         onChange={e => setNewName(e.target.value)}
                       />
@@ -480,7 +480,7 @@ export default function CategoriesPage() {
                       <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground ml-1">Description</Label>
                       <textarea
                         className="w-full min-h-[150px] md:min-h-[200px] rounded-xl md:rounded-[1.5rem] border-2 border-border/60 bg-muted/40 p-6 md:p-8 font-medium text-base md:text-lg text-foreground focus:outline-none focus:border-primary/50 transition-all resize-none italic serif shadow-xl"
-                        placeholder="Provide details about this category..."
+                        placeholder="Provide details about this Ethiopian category..."
                         value={newDescription}
                         onChange={e => setNewDescription(e.target.value)}
                       />

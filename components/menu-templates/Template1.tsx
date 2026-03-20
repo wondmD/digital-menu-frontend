@@ -71,7 +71,7 @@ export default function Template1({
             <Input
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search our collection..."
+              placeholder="Search Ethiopian favorites..."
               className="pl-10 bg-transparent border-[#E5E1D8] dark:border-[#2A2A28] focus:ring-[#706C61] dark:focus:ring-[#A09D95] font-sans"
             />
           </div>

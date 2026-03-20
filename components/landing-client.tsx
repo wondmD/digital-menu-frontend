@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { 
   QrCode, Smartphone, Sparkles, Search, Utensils, MapPin, 
-  Loader2, ArrowRight, Clock, ShoppingBag, Flame, 
+  Loader2, ArrowRight, ShoppingBag, Flame, 
   ChefHat, Zap, Play, CheckCircle2, Menu as MenuIcon
 } from "lucide-react"
 import { useEffect, useState, useMemo, useRef } from "react"
@@ -35,7 +35,8 @@ type Restaurant = {
   cover_url?: string
   address?: string
   cuisine_type?: string
-  delivery_time?: string
+  latitude?: number
+  longitude?: number
 }
 
 function getRestaurantIdentifier(restaurant: any): string {
@@ -73,6 +74,47 @@ const DISH_PLACEHOLDERS = [
   "Explore signature pasta...",
   "Hunt for spicy specials..."
 ]
+
+function parseCoordinateAddress(address?: string): { lat: number; lng: number } | null {
+  if (!address) return null
+  const match = address.match(/^\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*$/)
+  if (!match) return null
+
+  const lat = Number(match[1])
+  const lng = Number(match[2])
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  return { lat, lng }
+}
+
+function resolveRestaurantCoordinates(restaurant: any): { lat: number; lng: number } | null {
+  const lat = Number(restaurant?.latitude ?? restaurant?.lat)
+  const lng = Number(restaurant?.longitude ?? restaurant?.lng)
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    return { lat, lng }
+  }
+  return parseCoordinateAddress(restaurant?.address)
+}
+
+function toRadians(value: number): number {
+  return (value * Math.PI) / 180
+}
+
+function distanceKm(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number }
+): number {
+  const earthRadiusKm = 6371
+  const dLat = toRadians(to.lat - from.lat)
+  const dLng = toRadians(to.lng - from.lng)
+  const lat1 = toRadians(from.lat)
+  const lat2 = toRadians(to.lat)
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return earthRadiusKm * c
+}
 
 function RestaurantCard({
   restaurant,
@@ -132,12 +174,6 @@ function RestaurantCard({
                 {restaurant.description || "The intersection of tradition and innovation curated for you."}
               </p>
               
-              <div className={cn("mt-auto pt-4 border-t border-border/10 flex items-center justify-between font-bold", compact ? "text-[10px]" : "text-[11px]")}>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{restaurant.delivery_time}</span>
-                </div>
-              </div>
           </div>
         </article>
       </Link>
@@ -210,7 +246,9 @@ export default function LandingClient() {
   const [dishes, setDishes] = useState<Dish[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [searchMode, setSearchMode] = useState<"restaurants" | "dishes">("restaurants")
+  const [restaurantFilter, setRestaurantFilter] = useState<"all" | "nearby">("all")
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [isLocating, setIsLocating] = useState(false)
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
   
@@ -225,15 +263,11 @@ export default function LandingClient() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const placeholders = searchMode === "dishes" ? DISH_PLACEHOLDERS : RESTAURANT_PLACEHOLDERS
+      const placeholders = RESTAURANT_PLACEHOLDERS
       setPlaceholderIndex((prev) => (prev + 1) % placeholders.length)
     }, 3000)
     return () => clearInterval(interval)
-  }, [searchMode])
-
-  useEffect(() => {
-    setPlaceholderIndex(0)
-  }, [searchMode])
+  }, [])
 
   useEffect(() => {
     const load = async () => {
@@ -246,13 +280,15 @@ export default function LandingClient() {
           .map((r: any) => {
             const identifier = getRestaurantIdentifier(r)
             if (!identifier || !r?.name) return null
+            const coords = resolveRestaurantCoordinates(r)
 
             return {
               ...r,
               id: String(r.id || identifier),
               slug: identifier,
               name: String(r.name),
-              delivery_time: ["15-25", "20-30", "30-45"][Math.floor(Math.random() * 3)] + " min",
+              latitude: coords?.lat,
+              longitude: coords?.lng,
             }
           })
           .filter((restaurant: Restaurant | null): restaurant is Restaurant => restaurant !== null)
@@ -327,6 +363,41 @@ export default function LandingClient() {
 
   const hasSearch = searchQuery.length > 0
 
+  const visibleRestaurants = useMemo(() => {
+    if (restaurantFilter !== "nearby" || !userLocation) {
+      return filteredRestaurants
+    }
+
+    return [...filteredRestaurants].sort((a, b) => {
+      const aCoords = resolveRestaurantCoordinates(a)
+      const bCoords = resolveRestaurantCoordinates(b)
+
+      if (!aCoords && !bCoords) return 0
+      if (!aCoords) return 1
+      if (!bCoords) return -1
+
+      return distanceKm(userLocation, aCoords) - distanceKm(userLocation, bCoords)
+    })
+  }, [filteredRestaurants, restaurantFilter, userLocation])
+
+  const enableNearbyFilter = () => {
+    setRestaurantFilter("nearby")
+    if (userLocation || isLocating) return
+    if (typeof navigator === "undefined" || !navigator.geolocation) return
+
+    setIsLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude })
+        setIsLocating(false)
+      },
+      () => {
+        setIsLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 }
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/30 selection:text-white overflow-x-hidden">
       <Navbar />
@@ -384,7 +455,7 @@ export default function LandingClient() {
                           exit={{ opacity: 0, y: -10 }}
                           className="absolute inset-x-0 pl-3 md:pl-5 text-sm md:text-xl font-medium text-muted-foreground pointer-events-none whitespace-nowrap overflow-hidden text-left"
                         >
-                          {(searchMode === "dishes" ? DISH_PLACEHOLDERS : RESTAURANT_PLACEHOLDERS)[placeholderIndex]}
+                          {RESTAURANT_PLACEHOLDERS[placeholderIndex]}
                         </motion.p>
                       )}
                     </AnimatePresence>
@@ -396,7 +467,7 @@ export default function LandingClient() {
                     </div>
                   </div>
                   <Button className="w-full md:w-auto rounded-xl md:rounded-[1.8rem] bg-primary hover:bg-primary/90 font-black px-6 md:px-10 h-11 md:h-14 shadow-xl shadow-primary/20 text-white text-xs md:text-lg uppercase tracking-widest">
-                    {searchMode === "dishes" ? "Search Food" : "Search Restaurants"}
+                    Search Restaurants
                   </Button>
                 </div>
               </motion.div>
@@ -411,33 +482,36 @@ export default function LandingClient() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8 px-2 md:px-4">
                     <div className="flex flex-wrap items-center gap-4">
                       <h3 className="text-lg md:text-2xl font-serif italic text-foreground flex items-center gap-3">
-                        Popular <span className="not-italic font-bold text-primary">Nearby</span>
+                        <span className="not-italic font-bold text-primary">Nearby</span> Restaurants
                       </h3>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setSearchMode("restaurants")}
+                          onClick={() => setRestaurantFilter("all")}
                           className={cn(
                             "h-8 px-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors",
-                            searchMode === "restaurants"
+                            restaurantFilter === "all"
                               ? "bg-primary text-white"
                               : "bg-muted text-muted-foreground hover:text-foreground"
                           )}
                         >
-                          Restaurants
+                          All
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSearchMode("dishes")}
+                          onClick={enableNearbyFilter}
                           className={cn(
                             "h-8 px-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors",
-                            searchMode === "dishes"
+                            restaurantFilter === "nearby"
                               ? "bg-primary text-white"
                               : "bg-muted text-muted-foreground hover:text-foreground"
                           )}
                         >
-                          Food
+                          Nearby
                         </button>
+                        {restaurantFilter === "nearby" && isLocating && (
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Locating...</span>
+                        )}
                       </div>
                     </div>
                     <div className="hidden sm:flex gap-2">
@@ -459,11 +533,11 @@ export default function LandingClient() {
                         </div>
                     ) : hasSearch ? (
                         <div className="space-y-12">
-                          {searchMode === "restaurants" && filteredRestaurants.length > 0 && (
+                          {visibleRestaurants.length > 0 && (
                             <div className="space-y-6">
                               <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Restaurant Matches</h4>
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                                {filteredRestaurants.slice(0, 8).map((restaurant, i) => (
+                                {visibleRestaurants.slice(0, 8).map((restaurant, i) => (
                                   <RestaurantCard
                                     key={restaurant.id}
                                     restaurant={restaurant}
@@ -474,190 +548,32 @@ export default function LandingClient() {
                               </div>
                             </div>
                           )}
-                          
-                          {searchMode === "dishes" && filteredDishes.length > 0 && (
-                            <div className="space-y-6">
-                              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Dish Matches</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                                {filteredDishes.slice(0, 9).map((dish, i) => (
-                                  <DishCard
-                                    key={`${dish.restaurant_slug}-${dish.id}`}
-                                    dish={dish}
-                                    index={i}
-                                    compact
-                                    onSelect={setSelectedDish}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {searchMode === "restaurants" && !filteredRestaurants.length && (
+                          {!visibleRestaurants.length && (
                              <div className="py-20 text-center bg-card/20 rounded-[3rem] border-2 border-dashed border-white/5">
                                 <p className="text-muted-foreground italic">No restaurants found for "{searchQuery}"</p>
-                             </div>
-                          )}
-
-                             {searchMode === "dishes" && !filteredDishes.length && (
-                             <div className="py-20 text-center bg-card/20 rounded-[3rem] border-2 border-dashed border-white/5">
-                                <p className="text-muted-foreground italic">No dishes found for "{searchQuery}"</p>
                              </div>
                           )}
                         </div>
                     ) : (
                         <div className="space-y-12">
-                          {searchMode === "restaurants" && (
-                            <div className="space-y-6">
-                              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Popular Restaurants</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                                {filteredRestaurants.slice(0, 6).map((restaurant, i) => (
-                                  <RestaurantCard
-                                    key={restaurant.id}
-                                    restaurant={restaurant}
-                                    index={i}
-                                    compact
-                                  />
-                                ))}
-                              </div>
+                          <div className="space-y-6">
+                            <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Restaurants</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                              {visibleRestaurants.slice(0, 8).map((restaurant, i) => (
+                                <RestaurantCard
+                                  key={restaurant.id}
+                                  restaurant={restaurant}
+                                  index={i}
+                                  compact
+                                />
+                              ))}
                             </div>
-                          )}
-                          
-                          {searchMode === "dishes" && (
-                            <div className="space-y-6">
-                              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Featured Dishes</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                                {filteredDishes.slice(0, 6).map((dish, i) => (
-                                  <DishCard
-                                    key={`${dish.restaurant_slug}-${dish.id}`}
-                                    dish={dish}
-                                    index={i}
-                                    compact
-                                    onSelect={setSelectedDish}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                          </div>
                         </div>
                     )}
                 </div>
               </motion.div>
             </div>
-          </div>
-        </section>
-
-        {/* RESTAURANT DIRECTORY - CONTINUATION */}
-        <section className="py-20 md:py-40 bg-background relative" id="restaurants">
-
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 md:mb-24 gap-8 md:gap-12">
-               <div className="max-w-2xl">
-                  <motion.div 
-                    initial={{ x: -20, opacity: 0 }}
-                    whileInView={{ x: 0, opacity: 1 }}
-                    className="flex items-center gap-3 mb-4 md:mb-6"
-                  >
-                     <div className="h-[2px] w-8 md:w-12 bg-primary" />
-                     <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.4em] text-primary">Gourmet Directory</p>
-                  </motion.div>
-                  <h2 className="text-5xl md:text-8xl font-serif tracking-tight leading-[1] md:leading-none italic font-normal text-foreground">Featured <br /><span className="not-italic text-primary font-bold">Restaurants</span></h2>
-               </div>
-               <div className="flex flex-col items-start md:items-end gap-2 group cursor-default">
-                  <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">Network Status</p>
-                  <div className="text-2xl md:text-3xl font-bold flex items-center gap-4 text-foreground">
-                     {restaurants.length} Restaurants
-                     <div className="flex gap-1.5 h-6 items-end">
-                        {[1,2,3,4,5].map(i => (
-                          <motion.div 
-                            key={i}
-                            animate={{ height: [10, 24, 10] }}
-                            transition={{ duration: 1, repeat: Infinity, delay: i * 0.1 }}
-                            className="w-1 md:w-1.5 rounded-full bg-primary" 
-                          />
-                        ))}
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            {loading ? (
-              <div className="grid gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                 {[1,2,3,4].map(i => (
-                   <div key={i} className="flex flex-col gap-6 h-auto rounded-[2.5rem] bg-slate-900/50 p-6 border border-white/5 overflow-hidden animate-pulse">
-                      <div className="aspect-square w-full rounded-[2rem] bg-white/5" />
-                      <div className="space-y-3">
-                        <div className="h-8 w-2/3 bg-white/5 rounded-lg" />
-                        <div className="h-4 w-full bg-white/5 rounded-lg" />
-                      </div>
-                   </div>
-                 ))}
-                 <div className="col-span-full pt-10 text-center">
-                    <motion.div 
-                      animate={{ 
-                        rotate: [0, 10, -10, 0],
-                        y: [0, -10, 0]
-                      }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="inline-block"
-                    >
-                      <ChefHat className="h-12 md:h-16 w-12 md:w-16 text-primary mb-4 md:mb-6 mx-auto" />
-                    </motion.div>
-                    <h3 className="text-xl md:text-2xl font-serif text-muted-foreground italic">Loading our featured restaurants...</h3>
-                 </div>
-              </div>
-            ) : searchMode === "restaurants" && filteredRestaurants.length > 0 ? (
-              <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {filteredRestaurants.map((restaurant, i) => (
-                  <RestaurantCard
-                    key={restaurant.id}
-                    restaurant={restaurant}
-                    index={i}
-                  />
-                ))}
-              </div>
-            ) : searchMode === "dishes" && filteredDishes.length > 0 ? (
-              <div className="space-y-6">
-                <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Dish Directory</h4>
-                <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredDishes.map((dish, i) => (
-                    <DishCard
-                      key={`${dish.restaurant_slug}-${dish.id}`}
-                      dish={dish}
-                      index={i}
-                      onSelect={setSelectedDish}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                whileInView={{ scale: 1, opacity: 1 }}
-                viewport={{ once: true }}
-                className="py-20 md:py-40 text-center bg-slate-900/40 rounded-[3rem] md:rounded-[5rem] border-2 border-dashed border-white/10 px-6"
-              >
-                 <Utensils className="h-16 w-16 md:h-20 md:w-20 mx-auto text-white/5 mb-8 md:mb-10" />
-                 <h3 className="text-3xl md:text-5xl font-serif mb-4 md:mb-6">No restaurants found</h3>
-                 <p className="text-muted-foreground text-lg md:text-xl max-w-sm md:max-w-md mx-auto mb-8 md:mb-10 font-medium">
-                   {searchMode === "restaurants" 
-                     ? "Try broadening your search criteria or clearing all active filters."
-                     : "Try searching for different dishes or switch to restaurant mode."
-                   }
-                 </p>
-                 <Button 
-                   variant="outline" 
-                   className="h-14 md:h-16 px-8 md:px-10 rounded-xl md:rounded-2xl text-base md:text-lg font-bold border-primary text-primary hover:bg-primary hover:text-white"
-                   onClick={() => {
-                     setSearchQuery("")
-                     if (searchMode === "dishes") {
-                       setSearchMode("restaurants")
-                     }
-                   }}
-                 >
-                   {searchMode === "restaurants" ? "Clear all filters" : "Browse Restaurants"}
-                 </Button>
-              </motion.div>
-            )}
           </div>
         </section>
 

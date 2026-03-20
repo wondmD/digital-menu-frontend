@@ -30,14 +30,14 @@ export function Logo({ className, width = 120, height = 40, grayscale = false }:
 
   return (
     <div 
-      className={cn("relative flex items-center overflow-hidden", grayscale && "grayscale opacity-50 contrast-125", className)}
+      className={cn("relative flex items-center justify-center overflow-visible", grayscale && "grayscale opacity-50 contrast-125", className)}
       style={{ width: width, height: height }}
     >
       <Image
         src={src}
         alt="Agelgil Logo"
         fill
-        className="object-cover object-left"
+        className="object-contain object-center"
         priority
       />
     </div>

@@ -9,8 +9,6 @@ import {
   QrCode, 
   Utensils, 
   ListTree, 
-  Eye, 
-  TrendingUp, 
   Plus, 
   Loader2, 
   Sparkles, 
@@ -18,7 +16,6 @@ import {
   ShieldCheck,
   Activity,
   ExternalLink,
-  Flame,
   Zap,
   MapPin,
   ChevronRight
@@ -49,11 +46,6 @@ export default function DashboardPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [loading, setLoading] = useState(true)
   const [subscription, setSubscription] = useState<any>(null)
-  const [analytics, setAnalytics] = useState({
-    totalScans: 0,
-    activeMenus: 0,
-    topDishes: 0
-  })
 
   useEffect(() => {
     if (!token) {
@@ -72,12 +64,6 @@ export default function DashboardPage() {
         const list: Restaurant[] = Array.isArray(restRes) ? restRes : (restRes?.data ?? [])
         setRestaurants(list)
         setSubscription(subRes?.data || subRes)
-        
-        setAnalytics({
-          totalScans: Math.floor(Math.random() * 1200) + 400,
-          activeMenus: list.filter(r => r.is_published).length,
-          topDishes: list.length * 12
-        })
       } catch (err: any) {
         console.error("Dashboard Load Error:", err)
       } finally {
@@ -176,21 +162,24 @@ export default function DashboardPage() {
         animate="show"
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
       >
-        {[
-          { label: "Restaurants", val: restaurants.length, icon: Building2, color: "text-blue-500", detail: "Active locations" },
-          { label: "Active menus", val: analytics.activeMenus, icon: ShieldCheck, color: "text-secondary", detail: "Published menus" },
-          { label: "Total items", val: analytics.topDishes, icon: ListTree, color: "text-primary", detail: "Menu entries" },
-          { label: "Total scans", val: analytics.totalScans.toLocaleString(), icon: Activity, color: "text-amber-500", detail: "Last 30 days" },
-        ].map((stat, i) => (
+        {(() => {
+          const activeMenus = restaurants.filter((r) => r.is_published).length
+          const draftMenus = Math.max(0, restaurants.length - activeMenus)
+          const maxRestaurants = subscription?.features?.max_restaurants
+          const restaurantCapacity = maxRestaurants === -1 ? "Unlimited" : String(maxRestaurants || 0)
+
+          return [
+            { label: "Restaurants", val: restaurants.length, icon: Building2, color: "text-blue-500", detail: "Registered" },
+            { label: "Published", val: activeMenus, icon: ShieldCheck, color: "text-secondary", detail: "Live menus" },
+            { label: "Draft", val: draftMenus, icon: ListTree, color: "text-primary", detail: "Not published" },
+            { label: "Capacity", val: restaurantCapacity, icon: Activity, color: "text-amber-500", detail: "Plan limit" },
+          ]
+        })().map((stat, i) => (
           <motion.div key={i} variants={item}>
             <Card className="bg-card/40 backdrop-blur-3xl border border-border/50 rounded-2xl md:rounded-3xl p-5 md:p-6 overflow-hidden group hover:border-primary/20 transition-all duration-700">
               <div className="flex items-center justify-between mb-4 md:mb-6">
                 <div className={cn("h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl flex items-center justify-center bg-muted", stat.color)}>
                   <stat.icon className="h-5 w-5 md:h-6 md:w-6" />
-                </div>
-                <div className="flex items-center gap-1 text-[10px] md:text-[11px] font-black text-secondary">
-                  <TrendingUp className="h-3 w-3 md:h-4 md:w-4" />
-                  <span>+12%</span>
                 </div>
               </div>
               <div className="space-y-1">
@@ -271,7 +260,6 @@ export default function DashboardPage() {
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 md:gap-6 text-[9px] md:text-[10px] font-bold text-muted-foreground/40 tracking-widest uppercase">
                           <div className="flex items-center gap-1.5"><MapPin className="h-3 w-3 md:h-3.5 md:w-3.5" /> {res.city || "Global"}</div>
                           <div className="flex items-center gap-1.5"><Utensils className="h-3 w-3 md:h-3.5 md:w-3.5 text-primary" /> {res.cuisine_type || "International"}</div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground/30"><Eye className="h-3 w-3 md:h-3.5 md:w-3.5" /> 1.2K <span className="hidden sm:inline">Views</span></div>
                         </div>
                       </div>
 
@@ -310,23 +298,24 @@ export default function DashboardPage() {
             <Card className="bg-card/60 backdrop-blur-3xl border border-border/50 rounded-3xl p-6 md:p-8 space-y-4 md:space-y-6 overflow-hidden relative group">
                 <div className="flex items-center gap-2">
                    <Sparkles className="h-4 w-4 text-primary" />
-                   <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-primary">Popular item</span>
+                   <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-primary">Restaurant status</span>
                 </div>
                 
                 <div className="space-y-1">
-                  <h3 className="text-2xl md:text-3xl font-black text-foreground tracking-tighter uppercase leading-tight">Golden Truffle <br /> <span className="text-muted-foreground/30 italic font-serif lowercase tracking-normal">Signature</span></h3>
-                  <p className="text-muted-foreground font-medium text-[11px] md:text-xs leading-relaxed">The most viewed item across your menus recently.</p>
+                  <h3 className="text-2xl md:text-3xl font-black text-foreground tracking-tighter uppercase leading-tight">
+                    {restaurants.length} Restaurants
+                  </h3>
+                  <p className="text-muted-foreground font-medium text-[11px] md:text-xs leading-relaxed">
+                    {restaurants.filter((r) => r.is_published).length} published and {Math.max(0, restaurants.length - restaurants.filter((r) => r.is_published).length)} draft menus.
+                  </p>
                 </div>
 
                 <div className="aspect-[4/3] w-full rounded-[1.5rem] md:rounded-[2rem] bg-muted/50 border-2 border-border/50 flex flex-col items-center justify-center relative overflow-hidden group">
                    <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent opacity-60" />
                    <h4 className="relative z-10 text-4xl md:text-5xl font-black text-foreground opacity-10 group-hover:opacity-10 transition-opacity uppercase tracking-widest">Data</h4>
                    <div className="absolute bottom-6 md:bottom-8 left-6 md:left-8 right-6 md:right-8 flex items-center justify-between text-[9px] md:text-[11px] font-black uppercase tracking-[0.3em] text-foreground">
-                      <div className="flex items-center gap-2 md:gap-3">
-                         <Flame className="h-4 w-4 md:h-5 md:w-5 text-primary animate-pulse" />
-                         <span>Trending</span>
-                      </div>
-                      <span className="text-primary">+842</span>
+                     <span>Published</span>
+                     <span className="text-primary">{restaurants.filter((r) => r.is_published).length}</span>
                    </div>
                 </div>
             </Card>

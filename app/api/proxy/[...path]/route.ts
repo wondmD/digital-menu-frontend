@@ -69,10 +69,8 @@ async function handle(request: Request, context: { params: any }) {
     const isCategoriesAction = lastSeg === "categories"
 
     // DELETE requests may include JSON body for endpoints like gallery remove.
-    const hasBody = Boolean(request.headers.get("content-length")) || Boolean(contentType)
-    if (!hasBody) {
-      body = null
-    } else if (contentType.includes("multipart/form-data")) {
+    // Some clients omit content-length/content-type on DELETE, so we still attempt to read the body.
+    if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData()
       const newFormData = new FormData()
       
@@ -109,26 +107,31 @@ async function handle(request: Request, context: { params: any }) {
         try {
           rawBody = JSON.parse(rawText)
         } catch {
+          // Preserve non-JSON payloads as-is.
+          body = rawText
           rawBody = {}
         }
       }
-      
-      // Extremely aggressive scrubbing for JSON payloads
-      const keysToDelete = [
-        "restaurant_id", "category_id", "restaurantId", "categoryId", 
-        "RestaurantID", "CategoryID", "RestaurantSlug"
-      ]
-      
-      keysToDelete.forEach(key => {
-        if (key in rawBody) {
-          console.log(`\x1b[33m[API Proxy Scrub]\x1b[0m Deleted JSON key: ${key}`)
-          delete rawBody[key]
-        }
-      })
 
-      // Do not inject IDs from path into JSON body for create endpoints.
-
-      body = JSON.stringify(rawBody)
+      if (body !== null) {
+        // Non-JSON payload already handled above.
+      } else {
+        // Extremely aggressive scrubbing for JSON payloads
+        const keysToDelete = [
+          "restaurant_id", "category_id", "restaurantId", "categoryId", 
+          "RestaurantID", "CategoryID", "RestaurantSlug"
+        ]
+        
+        keysToDelete.forEach(key => {
+          if (key in rawBody) {
+            console.log(`\x1b[33m[API Proxy Scrub]\x1b[0m Deleted JSON key: ${key}`)
+            delete rawBody[key]
+          }
+        })
+      
+        // Do not inject IDs from path into JSON body for create endpoints.
+        body = rawText ? JSON.stringify(rawBody) : null
+      }
     }
   }
 

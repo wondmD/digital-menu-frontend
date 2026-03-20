@@ -39,9 +39,6 @@ export default function GeneralInfoPage() {
     website: "",
     timezone: DEFAULT_TIMEZONE,
     is_published: false,
-    is_featured: false,
-    view_count: 0,
-    rank_score: "",
   })
 
   const load = async () => {
@@ -61,9 +58,6 @@ export default function GeneralInfoPage() {
           website: d.website || "",
           timezone: d.timezone || DEFAULT_TIMEZONE,
           is_published: Boolean(d.is_published),
-          is_featured: Boolean(d.is_featured),
-          view_count: Number(d.view_count || 0),
-          rank_score: d.rank_score ? String(d.rank_score) : "",
         })
       } else {
         throw new Error("Restaurant not found in your account")
@@ -180,9 +174,6 @@ export default function GeneralInfoPage() {
           website: verified.website || "",
           timezone: verified.timezone || DEFAULT_TIMEZONE,
           is_published: Boolean(verified.is_published),
-          is_featured: Boolean(verified.is_featured),
-          view_count: Number(verified.view_count || 0),
-          rank_score: verified.rank_score ? String(verified.rank_score) : "",
         }))
       }
       await load()
@@ -203,7 +194,7 @@ export default function GeneralInfoPage() {
   }
 
   return (
-    <div className="space-y-6 text-foreground">
+    <div className="relative space-y-6 text-foreground">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">General Info</h1>
         <p className="text-muted-foreground font-medium">Basic details about your restaurant.</p>
@@ -220,9 +211,10 @@ export default function GeneralInfoPage() {
               <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Slug</Label>
               <Input
                 value={data.slug}
-                placeholder="my-restaurant"
+                placeholder="addis-gebeya"
                 onChange={e => setData(d => ({ ...d, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") }))}
                 className="bg-background border-border/50 h-12 rounded-xl focus:ring-primary/20 shadow-sm"
+                disabled={saving}
               />
             </div>
             <div className="space-y-2">
@@ -230,16 +222,18 @@ export default function GeneralInfoPage() {
               <Input 
                 value={data.name} 
                 onChange={e => setData(d => ({ ...d, name: e.target.value }))}
-                className="bg-background border-border/50 h-12 rounded-xl focus:ring-primary/20 shadow-sm" 
+                className="bg-background border-border/50 h-12 rounded-xl focus:ring-primary/20 shadow-sm"
+                disabled={saving}
               />
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Cuisine Type</Label>
               <Input 
                 value={data.cuisine_type} 
-                placeholder="e.g. Italian, Ethiopian, Fast Food"
+                placeholder="e.g. Ethiopian, Habesha Fusion, Fast Food"
                 onChange={e => setData(d => ({ ...d, cuisine_type: e.target.value }))}
-                className="bg-background border-border/50 h-12 rounded-xl focus:ring-primary/20 shadow-sm" 
+                className="bg-background border-border/50 h-12 rounded-xl focus:ring-primary/20 shadow-sm"
+                disabled={saving}
               />
             </div>
           </div>
@@ -249,9 +243,10 @@ export default function GeneralInfoPage() {
               <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Website</Label>
               <Input
                 value={data.website}
-                placeholder="https://restaurant.com"
+                placeholder="https://addisgebeya.et"
                 onChange={e => setData(d => ({ ...d, website: e.target.value }))}
                 className="bg-background border-border/50 h-12 rounded-xl focus:ring-primary/20 shadow-sm"
+                disabled={saving}
               />
             </div>
             <div className="space-y-2">
@@ -261,6 +256,7 @@ export default function GeneralInfoPage() {
                 placeholder="Africa/Addis_Ababa"
                 onChange={e => setData(d => ({ ...d, timezone: e.target.value }))}
                 className="bg-background border-border/50 h-12 rounded-xl focus:ring-primary/20 shadow-sm"
+                disabled={saving}
               />
             </div>
           </div>
@@ -272,7 +268,8 @@ export default function GeneralInfoPage() {
               rows={5}
               onChange={e => setData(d => ({ ...d, description: e.target.value }))}
               className="bg-background border-border/50 rounded-xl focus:ring-primary/20 shadow-sm resize-none" 
-              placeholder="Tell your customers what makes your restaurant special..."
+              placeholder="Tell your customers what makes your Ethiopian menu special..."
+              disabled={saving}
             />
           </div>
 
@@ -281,22 +278,7 @@ export default function GeneralInfoPage() {
               <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Public Menu Status</Label>
               <p className="text-[11px] text-muted-foreground">Controls `is_published` on your restaurant record.</p>
             </div>
-            <Switch checked={data.is_published} onCheckedChange={(value) => setData(d => ({ ...d, is_published: value }))} />
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4 p-4 rounded-xl border border-border/50 bg-card">
-            <div>
-              <Label className="text-[10px] font-black uppercase tracking-widest text-primary">View Count</Label>
-              <p className="text-lg font-bold mt-1">{data.view_count}</p>
-            </div>
-            <div>
-              <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Rank Score</Label>
-              <p className="text-lg font-bold mt-1">{data.rank_score || "—"}</p>
-            </div>
-            <div>
-              <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Featured (System)</Label>
-              <p className="text-lg font-bold mt-1">{data.is_featured ? "Yes" : "No"}</p>
-            </div>
+            <Switch checked={data.is_published} onCheckedChange={(value) => setData(d => ({ ...d, is_published: value }))} disabled={saving} />
           </div>
 
           <div className="flex justify-end pt-4">
@@ -307,6 +289,12 @@ export default function GeneralInfoPage() {
           </div>
         </CardContent>
       </Card>
+
+      {saving && (
+        <div className="absolute inset-0 z-20 rounded-2xl bg-background/70 backdrop-blur-[2px] flex items-center justify-center">
+          <LoadingSignal size="lg" message="Saving restaurant changes..." />
+        </div>
+      )}
     </div>
   )
 }

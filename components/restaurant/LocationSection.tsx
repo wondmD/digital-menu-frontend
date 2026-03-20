@@ -333,7 +333,7 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
                       <div className="space-y-3">
                         <h3 className="text-xl font-semibold">WhatsApp</h3>
                         <p className="text-muted-foreground leading-relaxed">
-                          Chat with us for quick reservations and inquiries
+                          Chat with us for quick questions and support
                         </p>
                         <Button 
                           onClick={handleWhatsAppClick} 

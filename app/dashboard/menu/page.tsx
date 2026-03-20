@@ -64,7 +64,6 @@ import { cn, getImageUrl, getImageUrls } from "@/lib/utils"
 import Link from "next/link"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { motion, AnimatePresence } from "framer-motion"
 import { LoadingSignal } from "@/components/ui/loading-signal"
 import { Progress } from "@/components/ui/progress"
@@ -103,7 +102,7 @@ function normalizeItem(raw: any): MenuItem {
     name: String(raw?.name || "Untitled Asset"),
     description: raw?.description || "",
     price: Number(raw?.price || 0),
-    currency: String(raw?.currency || "USD"),
+    currency: String(raw?.currency || "ETB"),
     image: raw?.image,
     images: raw?.images,
     image_url: raw?.image_url,
@@ -141,7 +140,8 @@ function MenuManagementContent() {
   const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unavailable">("all")
 
   // Side Panel States
-  const [itemPanelOpen, setItemPanelOpen] = useState(false)
+  const [itemDialogOpen, setItemDialogOpen] = useState(false)
+  const [itemStep, setItemStep] = useState<1 | 2>(1)
   const [catPanelOpen, setCatPanelOpen] = useState(false)
 
   const selectedRestaurant = useMemo(() => 
@@ -184,7 +184,7 @@ function MenuManagementContent() {
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null)
   const [subscription, setSubscription] = useState<any>(null)
   const [itemDraft, setItemDraft] = useState({
-    name: "", description: "", price: "", currency: "USD",
+    name: "", description: "", price: "", currency: "ETB",
     is_available: true, images: [] as (File | string)[]
   })
 
@@ -446,7 +446,8 @@ function MenuManagementContent() {
       }
       toast({ title: activeItem ? "Item updated" : "Item created" })
       setUploadProgress(0)
-      setItemPanelOpen(false)
+      setItemDialogOpen(false)
+      setItemStep(1)
       setActiveItem(null)
       await refreshItems(restaurantId, categoryId)
     } catch (err: any) {
@@ -483,7 +484,7 @@ function MenuManagementContent() {
   }
 
   return (
-    <div className="flex flex-col gap-4 md:gap-6 pb-20 px-4 md:px-0">
+    <div className="dashboard-surface-polish flex flex-col gap-4 md:gap-6 pb-20 px-4 md:px-0">
        {/* Menu management */}
        <div className="bg-card/40 backdrop-blur-3xl border border-border/60 rounded-3xl p-4 md:p-6 flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8 shadow-3xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px] -mr-48 -mt-48 transition-all group-hover:bg-primary/10" />
@@ -544,30 +545,32 @@ function MenuManagementContent() {
         
         <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full md:w-auto">
            {restaurants.length > 0 && (
-             <div className="flex items-center gap-3 bg-card/60 p-1.5 rounded-2xl border border-border/50 shadow-2xl w-full sm:w-auto">
-               <div className="flex flex-col gap-0.5 px-3 md:px-4 flex-1 sm:flex-none">
-                  <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest text-primary/60">Currently customizing</span>
+             <div className="flex items-center gap-4 bg-card/70 p-3 md:p-4 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl w-full md:min-w-[460px]">
+               <div className="flex flex-col gap-2 flex-1 min-w-0">
+                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.35em] text-primary">Managing Restaurant</span>
                   <div className="relative flex items-center group/select">
                     <select
-                      className="bg-transparent text-[10px] md:text-xs font-black text-foreground focus:outline-none appearance-none cursor-pointer pr-10 z-10 w-full"
+                      className="h-12 md:h-14 bg-muted/40 border border-border/60 rounded-xl px-4 pr-11 text-sm md:text-base font-black text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 appearance-none cursor-pointer w-full"
                       value={restaurantId}
                       onChange={(e) => {
                         setRestaurantId(e.target.value)
                         setCategoryId("")
                       }}
                     >
-                      {restaurants.map(r => <option key={r.id} value={r.id} className="bg-card">{r.name.toUpperCase()}</option>)}
+                      {restaurants.map(r => <option key={r.id} value={r.id} className="bg-card">{r.name}</option>)}
                     </select>
-                    <ChevronDown className="absolute right-0 h-4 w-4 text-primary pointer-events-none transition-transform group-hover/select:translate-y-0.5" />
+                    <ChevronDown className="absolute right-4 h-4 w-4 text-primary pointer-events-none transition-transform group-hover/select:translate-y-0.5" />
                   </div>
+                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground truncate">
+                    {selectedRestaurant?.name || "Select restaurant"}
+                  </span>
                </div>
-               <div className="h-8 md:h-10 w-px bg-border/10 mx-1 md:mx-2" />
-               <Button variant="ghost" size="icon" disabled={publishing} onClick={togglePublish} className={cn("h-11 w-11 md:h-12 md:w-12 rounded-xl transition-all", selectedRestaurant?.is_published ? "bg-primary/10 text-primary hover:bg-primary hover:text-white" : "bg-muted text-muted-foreground hover:text-foreground")}>
+               <Button variant="ghost" size="icon" disabled={publishing} onClick={togglePublish} className={cn("h-12 w-12 md:h-14 md:w-14 rounded-xl shrink-0 transition-all", selectedRestaurant?.is_published ? "bg-primary/10 text-primary hover:bg-primary hover:text-white" : "bg-muted text-muted-foreground hover:text-foreground")}>
                  {publishing ? <LoadingSignal size="sm" className="h-4 w-4" /> : selectedRestaurant?.is_published ? <Eye className="h-5 w-5 md:h-6 md:w-6" /> : <EyeOff className="h-5 w-5 md:h-6 md:w-6" />}
                </Button>
              </div>
            )}
-           <Button className="w-full sm:w-auto h-12 md:h-14 rounded-2xl px-6 md:px-8 gap-3 shadow-[0_20px_40px_-12px_rgba(230,57,70,0.3)] bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] md:text-xs tracking-[0.2em] transition-all hover:scale-105 active:scale-95" disabled={!categoryId} onClick={() => { setActiveItem(null); setItemDraft({ name: "", description: "", price: "", currency: "USD", is_available: true, images: [] }); setItemPanelOpen(true); }}>
+           <Button className="w-full sm:w-auto h-12 md:h-14 rounded-2xl px-6 md:px-8 gap-3 shadow-[0_20px_40px_-12px_rgba(230,57,70,0.3)] bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] md:text-xs tracking-[0.2em] transition-all hover:scale-105 active:scale-95" disabled={!categoryId} onClick={() => { setActiveItem(null); setItemDraft({ name: "", description: "", price: "", currency: "ETB", is_available: true, images: [] }); setItemStep(1); setItemDialogOpen(true); }}>
             <Plus className="h-5 w-5" /> Add item
           </Button>
         </div>
@@ -601,7 +604,7 @@ function MenuManagementContent() {
           <div className="flex items-center justify-between px-4">
             <div className="flex items-center gap-3">
                <Layers className="h-4 w-4 text-muted-foreground/40" />
-               <h2 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40">Categories</h2>
+              <h2 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Categories</h2>
             </div>
             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all border border-border/60" onClick={() => { setActiveCategory(null); setCatDraft({ name: "", description: "" }); setAddCatOpen(true); }}>
               <Plus className="h-4 w-4" />
@@ -609,7 +612,7 @@ function MenuManagementContent() {
           </div>
           <div className="flex flex-row lg:flex-col gap-2.5 px-2 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide">
             {categories.length > 0 ? categories.map((cat) => (
-              <div key={cat.id} className={cn("group flex items-center justify-between p-3.5 md:p-4 rounded-xl transition-all cursor-pointer border shadow-lg hover:translate-x-1 shrink-0 min-w-[140px] lg:min-w-0", categoryId === cat.id ? "bg-primary text-white border-primary shadow-[0_15px_30px_-10px_rgba(230,57,70,0.4)]" : "bg-card/40 backdrop-blur-md border-border/60 hover:border-primary/20")} onClick={() => setCategoryId(cat.id)}>
+              <div key={cat.id} className={cn("group flex items-center justify-between p-3.5 md:p-4 rounded-xl transition-all cursor-pointer border shadow-lg hover:translate-x-1 shrink-0 min-w-[140px] lg:min-w-0", categoryId === cat.id ? "bg-primary text-white border-primary shadow-[0_15px_30px_-10px_rgba(230,57,70,0.4)]" : "bg-card/40 backdrop-blur-md border-border/70 hover:border-primary/30")} onClick={() => setCategoryId(cat.id)}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center shrink-0", categoryId === cat.id ? "bg-white/20" : "bg-muted")}>
                     <LayoutGrid className={cn("h-3 w-3", categoryId === cat.id ? "text-white" : "text-muted-foreground/40")} />
@@ -632,10 +635,10 @@ function MenuManagementContent() {
         </aside>
 
         <section className="lg:col-span-9 space-y-6 md:space-y-8">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center bg-card/60 backdrop-blur-3xl p-2 rounded-2xl border border-border/60 shadow-2xl">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center bg-card/60 backdrop-blur-3xl p-2 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
-              <Input placeholder="Search menu items..." className="pl-12 border-none bg-transparent h-11 focus-visible:ring-0 text-sm font-bold placeholder:text-muted-foreground/20 text-foreground" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Input placeholder="Search Ethiopian dishes..." className="pl-12 border-none bg-transparent h-11 focus-visible:ring-0 text-sm font-bold placeholder:text-muted-foreground/20 text-foreground" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
             <div className="flex items-center gap-3 pr-2">
               <select className="h-9 w-full md:w-auto rounded-xl border border-border/50 bg-muted/40 px-4 text-[9px] font-black uppercase tracking-[0.2em] focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all appearance-none cursor-pointer pr-10 hover:bg-muted/60 text-foreground" style={{ backgroundImage: `url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.8rem center', backgroundSize: '1em' }} value={availabilityFilter} onChange={(e) => setAvailabilityFilter(e.target.value as any)}>
@@ -662,11 +665,9 @@ function MenuManagementContent() {
                 const images = getImageUrls(rawImages)
                 if (images.length === 0) images.push("/placeholder.svg")
                 
-                const popularity = item.popularity || Math.floor(Math.random() * 40) + 60;
-                
                 return (
                   <div key={item.id} className="h-full">
-                    <Card className="group h-full overflow-hidden bg-card/40 backdrop-blur-3xl border-border/60 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(230,57,70,0.2)] hover:border-primary/40 transition-all duration-500 rounded-3xl border flex flex-col">
+                    <Card className="group h-full gap-0 overflow-hidden bg-card/40 backdrop-blur-3xl border-border/70 ring-1 ring-border/60 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(230,57,70,0.2)] hover:border-primary/40 transition-all duration-500 rounded-3xl border flex flex-col">
                       <div className="relative aspect-[16/10] overflow-hidden shrink-0">
                         {images[0] && (
                           <Image 
@@ -692,17 +693,13 @@ function MenuManagementContent() {
                            )}
                         </div>
                         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                          <Button variant="secondary" size="icon" className="h-9 w-9 rounded-xl shadow-xl bg-background border border-border/60 hover:bg-primary hover:text-white transition-all" onClick={() => { setActiveItem(item); setItemDraft({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "0", currency: item.currency || "USD", is_available: isAvailable, images: getImageUrls(rawImages) }); setItemPanelOpen(true); }}>
+                          <Button variant="secondary" size="icon" className="h-9 w-9 rounded-xl shadow-xl bg-background border border-border/60 hover:bg-primary hover:text-white transition-all" onClick={() => { setActiveItem(item); setItemDraft({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "0", currency: item.currency || "ETB", is_available: isAvailable, images: getImageUrls(rawImages) }); setItemStep(1); setItemDialogOpen(true); }}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
                         </div>
                         <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
                            <div className="space-y-0.5">
                               <h3 className="text-lg font-black text-foreground leading-none tracking-tight group-hover:text-primary transition-colors">{item.name}</h3>
-                              <div className="flex items-center gap-1.5">
-                                 <TrendingUp className="h-2.5 w-2.5 text-secondary" />
-                                 <span className="text-[7px] font-black text-secondary uppercase tracking-[0.2em]">{popularity}% POPULARITY</span>
-                              </div>
                            </div>
                            <span className="text-xl font-black text-foreground font-serif italic">
                              {item.price !== undefined && item.price !== null 
@@ -711,22 +708,29 @@ function MenuManagementContent() {
                            </span>
                         </div>
                       </div>
-                      <CardHeader className="p-5 pb-3">
-                        <CardDescription className="line-clamp-2 h-10 text-xs font-medium text-muted-foreground leading-relaxed group-hover:text-foreground transition-colors">
+                      <CardHeader className="p-5 pb-2">
+                        <CardDescription className="line-clamp-2 text-xs font-medium text-muted-foreground/90 leading-relaxed group-hover:text-foreground transition-colors">
                           {item.description || "No description provided."}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="p-5 pt-0 mt-auto">
-                        <div className="flex items-center justify-between border-t border-border/40 pt-4 mt-1">
-                          <div className="flex items-center gap-4">
-                             <div className="flex flex-col">
-                                <div className="flex items-center gap-3 text-muted-foreground">
-                                   <div className="flex items-center gap-1.5"><Flame className="h-3 w-3 text-primary" /> <span className="text-[8px] font-bold">MILD</span></div>
-                                   <div className="flex items-center gap-1.5"><Clock className="h-3 w-3 text-muted-foreground/40" /> <span className="text-[8px] font-bold">15M</span></div>
-                                </div>
-                             </div>
+                      <CardContent className="p-5 pt-3">
+                        <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3 mt-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Badge
+                              className={cn(
+                                "h-6 rounded-md px-2 text-[8px] font-black uppercase tracking-widest border",
+                                isAvailable
+                                  ? "bg-secondary/10 text-secondary border-secondary/20"
+                                  : "bg-muted/40 text-muted-foreground border-border/60"
+                              )}
+                            >
+                              {isAvailable ? "Available" : "Unavailable"}
+                            </Badge>
+                            <span className="truncate text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                              {categoryName}
+                            </span>
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 group-hover:text-primary transition-all text-muted-foreground/40" onClick={() => { setActiveItem(item); setItemDraft({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "0", currency: item.currency || "USD", is_available: isAvailable, images: getImageUrls(rawImages) }); setItemPanelOpen(true); }}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 group-hover:text-primary transition-all text-muted-foreground/40" onClick={() => { setActiveItem(item); setItemDraft({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "0", currency: item.currency || "ETB", is_available: isAvailable, images: getImageUrls(rawImages) }); setItemStep(1); setItemDialogOpen(true); }}>
                              <ChevronRight className="h-5 w-5 transform group-hover:translate-x-0.5 transition-transform" />
                           </Button>
                         </div>
@@ -742,7 +746,7 @@ function MenuManagementContent() {
                 </div>
                 <h3 className="text-2xl font-black tracking-tight text-foreground mb-2">No menu items found.</h3>
                 <p className="text-muted-foreground font-medium max-w-xs mx-auto mb-8 text-sm leading-relaxed">Start building your menu by adding your first item.</p>
-                <Button className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-[0.3em] shadow-lg bg-primary text-white" onClick={() => setItemPanelOpen(true)}>
+                <Button className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-[0.3em] shadow-lg bg-primary text-white" onClick={() => { setActiveItem(null); setItemDraft({ name: "", description: "", price: "", currency: "ETB", is_available: true, images: [] }); setItemStep(1); setItemDialogOpen(true); }}>
                   <Plus className="h-4 w-4 mr-3" /> Add item
                 </Button>
               </div>
@@ -771,7 +775,7 @@ function MenuManagementContent() {
               <Label className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 ml-1">Category Name</Label>
               <Input
                 className="h-12 rounded-xl border-border/50 bg-muted/30 focus-visible:ring-primary/20 text-base font-bold text-foreground transition-all"
-                placeholder="e.g. Main Course"
+                placeholder="e.g. Beyaynetu"
                 value={catDraft.name}
                 onChange={e => setCatDraft(p => ({ ...p, name: e.target.value }))}
               />
@@ -827,181 +831,205 @@ function MenuManagementContent() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Item Management Panel */}
-      <Sheet open={itemPanelOpen} onOpenChange={setItemPanelOpen}>
-        <SheetContent className="w-full sm:max-w-xl bg-card border-l border-border/50 p-0 custom-scrollbar overflow-y-auto">
-          <div className="relative h-40 bg-muted overflow-hidden">
-             {itemDraft.images.length > 0 ? (
-               <Image 
-                 src={itemDraft.images[0] instanceof File ? URL.createObjectURL(itemDraft.images[0]) : itemDraft.images[0]} 
-                 alt="Header" 
-                 fill 
-                 className="object-cover opacity-40 blur-sm"
-               />
-             ) : (
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent opacity-50" />
-             )}
-             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-card to-transparent" />
-             <div className="absolute top-6 right-6 flex gap-4">
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl bg-muted/50 border border-border/60 hover:bg-muted transition-all text-foreground" onClick={() => setItemPanelOpen(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-             </div>
-          </div>
+      {/* Item Management Modal */}
+      <Dialog open={itemDialogOpen} onOpenChange={(open) => { setItemDialogOpen(open); if (!open) setItemStep(1) }}>
+        <DialogContent className="bg-card border-border text-foreground rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 max-w-2xl w-[95vw] md:w-full overflow-y-auto max-h-[90vh]">
+          <DialogHeader className="mb-6 md:mb-8">
+            <div className="flex items-center justify-between mb-2">
+              <DialogTitle className="text-2xl md:text-3xl font-black">
+                {activeItem ? "Edit Menu Item" : "Add Menu Item"}
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                {[1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-1.5 w-8 rounded-full transition-all duration-500",
+                      itemStep === i ? "bg-primary w-12" : "bg-muted"
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+            <DialogDescription className="text-muted-foreground font-medium italic text-sm">
+              {itemStep === 1 ? "Step 1: Item information" : "Step 2: Item images"}
+            </DialogDescription>
+          </DialogHeader>
 
-          <div className="px-8 -mt-12 relative z-10 space-y-8 pb-16">
-             <div className="space-y-3">
-                <Badge className="bg-primary/10 text-primary border border-primary/20 font-black text-[9px] uppercase tracking-[0.4em] px-4 py-1.5 rounded-full">
-                   {categories.find(c => c.id === categoryId)?.name || "Uncategorized"}
-                </Badge>
-                <div className="flex items-end justify-between gap-6">
-                   <div className="space-y-1 flex-1">
-                      <h2 className="text-3xl font-black tracking-tighter text-foreground uppercase">{activeItem ? "Edit Item" : "Add Item"}</h2>
-                      <p className="text-muted-foreground/60 font-medium text-sm italic serif line-clamp-1">Refine your masterpieces.</p>
-                   </div>
-                   <div className="flex flex-col items-center gap-1.5">
-                       <span className="text-[8px] font-black text-muted-foreground/30 uppercase tracking-[0.3em]">Status</span>
-                       <div className="h-12 w-12 rounded-xl bg-muted/30 border border-border/50 flex items-center justify-center group hover:border-primary/20 transition-all">
-                          <Flame className="h-5 w-5 text-primary" />
-                       </div>
-                   </div>
+          <AnimatePresence mode="wait">
+            {itemStep === 1 ? (
+              <motion.div
+                key="item-step-1"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-5"
+              >
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Name</Label>
+                  <Input
+                    className="bg-muted border-border/50 h-12 rounded-xl focus:ring-primary/20"
+                    placeholder="e.g. Doro Wat"
+                    value={itemDraft.name}
+                    onChange={e => setItemDraft(p => ({ ...p, name: e.target.value }))}
+                  />
                 </div>
-             </div>
 
-             <div className="grid grid-cols-1 gap-8 border-t border-border/40 pt-8">
-                <div className="space-y-6">
-                   <div className="space-y-3">
-                      <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 ml-1">Item Name</Label>
-                      <Input
-                        className="h-12 rounded-xl border-border/50 bg-muted/20 text-lg font-black text-foreground uppercase focus-visible:ring-primary/20"
-                        placeholder="e.g. TRUFFLE RISOTTO"
-                        value={itemDraft.name}
-                        onChange={e => setItemDraft(p => ({ ...p, name: e.target.value }))}
-                      />
-                   </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Price</Label>
+                    <Input
+                      type="number"
+                      className="bg-muted border-border/50 h-12 rounded-xl"
+                      step="0.01"
+                      value={itemDraft.price}
+                      onChange={e => setItemDraft(p => ({ ...p, price: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Currency</Label>
+                    <Input
+                      className="bg-muted border-border/50 h-12 rounded-xl font-mono"
+                      value={itemDraft.currency}
+                      onChange={e => setItemDraft(p => ({ ...p, currency: e.target.value.toUpperCase() }))}
+                      placeholder="ETB"
+                    />
+                  </div>
+                </div>
 
-                   <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-3">
-                        <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 ml-1">Price</Label>
-                        <div className="relative">
-                          <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-                          <Input
-                            type="number"
-                            className="h-12 rounded-xl border-border/50 bg-muted/20 pl-10 text-base font-black text-foreground focus-visible:ring-primary/20"
-                            step="0.01"
-                            value={itemDraft.price}
-                            onChange={e => setItemDraft(p => ({ ...p, price: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 ml-1">Currency</Label>
-                        <select
-                          className="h-12 w-full rounded-xl border-border/50 bg-muted/20 px-4 text-xs font-black text-foreground/80 uppercase tracking-widest focus:outline-none focus:ring-1 focus:ring-primary/20 appearance-none cursor-pointer"
-                          value={itemDraft.currency}
-                          onChange={e => setItemDraft(p => ({ ...p, currency: e.target.value }))}
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description</Label>
+                  <textarea
+                    className="w-full min-h-30 rounded-xl border border-border/50 bg-muted p-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 resize-y"
+                    placeholder="Describe this menu item..."
+                    value={itemDraft.description}
+                    onChange={e => setItemDraft(p => ({ ...p, description: e.target.value }))}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-xl bg-muted border border-border/50">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Availability</span>
+                    <p className="text-xs text-muted-foreground">Visible to guests when enabled.</p>
+                  </div>
+                  <Switch
+                    checked={itemDraft.is_available}
+                    onCheckedChange={checked => setItemDraft(p => ({ ...p, is_available: checked }))}
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="item-step-2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-5"
+              >
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Images</Label>
+                  <div className="grid grid-cols-4 gap-3">
+                    {itemDraft.images.map((img, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-border/50 group/img">
+                        <Image
+                          src={img instanceof File ? URL.createObjectURL(img) : img}
+                          alt="Item"
+                          fill
+                          className="object-cover group-hover/img:scale-110 transition-transform duration-500"
+                        />
+                        <button
+                          className="absolute inset-0 bg-primary/80 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-all duration-300"
+                          onClick={() => setItemDraft(p => ({ ...p, images: p.images.filter((_, i) => i !== idx) }))}
                         >
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="ETB">ETB</option>
-                          <option value="GBP">GBP</option>
-                        </select>
+                          <X className="h-4 w-4 text-white" />
+                        </button>
                       </div>
-                   </div>
-
-                   <div className="space-y-3">
-                      <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 ml-1">Description</Label>
-                      <textarea
-                        className="w-full min-h-[120px] rounded-2xl border-border/40 bg-muted/20 p-5 text-sm font-medium text-foreground transition-all resize-none leading-relaxed focus:ring-1 focus:ring-primary/20 outline-none"
-                        placeholder="Compelling description..."
-                        value={itemDraft.description}
-                        onChange={e => setItemDraft(p => ({ ...p, description: e.target.value }))}
-                      />
-                   </div>
-
-                   <div className="space-y-4">
-                      <Label className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 ml-1">Images</Label>
-                      <div className="grid grid-cols-4 gap-3">
-                         {itemDraft.images.map((img, idx) => (
-                           <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-border/40 group/img">
-                              <Image 
-                                src={img instanceof File ? URL.createObjectURL(img) : img} 
-                                alt="Item" 
-                                fill 
-                                className="object-cover group-hover/img:scale-110 transition-transform duration-500" 
-                              />
-                              <button 
-                                className="absolute inset-0 bg-primary/80 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-all duration-300"
-                                onClick={() => setItemDraft(p => ({ ...p, images: p.images.filter((_, i) => i !== idx) }))}
-                              >
-                                <X className="h-4 w-4 text-white" />
-                              </button>
-                           </div>
-                         ))}
-                         <button 
-                           className="aspect-square rounded-xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-1.5 hover:border-primary/40 hover:bg-muted transition-all group/add"
-                           onClick={() => document.getElementById("p-img")?.click()}
-                         >
-                            <UploadCloud className="h-4 w-4 text-muted-foreground/20 group-hover/add:text-primary transition-colors" />
-                         </button>
-                         <input id="p-img" type="file" className="hidden" multiple onChange={e => setItemDraft(p => ({ ...p, images: [...p.images, ...Array.from(e.target.files || [])] }))} />
-                      </div>
-                   </div>
+                    ))}
+                    <button
+                      className="aspect-square rounded-xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-1.5 hover:border-primary/40 hover:bg-muted transition-all"
+                      onClick={() => document.getElementById("item-image-upload")?.click()}
+                    >
+                      <UploadCloud className="h-5 w-5 text-muted-foreground/40" />
+                    </button>
+                    <input
+                      id="item-image-upload"
+                      type="file"
+                      className="hidden"
+                      multiple
+                      onChange={e => setItemDraft(p => ({ ...p, images: [...p.images, ...Array.from(e.target.files || [])] }))}
+                    />
+                  </div>
                 </div>
 
-                <div className="pt-8 border-t border-border/40 space-y-6">
-                   <div className="flex items-center justify-between p-5 rounded-2xl bg-muted/20 border border-border/40">
-                      <div className="space-y-0.5">
-                         <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">Live Status</span>
-                         <p className="text-[10px] font-medium text-muted-foreground/40">Visible to guests.</p>
+                {!activeItem && (
+                  <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-xs text-muted-foreground">
+                    Images are applied reliably after the item is created. If upload is skipped by backend on create, edit the item and add images.
+                  </div>
+                )}
+
+                <AnimatePresence>
+                  {savingItem && uploadProgress > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-primary">
+                        <span>Processing</span>
+                        <span>{uploadProgress}%</span>
                       </div>
-                      <Switch 
-                         className="scale-110 data-[state=checked]:bg-primary"
-                         checked={itemDraft.is_available}
-                         onCheckedChange={checked => setItemDraft(p => ({ ...p, is_available: checked }))}
-                      />
-                   </div>
+                      <Progress value={uploadProgress} className="h-1 bg-muted rounded-full" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                   <AnimatePresence>
-                     {savingItem && uploadProgress > 0 && (
-                       <motion.div 
-                         initial={{ opacity: 0, y: 10 }}
-                         animate={{ opacity: 1, y: 0 }}
-                         exit={{ opacity: 0 }}
-                         className="space-y-3"
-                       >
-                         <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-primary">
-                            <span>Processing</span>
-                            <span>{uploadProgress}%</span>
-                         </div>
-                         <Progress value={uploadProgress} className="h-1 bg-muted rounded-full" />
-                       </motion.div>
-                     )}
-                   </AnimatePresence>
-
-                   <div className="flex gap-3">
-                      {activeItem && (
-                        <Button 
-                          variant="ghost" 
-                          className="h-14 w-14 rounded-2xl border border-border/40 bg-muted/20 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-                          onClick={() => { setDeleteItemOpen(true); }}
-                        >
-                           <Trash2 className="h-5 w-5" />
-                        </Button>
-                      )}
-                      <Button 
-                        className="flex-1 h-14 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] bg-primary text-white shadow-xl transition-all"
-                        onClick={handleSaveItem}
-                        disabled={savingItem}
-                      >
-                         {savingItem ? <LoadingSignal size="sm" className="h-5 w-5" /> : (activeItem ? "Save Refinements" : "Finalize Item")}
-                      </Button>
-                   </div>
-                </div>
-             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+          <DialogFooter className="mt-8 md:mt-10 flex-col md:flex-row gap-3">
+            {activeItem && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full md:w-auto h-12 px-6 rounded-xl border border-border/50 text-destructive hover:bg-destructive/10"
+                onClick={() => setDeleteItemOpen(true)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Delete
+              </Button>
+            )}
+            {itemStep === 2 && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full md:w-auto h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest text-muted-foreground"
+                onClick={() => setItemStep(1)}
+              >
+                Back
+              </Button>
+            )}
+            {itemStep === 1 ? (
+              <Button
+                type="button"
+                className="w-full md:w-auto h-12 px-10 rounded-xl bg-foreground text-background font-black uppercase text-[10px] tracking-widest"
+                onClick={() => setItemStep(2)}
+                disabled={!itemDraft.name.trim()}
+              >
+                Next Step
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="w-full md:w-auto h-12 px-10 rounded-xl bg-primary text-white font-black uppercase text-[10px] tracking-widest"
+                onClick={handleSaveItem}
+                disabled={savingItem}
+              >
+                {savingItem ? <LoadingSignal size="sm" className="h-4 w-4" /> : (activeItem ? "Save Item" : "Create Item")}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={deleteItemOpen} onOpenChange={setDeleteItemOpen}>
         <AlertDialogContent className="rounded-3xl p-10 bg-card/98 backdrop-blur-3xl border border-border/60 shadow-3xl max-w-sm">

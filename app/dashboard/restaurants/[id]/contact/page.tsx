@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
+import { LoadingSignal } from "@/components/ui/loading-signal"
 import { Loader2, Save, MapPin, Phone, Mail, Globe, Crosshair } from "lucide-react"
 import { DEFAULT_TIMEZONE, normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
@@ -187,7 +188,7 @@ export default function ContactLocationPage() {
   }
 
   return (
-    <div className="space-y-6 text-foreground">
+    <div className="relative space-y-6 text-foreground">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Contact & Location</h1>
         <p className="text-muted-foreground font-medium">How customers can find and reach you.</p>
@@ -207,9 +208,10 @@ export default function ContactLocationPage() {
                    </Label>
                    <Input 
                       value={data.phone} 
-                      placeholder="+251 9... or 09..."
+                      placeholder="+251912345678 or 0912345678"
                       onChange={e => setData(d => ({ ...d, phone: e.target.value }))}
-                      className="bg-background border-border/50 h-12 rounded-xl" 
+                     className="bg-background border-border/50 h-12 rounded-xl"
+                     disabled={saving}
                    />
                 </div>
                 <div className="space-y-2">
@@ -219,9 +221,10 @@ export default function ContactLocationPage() {
                    <Input 
                       type="email"
                       value={data.email} 
-                      placeholder="business@example.com"
+                      placeholder="info@addisgebeya.et"
                       onChange={e => setData(d => ({ ...d, email: e.target.value }))}
-                      className="bg-background border-border/50 h-12 rounded-xl" 
+                     className="bg-background border-border/50 h-12 rounded-xl"
+                     disabled={saving}
                    />
                 </div>
                  <div className="space-y-2 md:col-span-2">
@@ -230,9 +233,10 @@ export default function ContactLocationPage() {
                    </Label>
                    <Input
                      value={data.website}
-                     placeholder="https://restaurant.com"
+                     placeholder="https://addisgebeya.et"
                      onChange={e => setData(d => ({ ...d, website: e.target.value }))}
                      className="bg-background border-border/50 h-12 rounded-xl"
+                     disabled={saving}
                    />
                  </div>
              </div>
@@ -254,7 +258,8 @@ export default function ContactLocationPage() {
                       value={data.city} 
                       placeholder="e.g. Addis Ababa"
                       onChange={e => setData(d => ({ ...d, city: e.target.value }))}
-                      className="bg-background border-border/50 h-12 rounded-xl" 
+                     className="bg-background border-border/50 h-12 rounded-xl"
+                     disabled={saving}
                    />
                 </div>
                 <div className="space-y-2">
@@ -266,6 +271,7 @@ export default function ContactLocationPage() {
                      placeholder="e.g. Ethiopia"
                      onChange={e => setData(d => ({ ...d, country: e.target.value }))}
                      className="bg-background border-border/50 h-12 rounded-xl"
+                     disabled={saving}
                    />
                 </div>
              </div>
@@ -276,6 +282,7 @@ export default function ContactLocationPage() {
                    placeholder="Africa/Addis_Ababa"
                    onChange={e => setData(d => ({ ...d, timezone: e.target.value }))}
                    className="bg-background border-border/50 h-12 rounded-xl"
+                   disabled={saving}
                  />
                </div>
              <div className="space-y-2">
@@ -284,9 +291,9 @@ export default function ContactLocationPage() {
                 </Label>
                 <Input 
                    value={data.address} 
-                 placeholder="Automatically generated from pinned map location"
+                 placeholder="Auto-generated from pinned map location in Ethiopia"
                  readOnly
-                   className="bg-background border-border/50 h-12 rounded-xl" 
+                   className="bg-background border-border/50 h-12 rounded-xl"
                 />
                <p className="text-xs text-muted-foreground">
                 This field is auto-filled from your pinned map location and used on the public page for map and directions.
@@ -303,6 +310,7 @@ export default function ContactLocationPage() {
                    variant="outline"
                    size="sm"
                    className="rounded-xl"
+                   disabled={saving}
                    onClick={() => {
                      if (!navigator.geolocation) {
                        toast({ title: "Unavailable", description: "Geolocation is not supported in this browser.", variant: "destructive" })
@@ -323,7 +331,9 @@ export default function ContactLocationPage() {
                  </Button>
                </div>
 
-               <LocationPickerMap value={coordinates} onChange={handleCoordinatesPicked} />
+               <div className={saving ? "pointer-events-none opacity-70" : ""}>
+                 <LocationPickerMap value={coordinates} onChange={handleCoordinatesPicked} />
+               </div>
 
                <p className="text-xs text-muted-foreground">
                  Click on the map to set your exact location for customer directions.
@@ -342,6 +352,12 @@ export default function ContactLocationPage() {
           </Button>
         </div>
       </div>
+
+      {saving && (
+        <div className="absolute inset-0 z-20 rounded-2xl bg-background/70 backdrop-blur-[2px] flex items-center justify-center">
+          <LoadingSignal size="lg" message="Saving contact and location..." />
+        </div>
+      )}
     </div>
   )
 }

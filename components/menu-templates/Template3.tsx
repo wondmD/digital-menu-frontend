@@ -62,7 +62,7 @@ export default function Template3({
             <Input
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Quick search..."
+              placeholder="Quick search Ethiopian menu..."
               className="pl-10 h-11 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg dark:text-white"
             />
           </div>

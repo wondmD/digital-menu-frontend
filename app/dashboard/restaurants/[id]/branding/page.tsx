@@ -126,7 +126,7 @@ export default function BrandingPage() {
   }
 
   return (
-    <div className="space-y-6 text-foreground">
+    <div className="relative space-y-6 text-foreground">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Branding & Visuals</h1>
         <p className="text-muted-foreground font-medium">Manage how your restaurant looks to customers.</p>
@@ -149,7 +149,7 @@ export default function BrandingPage() {
                 )}
                 <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                   <Upload className="h-6 w-6 text-white" />
-                  <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'logo')} />
+                  <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'logo')} disabled={saving} />
                 </label>
               </div>
               <div className="space-y-4 text-center md:text-left">
@@ -158,14 +158,14 @@ export default function BrandingPage() {
                   Supported formats: PNG, JPG, WEBP.
                 </p>
                 <div className="flex gap-2 justify-center md:justify-start">
-                   <Button variant="outline" size="sm" asChild className="rounded-xl">
-                      <label className="cursor-pointer">
+                   <Button variant="outline" size="sm" asChild className="rounded-xl" disabled={saving}>
+                     <label className="cursor-pointer">
                         Change Logo
-                        <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'logo')} />
+                      <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'logo')} disabled={saving} />
                       </label>
                    </Button>
                    {previews.logo && (
-                     <Button variant="ghost" size="sm" className="rounded-xl text-destructive hover:bg-destructive/10" onClick={() => {
+                    <Button variant="ghost" size="sm" className="rounded-xl text-destructive hover:bg-destructive/10" disabled={saving} onClick={() => {
                         setDraft(d => ({ ...d, logo: null }));
                         setPreviews(p => ({ ...p, logo: null }));
                      }}>
@@ -196,7 +196,7 @@ export default function BrandingPage() {
               )}
               <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Upload className="h-8 w-8 text-white" />
-                <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'cover')} />
+                <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'cover')} disabled={saving} />
               </label>
             </div>
             
@@ -205,10 +205,10 @@ export default function BrandingPage() {
                   High quality landscape photos (16:9) work best.
                </p>
                <div className="flex gap-2">
-                 <Button variant="outline" size="sm" asChild className="rounded-xl">
+                  <Button variant="outline" size="sm" asChild className="rounded-xl" disabled={saving}>
                     <label className="cursor-pointer font-bold uppercase text-[9px] tracking-widest">
                        Upload Cover
-                       <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'cover')} />
+                      <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'cover')} disabled={saving} />
                     </label>
                  </Button>
                </div>
@@ -224,6 +224,12 @@ export default function BrandingPage() {
         </div>
 
       </div>
+
+      {saving && (
+        <div className="absolute inset-0 z-20 rounded-2xl bg-background/70 backdrop-blur-[2px] flex items-center justify-center">
+          <LoadingSignal size="lg" message="Saving branding updates..." />
+        </div>
+      )}
     </div>
   )
 }
