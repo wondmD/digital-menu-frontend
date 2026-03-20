@@ -8,6 +8,7 @@ type Restaurant = {
   name: string
   cuisine_type?: string
   opening_hours?: string
+  established_year?: number
 }
 
 interface ExperienceHighlightsSectionProps {
@@ -16,35 +17,42 @@ interface ExperienceHighlightsSectionProps {
 
 export function ExperienceHighlightsSection({ hotel }: ExperienceHighlightsSectionProps) {
   const stats = [
-    {
-      title: "Chef's Signature",
-      value: "Seasonal Tasting",
-      subtitle: "Curated by our kitchen team",
-      icon: ChefHat,
-      accent: "from-amber-500/20 to-amber-500/5",
-    },
-    {
-      title: "Signature Cuisine",
-      value: hotel.cuisine_type || "Seasonal Contemporary",
-      subtitle: "Chef curated menu",
-      icon: Sparkles,
-      accent: "from-primary/20 to-primary/5",
-    },
-    {
-      title: "Service Window",
-      value: hotel.opening_hours || "Open Daily",
-      subtitle: "8:00 AM - 11:00 PM",
-      icon: Clock,
-      accent: "from-emerald-500/20 to-emerald-500/5",
-    },
-    {
-      title: "Atmosphere",
-      value: "Elegant & Warm",
-      subtitle: "Designed for celebrations",
-      icon: ChefHat,
-      accent: "from-rose-500/20 to-rose-500/5",
-    },
-  ]
+    hotel.cuisine_type
+      ? {
+          title: "Cuisine",
+          value: hotel.cuisine_type,
+          subtitle: "",
+          icon: Sparkles,
+          accent: "from-primary/20 to-primary/5",
+        }
+      : null,
+    hotel.opening_hours
+      ? {
+          title: "Operating Hours",
+          value: hotel.opening_hours,
+          subtitle: "",
+          icon: Clock,
+          accent: "from-emerald-500/20 to-emerald-500/5",
+        }
+      : null,
+    hotel.established_year
+      ? {
+          title: "Established",
+          value: String(hotel.established_year),
+          subtitle: "",
+          icon: ChefHat,
+          accent: "from-amber-500/20 to-amber-500/5",
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    title: string
+    value: string
+    subtitle: string
+    icon: typeof Clock
+    accent: string
+  }>
+
+  if (stats.length === 0) return null
 
   return (
     <section className="relative py-16 md:py-24">
@@ -64,7 +72,7 @@ export function ExperienceHighlightsSection({ hotel }: ExperienceHighlightsSecti
             Crafted for unforgettable moments
           </h2>
           <p className="text-muted-foreground mt-4 max-w-2xl mx-auto text-lg font-serif">
-            Every detail is designed to elevate your visit to {hotel.name}.
+            Details currently available for {hotel.name}.
           </p>
         </motion.div>
 

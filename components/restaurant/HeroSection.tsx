@@ -45,20 +45,32 @@ export function HeroSection({
   menuLink,
   mapLink,
 }: HeroSectionProps) {
-  const heroImage = coverImage || getImageUrl(hotel.cover_url || hotel.logo_url) || "/placeholder.svg"
+  const heroImage = coverImage || getImageUrl(hotel.cover_url || hotel.logo_url)
   const logo = logoImage || getImageUrl(hotel.logo_url)
+  const hasSocialLinks = Boolean(
+    hotel.instagram_url ||
+    hotel.facebook_url ||
+    hotel.twitter_url ||
+    hotel.tiktok_url ||
+    hotel.telegram_url ||
+    hotel.website_url
+  )
 
   return (
     <section className="relative w-full overflow-hidden min-h-screen flex items-center">
       {/* Background Image with Enhanced Overlay */}
       <div className="absolute inset-0">
-        <Image 
-          src={heroImage} 
-          alt={hotel.name} 
-          fill 
-          className="object-cover" 
-          priority 
-        />
+        {heroImage ? (
+          <Image
+            src={heroImage}
+            alt={hotel.name}
+            fill
+            className="object-cover"
+            priority
+          />
+        ) : (
+          <div className="h-full w-full bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
       </div>
@@ -104,17 +116,19 @@ export function HeroSection({
             className="space-y-8 text-center lg:text-left"
           >
             {/* Cuisine Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="inline-flex"
-            >
-              <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 px-6 py-2 text-sm font-semibold rounded-full">
-                <Utensils className="mr-2 h-4 w-4" />
-                {hotel.cuisine_type || "Fine Dining"}
-              </Badge>
-            </motion.div>
+            {hotel.cuisine_type && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="inline-flex"
+              >
+                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 px-6 py-2 text-sm font-semibold rounded-full">
+                  <Utensils className="mr-2 h-4 w-4" />
+                  {hotel.cuisine_type}
+                </Badge>
+              </motion.div>
+            )}
 
             {/* Restaurant Name */}
             <motion.div
@@ -128,29 +142,31 @@ export function HeroSection({
             </motion.div>
 
             {/* Tagline */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="text-lg sm:text-xl md:text-2xl text-white/90 font-serif leading-relaxed"
-            >
-              {hotel.tagline || hotel.description || "Experience culinary excellence in every bite"}
-            </motion.p>
+            {(hotel.tagline || hotel.description) && (
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="text-lg sm:text-xl md:text-2xl text-white/90 font-serif leading-relaxed"
+              >
+                {hotel.tagline || hotel.description}
+              </motion.p>
+            )}
 
             {/* Status Badges */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-4"
-            >
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-5 py-3 border border-white/20">
-                <Clock className="h-4 w-4 text-white" />
-                <span className="text-white font-medium">
-                  {hotel.opening_hours || "Open Daily 8:00 AM - 11:00 PM"}
-                </span>
-              </div>
-            </motion.div>
+            {hotel.opening_hours && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.5 }}
+                className="flex flex-wrap items-center justify-center lg:justify-start gap-4"
+              >
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-5 py-3 border border-white/20">
+                  <Clock className="h-4 w-4 text-white" />
+                  <span className="text-white font-medium">{hotel.opening_hours}</span>
+                </div>
+              </motion.div>
+            )}
 
             {/* CTA Buttons */}
             <motion.div
@@ -241,27 +257,24 @@ export function HeroSection({
             )}
 
             {/* Social Media Links */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.7 }}
-              className="text-center space-y-6 w-full"
-            >
-              <div className="px-2">
-                <p className="text-white/70 text-xs font-serif uppercase tracking-[0.35em] mb-5">
-                  Follow Our Journey
-                </p>
-                <SocialLinks
-                  hotel={hotel}
-                  variant="light"
-                  size="responsive"
-                  showAll
-                  transparent
-                  className="justify-center flex-wrap"
-                />
-                <p className="text-white/50 text-xs mt-5">Stay close for events, specials, and seasonal menus.</p>
-              </div>
-            </motion.div>
+            {hasSocialLinks && (
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.7 }}
+                className="text-center space-y-6 w-full"
+              >
+                <div className="px-2">
+                  <SocialLinks
+                    hotel={hotel}
+                    variant="light"
+                    size="responsive"
+                    transparent
+                    className="justify-center flex-wrap"
+                  />
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </div>

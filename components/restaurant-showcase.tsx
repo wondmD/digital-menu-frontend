@@ -11,10 +11,7 @@ import { getImageUrl } from "@/lib/utils"
 import { normalizeRestaurant, type ManagedRestaurant } from "@/lib/restaurant-normalizers"
 import { Button } from "@/components/ui/button"
 import { HeroSection } from "@/components/restaurant/HeroSection"
-import { ExperienceHighlightsSection } from "@/components/restaurant/ExperienceHighlightsSection"
 import { StorySection } from "@/components/restaurant/StorySection"
-import { TopMenusSection } from "@/components/restaurant/TopMenusSection"
-import { MenuPreviewSection } from "@/components/restaurant/MenuPreviewSection"
 import { GallerySection } from "@/components/restaurant/GallerySection"
 import { TestimonialsSection } from "@/components/restaurant/TestimonialsSection"
 import { EventsSection } from "@/components/restaurant/EventsSection"
@@ -130,32 +127,6 @@ function extractList(payload: any): any[] {
   if (Array.isArray(payload?.data?.items)) return payload.data.items
   if (Array.isArray(payload?.items)) return payload.items
   return []
-}
-
-function fallbackTestimonials(name: string) {
-  return [
-    {
-      name: "Marta H.",
-      text: name + " has one of the most elegant dining atmospheres in the city. The food is consistently outstanding.",
-      rating: 5,
-      verified: true,
-      date: new Date().toISOString(),
-    },
-    {
-      name: "Samuel K.",
-      text: "Exceptional service, refined presentation, and a menu that feels carefully curated from start to finish.",
-      rating: 5,
-      verified: true,
-      date: new Date().toISOString(),
-    },
-    {
-      name: "Liya T.",
-      text: "Perfect place for family dinners and celebrations. Every dish we tried was memorable.",
-      rating: 5,
-      verified: true,
-      date: new Date().toISOString(),
-    },
-  ]
 }
 
 export default function RestaurantShowcase({ hotelSlug, initialData }: RestaurantShowcaseProps) {
@@ -300,30 +271,6 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
     return Array.from(uniq.values()).slice(0, 12)
   }, [restaurant, menuItems])
 
-  const topMenus = useMemo(() => {
-    return menuItems.slice(0, 9).map((item, index) => ({
-      id: item.id,
-      name: item.name,
-      description: item.description || "Prepared with seasonal ingredients and precision.",
-      price: item.price,
-      currency: item.currency || "$",
-      image_url: item.image_url,
-      category: item.category_name,
-      rating: item.rating || 4.8,
-      prep_time: item.prep_time || "15 min",
-      is_signature: index < 3,
-      is_popular: index >= 3 && index < 6,
-      dietary_tags: [],
-    }))
-  }, [menuItems])
-
-  const menuPreview = useMemo(() => {
-    return menuItems.slice(0, 6).map((item) => ({
-      ...item,
-      description: item.description || "A house favorite made fresh to order.",
-    }))
-  }, [menuItems])
-
   const eventCards = useMemo(() => {
     return events.slice(0, 6).map((event, index) => ({
       id: event.id || "event-" + index,
@@ -334,6 +281,25 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
       image_url: getImageUrl(event.image_url || event.poster_url || event.cover_url) || undefined,
     }))
   }, [events])
+
+  const testimonialItems = useMemo(() => {
+    const source = Array.isArray((restaurant as any)?.testimonials)
+      ? (restaurant as any).testimonials
+      : Array.isArray((restaurant as any)?.reviews)
+      ? (restaurant as any).reviews
+      : []
+
+    return source
+      .map((item: any, index: number) => ({
+        name: String(item?.name || item?.author || item?.customer_name || "").trim(),
+        text: String(item?.text || item?.comment || item?.message || "").trim(),
+        rating: Number(item?.rating || 0) || undefined,
+        date: item?.date || item?.created_at,
+        verified: Boolean(item?.verified),
+        id: String(item?.id || `testimonial-${index}`),
+      }))
+      .filter((item: any) => item.name && item.text)
+  }, [restaurant])
 
   const locationAddress = useMemo(() => normalizeAddress(restaurant?.address || ""), [restaurant])
   const locationCoordinates = useMemo(() => parseCoordinateAddress(locationAddress), [locationAddress])
@@ -423,14 +389,18 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
     logo_url: restaurant.logo_url,
     cover_url: restaurant.cover_image_url || restaurant.cover_url,
     cuisine_type: restaurant.cuisine_type,
-    opening_hours: (restaurant as any).opening_hours,
+    opening_hours: restaurant.operation_time || (restaurant as any).opening_hours,
+    operation_time: restaurant.operation_time,
+    established_year: restaurant.year_established || (restaurant as any).established_year,
+    history: restaurant.history,
     rating: Number((restaurant as any).rating || 4.8),
     review_count: Number((restaurant as any).review_count || (restaurant as any).rating_count || 500),
-    instagram_url: (restaurant as any).instagram_url,
-    facebook_url: (restaurant as any).facebook_url,
-    twitter_url: (restaurant as any).twitter_url,
-    tiktok_url: (restaurant as any).tiktok_url,
-    telegram_url: (restaurant as any).telegram_url,
+    instagram_url: restaurant.instagram_url || (restaurant as any).instagram_url,
+    facebook_url: restaurant.facebook_url || (restaurant as any).facebook_url,
+    twitter_url: restaurant.twitter_url || (restaurant as any).twitter_url,
+    tiktok_url: restaurant.tiktok_url || (restaurant as any).tiktok_url,
+    telegram_url: restaurant.telegram_url || (restaurant as any).telegram_url,
+    whatsapp: restaurant.whatsapp || (restaurant as any).whatsapp,
     website_url: (restaurant as any).website_url || restaurant.website,
   }
 
@@ -457,13 +427,10 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
         mapLink={mapLink}
       />
 
-      <ExperienceHighlightsSection hotel={heroRestaurant as any} />
       <StorySection hotel={heroRestaurant as any} coverImage={getImageUrl(restaurant.cover_image_url || restaurant.cover_url) || undefined} />
-      <TopMenusSection items={topMenus} menuLink={menuLink} />
-      <MenuPreviewSection items={menuPreview as any} menuLink={menuLink} loading={false} />
-      <GallerySection images={galleryImages} />
-      <TestimonialsSection testimonials={fallbackTestimonials(restaurant.name || "Our Restaurant")} />
-      <EventsSection events={eventCards as any} />
+      {galleryImages.length > 0 ? <GallerySection images={galleryImages} /> : null}
+      {testimonialItems.length > 0 ? <TestimonialsSection testimonials={testimonialItems as any} /> : null}
+      {eventCards.length > 0 ? <EventsSection events={eventCards as any} /> : null}
       <LocationSection hotel={heroRestaurant as any} mapSrc={mapSrc} mapLink={mapLink} />
       <FooterSection hotel={heroRestaurant as any} />
       <FloatingSocialCTA hotel={heroRestaurant as any} />

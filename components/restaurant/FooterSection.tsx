@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { MapPin, Phone, Mail, Clock, Heart } from "lucide-react"
+import { MapPin, Phone, Mail, Clock } from "lucide-react"
 import { SocialLinks } from "@/components/restaurant/SocialLinks"
 
 type Restaurant = {
@@ -11,6 +11,7 @@ type Restaurant = {
   phone?: string
   email?: string
   opening_hours?: string
+  description?: string
   facebook_url?: string
   instagram_url?: string
   twitter_url?: string
@@ -40,10 +41,9 @@ export function FooterSection({ hotel }: FooterSectionProps) {
           >
             <div className="space-y-4">
               <h3 className="text-2xl font-bold">{hotel.name}</h3>
-              <p className="text-muted-foreground leading-relaxed max-w-md">
-                Experience exceptional dining with our carefully crafted dishes and warm hospitality. 
-                Every visit is a celebration of flavor and tradition.
-              </p>
+              {hotel.description ? (
+                <p className="text-muted-foreground leading-relaxed max-w-md">{hotel.description}</p>
+              ) : null}
             </div>
 
             {/* Social Links */}
@@ -102,7 +102,7 @@ export function FooterSection({ hotel }: FooterSectionProps) {
             </div>
           </motion.div>
 
-          {/* Hours & Quick Links */}
+          {/* Hours */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -110,45 +110,21 @@ export function FooterSection({ hotel }: FooterSectionProps) {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="space-y-6"
           >
-            <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Hours
-            </h4>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-primary flex-shrink-0" />
-                <div className="text-sm text-muted-foreground">
-                  <p>Mon-Fri: 8:00 AM - 11:00 PM</p>
-                  <p>Sat: 9:00 AM - 12:00 AM</p>
-                  <p>Sun: 9:00 AM - 10:00 PM</p>
+            {hotel.opening_hours ? (
+              <>
+                <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Hours
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-primary shrink-0" />
+                    <div className="text-sm text-muted-foreground">
+                      <p>{hotel.opening_hours}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Quick Links
-              </h4>
-              <div className="space-y-2">
-                <Link 
-                  href="#menu" 
-                  className="block text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  View Menu
-                </Link>
-                <Link 
-                  href="#events" 
-                  className="block text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Upcoming Events
-                </Link>
-                <Link 
-                  href="#location" 
-                  className="block text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Find Us
-                </Link>
-              </div>
-            </div>
+              </>
+            ) : null}
           </motion.div>
         </div>
 
@@ -164,42 +140,6 @@ export function FooterSection({ hotel }: FooterSectionProps) {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>© {currentYear} {hotel.name}. All rights reserved.</span>
             </div>
-            
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Made with</span>
-              <Heart className="h-4 w-4 text-red-500 fill-current" />
-              <span>by</span>
-              <Link 
-                href="https://agelgil.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-primary hover:underline font-semibold"
-              >
-                Agelgil
-              </Link>
-            </div>
-          </div>
-
-          {/* Additional Links */}
-          <div className="flex flex-wrap items-center justify-center gap-6 mt-6 text-sm">
-            <Link 
-              href="/privacy" 
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Privacy Policy
-            </Link>
-            <Link 
-              href="/terms" 
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Terms of Service
-            </Link>
-            <Link 
-              href="/accessibility" 
-              className="text-muted-foreground hover:text-primary transition-colors"
-            >
-              Accessibility
-            </Link>
           </div>
         </motion.div>
       </div>

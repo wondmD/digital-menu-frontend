@@ -226,7 +226,7 @@ export default function CategoriesPage() {
   const itemCountFallback = (c: Category) => c.itemCount ?? 0
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 md:space-y-12 pb-12 md:pb-24 px-4 md:px-0">
+    <div className="max-w-7xl mx-auto space-y-8 md:space-y-12 pb-12 md:pb-24 px-3 sm:px-4 lg:px-0">
       {/* 1. CAPACITY BANNER */}
       {subscription && (
         <div className="bg-card/40 backdrop-blur-3xl border-2 border-border/50 rounded-[2.5rem] md:rounded-[3.5rem] p-6 md:p-10 flex flex-col lg:flex-row items-center justify-between gap-8 md:gap-12 shadow-3xl group hover:border-primary/20 transition-all duration-700">
@@ -285,13 +285,13 @@ export default function CategoriesPage() {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 md:gap-6">
+        <div className="flex w-full xl:w-auto min-w-0 flex-col sm:flex-row items-stretch sm:items-center gap-4 md:gap-6">
           <div className="flex flex-col gap-2 md:gap-3">
             <span className="text-[10px] uppercase font-black tracking-[0.4em] text-muted-foreground ml-1 text-center md:text-left">Currently customizing</span>
             <div className="relative group">
               <Hotel className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
               <select
-                className="h-16 md:h-20 w-full sm:w-64 md:w-80 rounded-2xl md:rounded-[2rem] border-2 border-border/60 bg-card/40 pl-16 pr-8 text-xs md:text-sm font-black tracking-widest uppercase focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer shadow-3xl text-foreground"
+                className="h-16 md:h-20 w-full min-w-0 sm:w-[22rem] lg:w-80 max-w-full rounded-2xl md:rounded-[2rem] border-2 border-border/60 bg-card/40 pl-16 pr-8 text-xs md:text-sm font-black tracking-[0.12em] uppercase focus:border-primary/50 focus:outline-none transition-all appearance-none cursor-pointer shadow-3xl text-foreground"
                 value={restaurantId}
                 onChange={(e) => setRestaurantId(e.target.value)}
                 disabled={!restaurants.length}
@@ -307,7 +307,7 @@ export default function CategoriesPage() {
           </div>
 
           <Button 
-            className="h-16 md:h-20 px-8 md:px-12 rounded-2xl md:rounded-[2rem] bg-primary text-white font-black uppercase text-xs tracking-[0.3em] overflow-hidden group shadow-[0_25px_50px_-12px_rgba(230,57,70,0.5)] hover:scale-105 transition-all w-full sm:w-auto" 
+            className="h-16 md:h-20 px-6 md:px-12 rounded-2xl md:rounded-[2rem] bg-primary text-white font-black uppercase text-xs tracking-[0.15em] overflow-hidden group shadow-[0_25px_50px_-12px_rgba(230,57,70,0.5)] hover:scale-105 transition-all w-full sm:w-auto whitespace-nowrap justify-center" 
             disabled={!restaurantId}
             onClick={() => {
               setNewName("")
