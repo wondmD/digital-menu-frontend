@@ -18,13 +18,13 @@ import {
   TrendingUp, 
   DollarSign,
   LayoutGrid,
-  ChevronRight,
   ChevronDown,
   Settings2,
   Clock,
   Flame,
   Leaf,
   Camera,
+  Loader2,
   UploadCloud,
   Eye,
   EyeOff,
@@ -149,6 +149,11 @@ function MenuManagementContent() {
     [restaurants, restaurantId]
   )
 
+  const selectedCategory = useMemo(
+    () => categories.find((c) => c.id === categoryId),
+    [categories, categoryId]
+  )
+
   const togglePublish = async () => {
     if (!token || !selectedRestaurant) return
     try {
@@ -187,6 +192,38 @@ function MenuManagementContent() {
     name: "", description: "", price: "", currency: "ETB",
     is_available: true, images: [] as (File | string)[]
   })
+
+  const isCreatingItem = savingItem && !activeItem
+  const isCreatingCategory = savingCat && !activeCategory
+
+  const openItemDialog = (item: MenuItem | null, startStep: 1 | 2 = 1) => {
+    setActiveItem(item)
+
+    if (item) {
+      const isAvailable = item.available ?? item.is_available ?? true
+      const rawImages = item.image_urls || item.images || item.image || item.image_url
+      setItemDraft({
+        name: item.name || "",
+        description: item.description || "",
+        price: item.price?.toString() || "0",
+        currency: item.currency || "ETB",
+        is_available: isAvailable,
+        images: getImageUrls(rawImages),
+      })
+    } else {
+      setItemDraft({
+        name: "",
+        description: "",
+        price: "",
+        currency: "ETB",
+        is_available: true,
+        images: [],
+      })
+    }
+
+    setItemStep(startStep)
+    setItemDialogOpen(true)
+  }
 
   // Computed Stats
   const stats = useMemo(() => {
@@ -388,61 +425,216 @@ function MenuManagementContent() {
         return
       }
 
-      if (!activeItem && itemDraft.images.some((img) => img instanceof File)) {
-        toast({
-          title: "Image will be uploaded after create",
-          description: "This backend requires creating the item first. Save once, then edit the item to add images.",
-        })
-      }
-
       const method = activeItem ? "PATCH" : "POST"
       const url = activeItem
         ? `/my-restaurants/${restaurantId}/categories/${categoryId}/items/${activeItem.id}`
         : `/my-restaurants/${restaurantId}/categories/${categoryId}/items`
 
-      const buildFormData = (minimal: boolean) => {
+      const getCreatedItemId = (payload: any): string | null => {
+        const candidate =
+          payload?.data?.id ||
+          payload?.id ||
+          payload?.data?.item?.id ||
+          payload?.item?.id ||
+          payload?.data?.data?.id
+
+        if (!candidate) return null
+        return String(candidate)
+      }
+
+      const isMultipartUnsupportedError = (value: unknown): boolean => {
+        const msg = String((value as any)?.message || value || "").toLowerCase()
+        return msg.includes("unsupported file format") || msg.includes("multipart")
+      }
+
+      const buildFormData = (minimal: boolean, _useLegacyImageKey = false, includeFiles = true) => {
         const fd = new FormData()
         fd.append("name", itemDraft.name.trim())
         fd.append("price", String(numericPrice))
         fd.append("currency", itemDraft.currency || "ETB")
         fd.append("is_available", String(itemDraft.is_available))
+        fd.append("spice_level", "0")
+        fd.append("display_order", "0")
 
         if (!minimal) {
           fd.append("description", itemDraft.description.trim())
         }
 
-        // Keep uploads only for edit until create endpoint accepts files consistently.
+        const existingImageUrls = itemDraft.images
+          .filter((img): img is string => typeof img === "string")
+          .map((img) => img.trim())
+          .filter((img) => img.length > 0 && img !== "/placeholder.svg")
+
+        if (existingImageUrls.length > 0) {
+          // Backend schema expects `images` as JSON payload metadata, not file parts.
+          fd.append("images", JSON.stringify(existingImageUrls))
+        }
+
         if (activeItem) {
           const newFiles = itemDraft.images.filter((img): img is File => img instanceof File)
+          if (includeFiles) {
+            for (const file of newFiles) {
+              // Backend schema: Image []*multipart.FileHeader `form:"image,omitempty"`
+              fd.append("image", file, file.name)
+            }
+          }
+        } else if (includeFiles) {
+          const newFiles = itemDraft.images.filter((img): img is File => img instanceof File)
           for (const file of newFiles) {
-            fd.append("image", file)
+            fd.append("image", file, file.name)
           }
         }
 
         return fd
       }
 
-      setUploadProgress(0)
-      try {
-        await apiFetchWithProgress(url, {
-          method,
-          token,
-          body: buildFormData(false),
-          onProgress: (pct) => setUploadProgress(pct),
-        })
-      } catch (err: any) {
-        const msg = String(err?.message || "")
-        const shouldRetryMinimal = !activeItem && (msg.includes("SQLSTATE 42601") || msg.includes("more expression than target columns"))
-        if (!shouldRetryMinimal) {
-          throw err
+      const buildImageOnlyFormData = (_useLegacyImageKey = false) => {
+        const fd = new FormData()
+        fd.append("name", itemDraft.name.trim())
+        fd.append("price", String(numericPrice))
+        fd.append("currency", itemDraft.currency || "ETB")
+        fd.append("is_available", String(itemDraft.is_available))
+        fd.append("spice_level", "0")
+        fd.append("display_order", "0")
+
+        const existingImageUrls = itemDraft.images
+          .filter((img): img is string => typeof img === "string")
+          .map((img) => img.trim())
+          .filter((img) => img.length > 0 && img !== "/placeholder.svg")
+        if (existingImageUrls.length > 0) {
+          fd.append("images", JSON.stringify(existingImageUrls))
         }
 
-        await apiFetchWithProgress(url, {
+        const newFiles = itemDraft.images.filter((img): img is File => img instanceof File)
+        for (const file of newFiles) {
+          fd.append("image", file, file.name)
+        }
+        return fd
+      }
+
+      const hasNewImageFiles = itemDraft.images.some((img) => img instanceof File)
+
+      const responseIncludesImages = (payload: any): boolean => {
+        const candidate =
+          payload?.data?.item ||
+          payload?.item ||
+          payload?.data ||
+          payload
+        return getImageUrls(candidate?.image_urls || candidate?.images || candidate?.image || candidate?.image_url).length > 0
+      }
+
+      const appendNewImagesToCreatedItem = async (itemId: string) => {
+        const appendUrl = `/my-restaurants/${restaurantId}/categories/${categoryId}/items/${itemId}`
+        try {
+          await apiFetchWithProgress(appendUrl, {
+            method: "PATCH",
+            token,
+            // Prefer full multipart payload (same shape as edit) for better backend compatibility.
+            body: buildFormData(false, false, true),
+            onProgress: (pct) => setUploadProgress(pct),
+          })
+        } catch (appendErr: any) {
+          if (isMultipartUnsupportedError(appendErr)) {
+            toast({
+              title: "Item created",
+              description: "Your backend rejected multipart image upload for items. The item was saved without new images.",
+            })
+            return
+          }
+
+          try {
+            await apiFetchWithProgress(appendUrl, {
+              method: "PATCH",
+              token,
+              body: buildFormData(false, true, true),
+              onProgress: (pct) => setUploadProgress(pct),
+            })
+          } catch {
+            try {
+              await apiFetchWithProgress(appendUrl, {
+                method: "PATCH",
+                token,
+                body: buildImageOnlyFormData(false),
+                onProgress: (pct) => setUploadProgress(pct),
+              })
+            } catch {
+              await apiFetchWithProgress(appendUrl, {
+                method: "PATCH",
+                token,
+                body: buildImageOnlyFormData(true),
+                onProgress: (pct) => setUploadProgress(pct),
+              })
+            }
+          }
+        }
+      }
+
+      setUploadProgress(0)
+      try {
+        const primaryResponse = await apiFetchWithProgress<any>(url, {
           method,
           token,
-          body: buildFormData(true),
+          body: buildFormData(false, false, true),
           onProgress: (pct) => setUploadProgress(pct),
         })
+
+        if (!activeItem && hasNewImageFiles && !responseIncludesImages(primaryResponse)) {
+          const createdItemId = getCreatedItemId(primaryResponse)
+          if (createdItemId) {
+            await appendNewImagesToCreatedItem(createdItemId)
+          } else {
+            toast({
+              title: "Item created",
+              description: "Image upload could not continue automatically because item ID was missing in the create response.",
+            })
+          }
+        }
+      } catch (err: any) {
+        const msg = String(err?.message || "")
+        const shouldRetryMinimalCreate = !activeItem && (msg.includes("SQLSTATE 42601") || msg.includes("more expression than target columns"))
+        const shouldRetryLegacyImageKey = Boolean(activeItem)
+        const shouldRetryTwoStepCreate = !activeItem && hasNewImageFiles
+
+        if (shouldRetryMinimalCreate) {
+          const created = await apiFetchWithProgress<any>(url, {
+            method,
+            token,
+            body: buildFormData(true, false, false),
+            onProgress: (pct) => setUploadProgress(pct),
+          })
+
+          if (hasNewImageFiles) {
+            const createdItemId = getCreatedItemId(created)
+            if (!createdItemId) {
+              throw new Error("Item created, but image upload could not continue because item ID was missing in response.")
+            }
+            await appendNewImagesToCreatedItem(createdItemId)
+          }
+        } else if (shouldRetryTwoStepCreate) {
+          // Fallback path: create item first, then append images on the created item.
+          const created = await apiFetchWithProgress<any>(url, {
+            method,
+            token,
+            body: buildFormData(false, false, false),
+            onProgress: (pct) => setUploadProgress(pct),
+          })
+
+          const createdItemId = getCreatedItemId(created)
+          if (!createdItemId) {
+            throw new Error("Item created but image upload could not continue because item ID was missing in response.")
+          }
+
+          await appendNewImagesToCreatedItem(createdItemId)
+        } else if (shouldRetryLegacyImageKey) {
+          await apiFetchWithProgress(url, {
+            method,
+            token,
+            body: buildFormData(false, true, true),
+            onProgress: (pct) => setUploadProgress(pct),
+          })
+        } else {
+          throw err
+        }
       }
       toast({ title: activeItem ? "Item updated" : "Item created" })
       setUploadProgress(0)
@@ -484,7 +676,7 @@ function MenuManagementContent() {
   }
 
   return (
-    <div className="dashboard-surface-polish flex flex-col gap-4 md:gap-6 pb-20 px-4 md:px-0">
+    <div className="dashboard-surface-polish flex flex-col gap-4 md:gap-6 pb-20 px-3 sm:px-4 lg:px-0">
        {/* Menu management */}
        <div className="bg-card/40 backdrop-blur-3xl border border-border/60 rounded-3xl p-4 md:p-6 flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8 shadow-3xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px] -mr-48 -mt-48 transition-all group-hover:bg-primary/10" />
@@ -531,7 +723,7 @@ function MenuManagementContent() {
           </Button>
        </div>
 
-      <div className="flex flex-col gap-6 md:gap-8 md:flex-row md:items-end md:justify-between px-2">
+      <div className="flex flex-col gap-6 md:gap-8 md:flex-row md:items-end md:justify-between px-2 min-w-0">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
              <Activity className="h-4 w-4 text-primary animate-pulse" />
@@ -543,36 +735,35 @@ function MenuManagementContent() {
           <p className="text-muted-foreground font-medium text-base md:text-lg max-w-lg">Manage your items and categories from a single interface.</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4 w-full md:w-auto">
-           {restaurants.length > 0 && (
-             <div className="flex items-center gap-4 bg-card/70 p-3 md:p-4 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl w-full md:min-w-[460px]">
-               <div className="flex flex-col gap-2 flex-1 min-w-0">
-                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.35em] text-primary">Managing Restaurant</span>
-                  <div className="relative flex items-center group/select">
-                    <select
-                      className="h-12 md:h-14 bg-muted/40 border border-border/60 rounded-xl px-4 pr-11 text-sm md:text-base font-black text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 appearance-none cursor-pointer w-full"
-                      value={restaurantId}
-                      onChange={(e) => {
-                        setRestaurantId(e.target.value)
-                        setCategoryId("")
-                      }}
-                    >
-                      {restaurants.map(r => <option key={r.id} value={r.id} className="bg-card">{r.name}</option>)}
-                    </select>
-                    <ChevronDown className="absolute right-4 h-4 w-4 text-primary pointer-events-none transition-transform group-hover/select:translate-y-0.5" />
+        <div className="flex w-full min-w-0 flex-col items-stretch gap-3 md:gap-4 md:w-auto md:items-end">
+          {restaurants.length > 0 && (
+            <div className="flex w-full md:w-[420px] lg:w-[460px] min-w-0 flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4 bg-card/70 p-2.5 md:p-3 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl">
+              <div className="flex flex-col gap-2 flex-1 min-w-0">
+                <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.35em] text-primary">Managing Restaurant</span>
+                <div className="relative group/select">
+                  <select
+                    className="h-11 md:h-12 w-full min-w-0 bg-muted/40 border border-border/60 rounded-xl px-4 pr-10 text-sm md:text-sm font-black tracking-[0.08em] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 appearance-none cursor-pointer"
+                    value={restaurantId}
+                    onChange={(e) => {
+                      setRestaurantId(e.target.value)
+                      setCategoryId("")
+                    }}
+                  >
+                    {restaurants.map(r => <option key={r.id} value={r.id} className="bg-card">{r.name}</option>)}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                    <ChevronDown className="h-4 w-4 text-primary transition-transform group-hover/select:translate-y-0.5" />
                   </div>
-                  <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground truncate">
-                    {selectedRestaurant?.name || "Select restaurant"}
-                  </span>
-               </div>
-               <Button variant="ghost" size="icon" disabled={publishing} onClick={togglePublish} className={cn("h-12 w-12 md:h-14 md:w-14 rounded-xl shrink-0 transition-all", selectedRestaurant?.is_published ? "bg-primary/10 text-primary hover:bg-primary hover:text-white" : "bg-muted text-muted-foreground hover:text-foreground")}>
-                 {publishing ? <LoadingSignal size="sm" className="h-4 w-4" /> : selectedRestaurant?.is_published ? <Eye className="h-5 w-5 md:h-6 md:w-6" /> : <EyeOff className="h-5 w-5 md:h-6 md:w-6" />}
-               </Button>
-             </div>
-           )}
-           <Button className="w-full sm:w-auto h-12 md:h-14 rounded-2xl px-6 md:px-8 gap-3 shadow-[0_20px_40px_-12px_rgba(230,57,70,0.3)] bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] md:text-xs tracking-[0.2em] transition-all hover:scale-105 active:scale-95" disabled={!categoryId} onClick={() => { setActiveItem(null); setItemDraft({ name: "", description: "", price: "", currency: "ETB", is_available: true, images: [] }); setItemStep(1); setItemDialogOpen(true); }}>
-            <Plus className="h-5 w-5" /> Add item
-          </Button>
+                </div>
+                <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground truncate">
+                  {selectedRestaurant?.name || "Select restaurant"}
+                </span>
+              </div>
+              <Button variant="ghost" size="icon" disabled={publishing} onClick={togglePublish} className={cn("h-11 w-11 md:h-12 md:w-12 rounded-xl shrink-0 self-end sm:self-auto transition-all", selectedRestaurant?.is_published ? "bg-primary/10 text-primary hover:bg-primary hover:text-white" : "bg-muted text-muted-foreground hover:text-foreground")}>
+                {publishing ? <LoadingSignal size="sm" className="h-4 w-4" /> : selectedRestaurant?.is_published ? <Eye className="h-5 w-5 md:h-6 md:w-6" /> : <EyeOff className="h-5 w-5 md:h-6 md:w-6" />}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -606,13 +797,13 @@ function MenuManagementContent() {
                <Layers className="h-4 w-4 text-muted-foreground/40" />
               <h2 className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Categories</h2>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all border border-border/60" onClick={() => { setActiveCategory(null); setCatDraft({ name: "", description: "" }); setAddCatOpen(true); }}>
-              <Plus className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all border border-border/60" disabled={isCreatingCategory} onClick={() => { setActiveCategory(null); setCatDraft({ name: "", description: "" }); setAddCatOpen(true); }}>
+              {isCreatingCategory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             </Button>
           </div>
           <div className="flex flex-row lg:flex-col gap-2.5 px-2 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide">
             {categories.length > 0 ? categories.map((cat) => (
-              <div key={cat.id} className={cn("group flex items-center justify-between p-3.5 md:p-4 rounded-xl transition-all cursor-pointer border shadow-lg hover:translate-x-1 shrink-0 min-w-[140px] lg:min-w-0", categoryId === cat.id ? "bg-primary text-white border-primary shadow-[0_15px_30px_-10px_rgba(230,57,70,0.4)]" : "bg-card/40 backdrop-blur-md border-border/70 hover:border-primary/30")} onClick={() => setCategoryId(cat.id)}>
+              <div key={cat.id} className={cn("group flex items-center justify-between p-3.5 md:p-4 rounded-xl transition-all cursor-pointer border shadow-lg hover:translate-x-1 shrink-0 min-w-[120px] lg:min-w-0", categoryId === cat.id ? "bg-primary text-white border-primary shadow-[0_15px_30px_-10px_rgba(230,57,70,0.4)]" : "bg-card/40 backdrop-blur-md border-border/70 hover:border-primary/30")} onClick={() => setCategoryId(cat.id)}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center shrink-0", categoryId === cat.id ? "bg-white/20" : "bg-muted")}>
                     <LayoutGrid className={cn("h-3 w-3", categoryId === cat.id ? "text-white" : "text-muted-foreground/40")} />
@@ -628,7 +819,9 @@ function MenuManagementContent() {
             )) : (
               <div className="p-6 rounded-2xl border-2 border-dashed border-border/60 bg-muted/20 text-center space-y-3 w-full">
                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">No categories</p>
-                 <Button variant="ghost" className="text-primary text-[9px] font-black uppercase tracking-widest h-auto p-0" onClick={() => setAddCatOpen(true)}>Add first</Button>
+                 <Button variant="ghost" className="text-primary text-[9px] font-black uppercase tracking-widest h-auto p-0" disabled={isCreatingCategory} onClick={() => setAddCatOpen(true)}>
+                   {isCreatingCategory ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Add first"}
+                 </Button>
               </div>
             )}
           </div>
@@ -640,12 +833,15 @@ function MenuManagementContent() {
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
               <Input placeholder="Search Ethiopian dishes..." className="pl-12 border-none bg-transparent h-11 focus-visible:ring-0 text-sm font-bold placeholder:text-muted-foreground/20 text-foreground" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <div className="flex items-center gap-3 pr-2">
-              <select className="h-9 w-full md:w-auto rounded-xl border border-border/50 bg-muted/40 px-4 text-[9px] font-black uppercase tracking-[0.2em] focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all appearance-none cursor-pointer pr-10 hover:bg-muted/60 text-foreground" style={{ backgroundImage: `url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.8rem center', backgroundSize: '1em' }} value={availabilityFilter} onChange={(e) => setAvailabilityFilter(e.target.value as any)}>
+            <div className="flex w-full md:w-auto items-center gap-3 pr-0 md:pr-2">
+              <select className="h-11 w-full sm:w-52 rounded-xl border border-border/50 bg-muted/40 px-4 text-[9px] font-black uppercase tracking-[0.16em] focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all appearance-none cursor-pointer pr-10 hover:bg-muted/60 text-foreground" style={{ backgroundImage: `url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.8rem center', backgroundSize: '1em' }} value={availabilityFilter} onChange={(e) => setAvailabilityFilter(e.target.value as any)}>
                 <option value="all" className="bg-card text-foreground">All items</option>
                 <option value="available" className="bg-card text-foreground">Available</option>
                 <option value="unavailable" className="bg-card text-foreground">Unavailable</option>
               </select>
+              <Button className="h-11 shrink-0 rounded-xl px-4 md:px-5 gap-2.5 justify-center shadow-[0_20px_40px_-12px_rgba(230,57,70,0.3)] bg-primary hover:bg-primary/90 text-white font-black uppercase text-[9px] md:text-[10px] tracking-[0.12em] whitespace-nowrap transition-all hover:scale-105 active:scale-95" disabled={!categoryId || isCreatingItem} onClick={() => openItemDialog(null, 1)}>
+                {isCreatingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} {isCreatingItem ? "Adding..." : "Add item"}
+              </Button>
             </div>
           </div>
 
@@ -667,7 +863,7 @@ function MenuManagementContent() {
                 
                 return (
                   <div key={item.id} className="h-full">
-                    <Card className="group h-full gap-0 overflow-hidden bg-card/40 backdrop-blur-3xl border-border/70 ring-1 ring-border/60 shadow-xl hover:shadow-[0_20px_40px_-10px_rgba(230,57,70,0.2)] hover:border-primary/40 transition-all duration-500 rounded-3xl border flex flex-col">
+                    <Card className="group h-full gap-0 overflow-hidden rounded-3xl border border-border/70 bg-card/40 backdrop-blur-3xl ring-1 ring-border/60 shadow-xl transition-all duration-500 hover:border-primary/40 hover:shadow-[0_20px_40px_-10px_rgba(230,57,70,0.2)] flex flex-col">
                       <div className="relative aspect-[16/10] overflow-hidden shrink-0">
                         {images[0] && (
                           <Image 
@@ -678,9 +874,9 @@ function MenuManagementContent() {
                             unoptimized={images[0].startsWith('http')}
                           />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
-                        <div className="absolute top-4 left-4 flex flex-col gap-2">
-                           <Badge className="bg-card/80 backdrop-blur-md border border-border/60 text-primary font-black uppercase text-[8px] tracking-widest px-3 h-7 rounded-lg shadow-xl">{categoryName.toUpperCase()}</Badge>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-80" />
+                        <div className="absolute top-4 left-4 flex max-w-[70%] flex-col gap-2">
+                          <Badge className="max-w-full truncate bg-card/80 backdrop-blur-md border border-border/60 text-primary font-black uppercase text-[8px] tracking-widest px-3 h-7 rounded-lg shadow-xl">{categoryName.toUpperCase()}</Badge>
                            {isAvailable ? (
                              <div className="flex items-center gap-1.5 px-2 h-5 bg-secondary/10 backdrop-blur-md rounded-md border border-secondary/20">
                                <div className="h-1 w-1 rounded-full bg-secondary animate-pulse" />
@@ -692,33 +888,32 @@ function MenuManagementContent() {
                              </div>
                            )}
                         </div>
-                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                          <Button variant="secondary" size="icon" className="h-9 w-9 rounded-xl shadow-xl bg-background border border-border/60 hover:bg-primary hover:text-white transition-all" onClick={() => { setActiveItem(item); setItemDraft({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "0", currency: item.currency || "ETB", is_available: isAvailable, images: getImageUrls(rawImages) }); setItemStep(1); setItemDialogOpen(true); }}>
+                        <div className="absolute top-4 right-4 opacity-0 transition-all duration-300 group-hover:opacity-100">
+                          <Button variant="secondary" size="icon" className="h-9 w-9 rounded-xl shadow-xl bg-background border border-border/60 hover:bg-primary hover:text-white transition-all" onClick={() => openItemDialog(item, 1)}>
                             <Edit2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
-                           <div className="space-y-0.5">
-                              <h3 className="text-lg font-black text-foreground leading-none tracking-tight group-hover:text-primary transition-colors">{item.name}</h3>
-                           </div>
-                           <span className="text-xl font-black text-foreground font-serif italic">
-                             {item.price !== undefined && item.price !== null 
-                               ? `${item.currency === "EUR" ? "€" : "ETB "}${parseFloat(item.price.toString()).toLocaleString()}` 
-                               : "N/A"}
-                           </span>
-                        </div>
                       </div>
-                      <CardHeader className="p-5 pb-2">
-                        <CardDescription className="line-clamp-2 text-xs font-medium text-muted-foreground/90 leading-relaxed group-hover:text-foreground transition-colors">
+                      <CardHeader className="p-5 pb-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <CardTitle className="min-w-0 truncate text-lg font-black tracking-tight text-foreground group-hover:text-primary transition-colors">
+                            {item.name}
+                          </CardTitle>
+                          <span className="shrink-0 whitespace-nowrap text-lg font-black font-serif italic text-foreground">
+                            {item.price !== undefined && item.price !== null
+                              ? `${item.currency === "EUR" ? "€" : "ETB "}${parseFloat(item.price.toString()).toLocaleString()}`
+                              : "N/A"}
+                          </span>
+                        </div>
+                        <CardDescription className="mt-2 line-clamp-2 min-h-[2.5rem] text-xs font-medium leading-relaxed text-muted-foreground/90 transition-colors group-hover:text-foreground">
                           {item.description || "No description provided."}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="p-5 pt-3">
-                        <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-3 mt-1">
-                          <div className="flex items-center gap-2 min-w-0">
+                      <CardContent className="p-5 pt-0 mt-auto">
+                        <div className="flex items-center gap-2 min-w-0 border-t border-border/40 pt-3 overflow-hidden">
                             <Badge
                               className={cn(
-                                "h-6 rounded-md px-2 text-[8px] font-black uppercase tracking-widest border",
+                                "h-6 shrink-0 rounded-md px-2 text-[8px] font-black uppercase tracking-widest border",
                                 isAvailable
                                   ? "bg-secondary/10 text-secondary border-secondary/20"
                                   : "bg-muted/40 text-muted-foreground border-border/60"
@@ -726,14 +921,42 @@ function MenuManagementContent() {
                             >
                               {isAvailable ? "Available" : "Unavailable"}
                             </Badge>
-                            <span className="truncate text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                            <span className="truncate max-w-full text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground">
                               {categoryName}
                             </span>
-                          </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 group-hover:text-primary transition-all text-muted-foreground/40" onClick={() => { setActiveItem(item); setItemDraft({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "0", currency: item.currency || "ETB", is_available: isAvailable, images: getImageUrls(rawImages) }); setItemStep(1); setItemDialogOpen(true); }}>
-                             <ChevronRight className="h-5 w-5 transform group-hover:translate-x-0.5 transition-transform" />
-                          </Button>
                         </div>
+                        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 min-w-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-full min-w-0 rounded-md border-border/60 px-2 text-[9px] font-black uppercase tracking-[0.12em]"
+                              onClick={() => openItemDialog(item, 2)}
+                            >
+                              <Camera className="mr-1.5 h-3 w-3 shrink-0" />
+                              <span className="truncate">Add image</span>
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="h-8 w-full min-w-0 rounded-md px-2 text-[9px] font-black uppercase tracking-[0.12em]"
+                              onClick={() => openItemDialog(item, 1)}
+                            >
+                              <Edit2 className="mr-1.5 h-3 w-3 shrink-0" />
+                              <span className="truncate">Edit</span>
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-8 w-full min-w-0 rounded-md px-2 text-[9px] font-black uppercase tracking-[0.12em]"
+                              onClick={() => {
+                                setActiveItem(item)
+                                setDeleteItemOpen(true)
+                              }}
+                            >
+                              <Trash2 className="mr-1.5 h-3 w-3 shrink-0" />
+                              <span className="truncate">Delete</span>
+                            </Button>
+                          </div>
                       </CardContent>
                     </Card>
                   </div>
@@ -746,8 +969,8 @@ function MenuManagementContent() {
                 </div>
                 <h3 className="text-2xl font-black tracking-tight text-foreground mb-2">No menu items found.</h3>
                 <p className="text-muted-foreground font-medium max-w-xs mx-auto mb-8 text-sm leading-relaxed">Start building your menu by adding your first item.</p>
-                <Button className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-[0.3em] shadow-lg bg-primary text-white" onClick={() => { setActiveItem(null); setItemDraft({ name: "", description: "", price: "", currency: "ETB", is_available: true, images: [] }); setItemStep(1); setItemDialogOpen(true); }}>
-                  <Plus className="h-4 w-4 mr-3" /> Add item
+                <Button className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-[0.3em] shadow-lg bg-primary text-white" disabled={isCreatingItem} onClick={() => openItemDialog(null, 1)}>
+                  {isCreatingItem ? <Loader2 className="h-4 w-4 mr-3 animate-spin" /> : <Plus className="h-4 w-4 mr-3" />} {isCreatingItem ? "Adding..." : "Add item"}
                 </Button>
               </div>
             )}
@@ -805,7 +1028,7 @@ function MenuManagementContent() {
                 onClick={handleSaveCategory} 
                 disabled={!catDraft.name.trim() || savingCat}
             >
-               {savingCat ? <LoadingSignal size="sm" className="h-4 w-4" /> : (activeCategory ? "Save Changes" : "Create")}
+              {savingCat ? <Loader2 className="h-4 w-4 animate-spin" /> : (activeCategory ? "Save Changes" : "Create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -854,6 +1077,12 @@ function MenuManagementContent() {
             <DialogDescription className="text-muted-foreground font-medium italic text-sm">
               {itemStep === 1 ? "Step 1: Item information" : "Step 2: Item images"}
             </DialogDescription>
+            <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 px-4 py-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Adding to category</p>
+              <p className="mt-1 text-sm font-black text-foreground">
+                {selectedCategory?.name || "No category selected"}
+              </p>
+            </div>
           </DialogHeader>
 
           <AnimatePresence mode="wait">
@@ -928,7 +1157,7 @@ function MenuManagementContent() {
               >
                 <div className="space-y-3">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Images</Label>
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {itemDraft.images.map((img, idx) => (
                       <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-border/50 group/img">
                         <Image
@@ -961,12 +1190,6 @@ function MenuManagementContent() {
                   </div>
                 </div>
 
-                {!activeItem && (
-                  <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 text-xs text-muted-foreground">
-                    Images are applied reliably after the item is created. If upload is skipped by backend on create, edit the item and add images.
-                  </div>
-                )}
-
                 <AnimatePresence>
                   {savingItem && uploadProgress > 0 && (
                     <motion.div
@@ -988,16 +1211,6 @@ function MenuManagementContent() {
           </AnimatePresence>
 
           <DialogFooter className="mt-8 md:mt-10 flex-col md:flex-row gap-3">
-            {activeItem && (
-              <Button
-                type="button"
-                variant="ghost"
-                className="w-full md:w-auto h-12 px-6 rounded-xl border border-border/50 text-destructive hover:bg-destructive/10"
-                onClick={() => setDeleteItemOpen(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Delete
-              </Button>
-            )}
             {itemStep === 2 && (
               <Button
                 type="button"
@@ -1024,7 +1237,7 @@ function MenuManagementContent() {
                 onClick={handleSaveItem}
                 disabled={savingItem}
               >
-                {savingItem ? <LoadingSignal size="sm" className="h-4 w-4" /> : (activeItem ? "Save Item" : "Create Item")}
+                {savingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : (activeItem ? "Save Item" : "Create Item")}
               </Button>
             )}
           </DialogFooter>

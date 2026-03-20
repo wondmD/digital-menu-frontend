@@ -59,8 +59,9 @@ export default function RestaurantDashboardLayout({
         </Link>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="lg:w-64 space-y-2">
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        <aside className="lg:w-64">
+          <div className="flex gap-2 overflow-x-auto pb-2 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0 scrollbar-hide">
           {navItems.map((item) => {
             const isActive = pathname === item.href
             return (
@@ -68,7 +69,7 @@ export default function RestaurantDashboardLayout({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all",
+                  "shrink-0 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
                   isActive 
                     ? "bg-primary text-white shadow-lg shadow-primary/20" 
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -79,6 +80,7 @@ export default function RestaurantDashboardLayout({
               </Link>
             )
           })}
+          </div>
         </aside>
 
         <main className="flex-1 min-w-0">

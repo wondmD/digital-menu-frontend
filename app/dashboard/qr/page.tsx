@@ -277,7 +277,7 @@ export default function QRPage() {
   }
 
   return (
-    <div className="dashboard-surface-polish max-w-6xl mx-auto space-y-8 pb-20 px-4 md:px-0">
+    <div className="dashboard-surface-polish max-w-6xl mx-auto space-y-8 pb-20 px-3 sm:px-4 lg:px-0">
       {/* 1. QR CODE SETTINGS */}
       <div className="relative overflow-hidden rounded-3xl bg-card/40 border border-border/70 ring-1 ring-border/60 p-1 px-1">
         <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-transparent to-transparent opacity-50" />
@@ -294,7 +294,7 @@ export default function QRPage() {
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 w-full md:min-w-70">
+          <div className="flex flex-col gap-3 w-full min-w-0 md:max-w-sm lg:max-w-md">
             <Label className="text-[9px] uppercase font-black tracking-[0.4em] text-muted-foreground ml-2 text-center md:text-left">Currently customizing</Label>
             <div className="relative group">
               <Hotel className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
@@ -584,7 +584,7 @@ export default function QRPage() {
 
       {/* Template Preview Dialog */}
       <Dialog open={previewTemplate !== null} onOpenChange={(open) => !open && setPreviewTemplate(null)}>
-        <DialogContent className="max-w-[100vw] md:max-w-[95vw] w-full md:w-300 h-full md:h-[90vh] p-0 overflow-hidden border-none rounded-none md:rounded-[3rem]">
+        <DialogContent className="w-full max-w-[100vw] sm:max-w-[96vw] md:max-w-[94vw] lg:max-w-[1200px] h-full md:h-[90vh] p-0 overflow-hidden border-none rounded-none md:rounded-[2rem] lg:rounded-[3rem]">
           <div className="h-full w-full bg-background overflow-y-auto custom-scrollbar">
              <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4">

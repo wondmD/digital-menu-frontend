@@ -89,32 +89,48 @@ export function EventsSection({ events }: EventsSectionProps) {
             >
               <Card className="group rounded-2xl overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02]">
                 {/* Event Image */}
-                <div className="relative h-48 md:h-56 overflow-hidden">
-                  <Image
-                    src={getImageUrl(event.image_url) || "/hotel.webp"}
-                    alt={event.title}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                  
-                  {/* Date Badge */}
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-white/90 text-black hover:bg-white transition-colors">
+                {getImageUrl(event.image_url) ? (
+                  <div className="relative h-48 md:h-56 overflow-hidden">
+                    <Image
+                      src={getImageUrl(event.image_url) || ""}
+                      alt={event.title}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+                    {/* Date Badge */}
+                    <div className="absolute top-4 left-4">
+                      <Badge className="bg-white/90 text-black hover:bg-white transition-colors">
+                        <Calendar className="mr-2 h-3 w-3" />
+                        {formatDate(event.date)}
+                      </Badge>
+                    </div>
+
+                    {/* Price Badge */}
+                    {event.price && (
+                      <div className="absolute top-4 right-4">
+                        <Badge className="bg-primary/90 text-white hover:bg-primary transition-colors">
+                          {event.price}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                {!getImageUrl(event.image_url) && (
+                  <div className="px-6 pt-6">
+                    <Badge className="bg-primary/10 text-primary hover:bg-primary/10">
                       <Calendar className="mr-2 h-3 w-3" />
                       {formatDate(event.date)}
                     </Badge>
-                  </div>
-
-                  {/* Price Badge */}
-                  {event.price && (
-                    <div className="absolute top-4 right-4">
-                      <Badge className="bg-primary/90 text-white hover:bg-primary transition-colors">
+                    {event.price && (
+                      <Badge className="ml-2 bg-primary/90 text-white hover:bg-primary">
                         {event.price}
                       </Badge>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Event Content */}
                 <CardContent className="p-6 space-y-4">

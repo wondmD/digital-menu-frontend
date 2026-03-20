@@ -1,7 +1,20 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Facebook, Instagram, Twitter, MessageCircle, Globe, Send } from "lucide-react"
+import { Facebook, Instagram, Twitter, Globe, Send } from "lucide-react"
+
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      className={className}
+    >
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.35V2h-3.4v13.13a2.9 2.9 0 1 1-2-2.77V8.9a6.3 6.3 0 1 0 5.4 6.23v-6.67a8.2 8.2 0 0 0 4.77 1.53V6.69z" />
+    </svg>
+  )
+}
 
 type Restaurant = {
   facebook_url?: string
@@ -78,7 +91,7 @@ export function SocialLinks({
     },
     {
       href: hotel.tiktok_url,
-      icon: MessageCircle,
+      icon: TikTokIcon,
       label: "TikTok",
     },
     {

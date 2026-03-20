@@ -10,7 +10,7 @@ export default function DashboardLayout({
   return (
     <SubscriptionWatcher>
       <AppSidebar>
-        <div className="dashboard-readable dashboard-surface-polish">{children}</div>
+        <div className="dashboard-readable dashboard-surface-polish w-full min-w-0 overflow-x-hidden">{children}</div>
       </AppSidebar>
     </SubscriptionWatcher>
   )

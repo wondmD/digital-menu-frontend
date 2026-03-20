@@ -12,6 +12,7 @@ type Restaurant = {
   phone?: string
   email?: string
   whatsapp?: string
+  opening_hours?: string
 }
 
 interface LocationSectionProps {
@@ -244,18 +245,12 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
                 <div className="space-y-4">
                   <h3 className="text-xl font-semibold">Operating Hours</h3>
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Monday - Friday</span>
-                      <span className="font-medium">8:00 AM - 11:00 PM</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Saturday</span>
-                      <span className="font-medium">9:00 AM - 12:00 AM</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Sunday</span>
-                      <span className="font-medium">9:00 AM - 10:00 PM</span>
-                    </div>
+                    {hotel.opening_hours ? (
+                      <div className="flex justify-between gap-4">
+                        <span className="text-muted-foreground">Current Schedule</span>
+                        <span className="font-medium text-right">{hotel.opening_hours}</span>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </CardContent>

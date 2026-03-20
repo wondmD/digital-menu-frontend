@@ -108,34 +108,36 @@ export function MenuPreviewSection({ items, loading, menuLink }: MenuPreviewSect
             >
               <Card className="group rounded-2xl overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02]">
                 {/* Item Image */}
-                <div className="relative h-48 md:h-56 overflow-hidden">
-                  <Image
-                    src={getImageUrl(item.image_url) || "/hotel.webp"}
-                    alt={item.name}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                  
-                  {/* Badges */}
-                  <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                    {item.is_popular && (
-                      <Badge className="bg-red-500 text-white hover:bg-red-600">
-                        Popular
-                      </Badge>
-                    )}
-                    {item.is_spicy && (
-                      <Badge variant="secondary" className="bg-orange-500 text-white hover:bg-orange-600">
-                        🌶️ Spicy
-                      </Badge>
-                    )}
-                    {item.is_vegetarian && (
-                      <Badge variant="secondary" className="bg-green-500 text-white hover:bg-green-600">
-                        🥬 Vegetarian
-                      </Badge>
-                    )}
+                {getImageUrl(item.image_url) ? (
+                  <div className="relative h-48 md:h-56 overflow-hidden">
+                    <Image
+                      src={getImageUrl(item.image_url) || ""}
+                      alt={item.name}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+
+                    {/* Badges */}
+                    <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                      {item.is_popular && (
+                        <Badge className="bg-red-500 text-white hover:bg-red-600">
+                          Popular
+                        </Badge>
+                      )}
+                      {item.is_spicy && (
+                        <Badge variant="secondary" className="bg-orange-500 text-white hover:bg-orange-600">
+                          🌶️ Spicy
+                        </Badge>
+                      )}
+                      {item.is_vegetarian && (
+                        <Badge variant="secondary" className="bg-green-500 text-white hover:bg-green-600">
+                          🥬 Vegetarian
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : null}
 
                 {/* Item Content */}
                 <CardContent className="p-6 space-y-4">

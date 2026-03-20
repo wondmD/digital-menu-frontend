@@ -139,7 +139,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarHeader>
 
-        <SidebarContent className="p-4 space-y-8 h-auto overflow-visible">
+        <SidebarContent className="h-auto overflow-x-hidden overflow-y-auto p-3 sm:p-4 space-y-6 sm:space-y-8">
           <SidebarMenu className="gap-2">
             {NAV_ITEMS.map((item) => (
               <SidebarMenuItem key={item.title}>
@@ -225,7 +225,7 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset className="bg-background flex flex-col min-h-screen transition-all duration-300">
+      <SidebarInset className="bg-background flex min-h-screen min-w-0 flex-col transition-all duration-300 overflow-x-hidden">
         {getDaysLeft() !== null && (
           <div className="w-full bg-primary py-1.5 px-6 flex items-center justify-between shadow-lg relative z-[60]">
              <div className="flex items-center gap-2">
@@ -254,9 +254,9 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
           </Button>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 md:p-12 relative">
+          <main className="relative flex-1 overflow-x-hidden overflow-y-auto p-3 sm:p-4 md:p-8 lg:p-12">
            <div className="absolute top-0 right-0 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-primary/5 blur-[80px] md:blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2" />
-           <div className="relative z-10 h-full">
+            <div className="relative z-10 h-full min-w-0">
               {children}
            </div>
         </main>

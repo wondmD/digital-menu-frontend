@@ -68,32 +68,36 @@ export function TopMenusSection({ items, menuLink, className }: TopMenusSectionP
                   transition={{ duration: 0.7, delay: index * 0.15 }}
                   className="group"
                 >
-                  <div className="relative h-64 md:h-72 rounded-3xl overflow-hidden mb-6 shadow-lg">
-                    <Image
-                      src={getImageUrl(item.image_url) || "/hotel.webp"}
-                      alt={item.name}
-                      fill
-                      className="object-cover transition-transform duration-800 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-                    <div className="absolute top-4 left-4">
-                      <Badge className="bg-gradient-to-r from-amber-500 to-amber-600 text-white border-0 font-semibold">
-                        <Award className="mr-1 h-3 w-3" />
-                        Signature
-                      </Badge>
-                    </div>
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <div className="flex items-center justify-between">
-                        <div />
-                        {item.prep_time && (
-                          <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
-                            <Clock className="h-3 w-3" />
-                            <span className="text-xs font-medium">{item.prep_time}</span>
-                          </div>
-                        )}
+                  {getImageUrl(item.image_url) ? (
+                    <div className="relative h-64 md:h-72 rounded-3xl overflow-hidden mb-6 shadow-lg">
+                      <Image
+                        src={getImageUrl(item.image_url) || ""}
+                        alt={item.name}
+                        fill
+                        className="object-cover transition-transform duration-800 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                      <div className="absolute top-4 left-4">
+                        <Badge className="bg-gradient-to-r from-amber-500 to-amber-600 text-white border-0 font-semibold">
+                          <Award className="mr-1 h-3 w-3" />
+                          Signature
+                        </Badge>
+                      </div>
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <div className="flex items-center justify-between">
+                          <div />
+                          {item.prep_time && (
+                            <div className="flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1">
+                              <Clock className="h-3 w-3" />
+                              <span className="text-xs font-medium">{item.prep_time}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="mb-6" />
+                  )}
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <h4 className="text-xl font-serif font-bold">{item.name}</h4>
@@ -135,27 +139,29 @@ export function TopMenusSection({ items, menuLink, className }: TopMenusSectionP
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   className="group"
                 >
-                  <div className="relative h-48 rounded-2xl overflow-hidden mb-4 shadow-md">
-                    <Image
-                      src={getImageUrl(item.image_url) || "/hotel.webp"}
-                      alt={item.name}
-                      fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                    <div className="absolute top-3 left-3">
-                      <Badge className="bg-red-500 text-white border-0 text-xs">
-                        Popular
-                      </Badge>
-                    </div>
-                    <div className="absolute bottom-3 left-3 right-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white font-semibold">
-                          {item.currency || "$"}{item.price}
-                        </span>
+                  {getImageUrl(item.image_url) ? (
+                    <div className="relative h-48 rounded-2xl overflow-hidden mb-4 shadow-md">
+                      <Image
+                        src={getImageUrl(item.image_url) || ""}
+                        alt={item.name}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-red-500 text-white border-0 text-xs">
+                          Popular
+                        </Badge>
+                      </div>
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-white font-semibold">
+                            {item.currency || "$"}{item.price}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : null}
                   <div className="space-y-2">
                     <h4 className="font-semibold text-lg">{item.name}</h4>
                     <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
@@ -184,14 +190,16 @@ export function TopMenusSection({ items, menuLink, className }: TopMenusSectionP
                   className="bg-card rounded-2xl p-6 border border-border shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
-                      <Image
-                        src={getImageUrl(item.image_url) || "/hotel.webp"}
-                        alt={item.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
+                    {getImageUrl(item.image_url) ? (
+                      <div className="relative w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                        <Image
+                          src={getImageUrl(item.image_url) || ""}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : null}
                     <div className="flex-1 space-y-2">
                       <h4 className="font-semibold">{item.name}</h4>
                       <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>

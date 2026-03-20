@@ -20,6 +20,16 @@ interface FloatingSocialCTAProps {
 
 export function FloatingSocialCTA({ hotel }: FloatingSocialCTAProps) {
   const [open, setOpen] = useState(false)
+  const hasSocialLinks = Boolean(
+    hotel.facebook_url ||
+    hotel.instagram_url ||
+    hotel.twitter_url ||
+    hotel.tiktok_url ||
+    hotel.telegram_url ||
+    hotel.website_url
+  )
+
+  if (!hasSocialLinks) return null
 
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
@@ -43,7 +53,7 @@ export function FloatingSocialCTA({ hotel }: FloatingSocialCTAProps) {
                 <X className="h-4 w-4 mx-auto" />
               </button>
             </div>
-            <SocialLinks hotel={hotel} size="md" showAll />
+            <SocialLinks hotel={hotel} size="md" />
           </motion.div>
         )}
       </AnimatePresence>
