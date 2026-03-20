@@ -11,12 +11,97 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Save, Upload, X, ImageIcon, Plus } from "lucide-react"
 import { getImageUrl, getImageUrls } from "@/lib/utils"
-import { findRestaurantById } from "@/lib/restaurant-normalizers"
+import { normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
 function isNotFoundError(err: unknown): boolean {
   if (!(err instanceof Error)) return false
   const msg = err.message.toLowerCase()
   return msg.includes("404") || msg.includes("not found")
+}
+
+function findRestaurantByRouteId(input: any, routeId: string) {
+  const list = normalizeRestaurantList(input)
+  return list.find((item) => item.id === routeId || item.slug === routeId) || null
+}
+
+function normalizeDeleteRef(value: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) return trimmed
+  if (trimmed.startsWith("media:")) return trimmed
+
+  const mediaApiPath = "/api/media/"
+  const mediaApiIndex = trimmed.indexOf(mediaApiPath)
+  if (mediaApiIndex >= 0) {
+    const idPart = trimmed.slice(mediaApiIndex + mediaApiPath.length).split(/[?#]/)[0]
+    if (idPart) return `media:${decodeURIComponent(idPart)}`
+  }
+
+  const mediaPathMatch = trimmed.match(/\/media\/([0-9a-f-]{36})(?:[/?#]|$)/i)
+  if (mediaPathMatch?.[1]) {
+    return `media:${mediaPathMatch[1]}`
+  }
+
+  const maybeUuid = trimmed.replace(/^media:/, "")
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(maybeUuid)) {
+    return `media:${maybeUuid}`
+  }
+
+  return trimmed
+}
+
+function extractGalleryRefs(source: any): string[] {
+  const pickRaw = (item: any): string | undefined => {
+    if (!item) return undefined
+    if (typeof item === "string") {
+      const v = item.trim()
+      return v || undefined
+    }
+
+    if (typeof item === "object") {
+      const raw =
+        item.media_ref ||
+        item.media_url ||
+        item.image_url ||
+        item.url ||
+        item.uri ||
+        item.path ||
+        item.src ||
+        item.file_url ||
+        item.media_id ||
+        item.id
+
+      if (typeof raw === "string") {
+        const v = raw.trim()
+        return v || undefined
+      }
+    }
+
+    return undefined
+  }
+
+  if (!source) return []
+
+  if (typeof source === "string") {
+    const trimmed = source.trim()
+    if (!trimmed) return []
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        return extractGalleryRefs(JSON.parse(trimmed))
+      } catch {
+        return [normalizeDeleteRef(trimmed)]
+      }
+    }
+    return [normalizeDeleteRef(trimmed)]
+  }
+
+  if (Array.isArray(source)) {
+    return source
+      .map((item) => pickRaw(item))
+      .filter((v): v is string => Boolean(v))
+  }
+
+  const single = pickRaw(source)
+  return single ? [single] : []
 }
 
 export default function GalleryPage() {
@@ -30,6 +115,8 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [canonicalRestaurantId, setCanonicalRestaurantId] = useState<string>(id)
+  const [deletingRefs, setDeletingRefs] = useState<string[]>([])
   const [initialGallery, setInitialGallery] = useState<string[]>([])
   const [keepGalleryUrls, setKeepGalleryUrls] = useState<string[]>([])
   const [newImages, setNewImages] = useState<File[]>([])
@@ -40,9 +127,10 @@ export default function GalleryPage() {
     try {
       setLoading(true)
       const res = await apiFetch<any>("/my-restaurants", { token })
-      const d = findRestaurantById(res, id)
+      const d = findRestaurantByRouteId(res, id)
 
       if (d) {
+        setCanonicalRestaurantId(String(d.id || id))
         // Robust gallery lookup
         const source =
           (Array.isArray(d.gallery) && d.gallery.length ? d.gallery : null) ||
@@ -52,9 +140,10 @@ export default function GalleryPage() {
           (d.photos?.length ? d.photos : null) ||
           (d.images?.length ? d.images : null)
 
-        const urls = getImageUrls(source)
-        setInitialGallery(urls)
-        setKeepGalleryUrls(urls)
+        const refs = extractGalleryRefs(source)
+        const resolvedRefs = refs.length > 0 ? refs : getImageUrls(source)
+        setInitialGallery(resolvedRefs)
+        setKeepGalleryUrls(resolvedRefs)
       } else {
         throw new Error("Restaurant not found in your account")
       }
@@ -81,8 +170,45 @@ export default function GalleryPage() {
     setPreviews(prev => [...prev, ...newPreviews])
   }
 
-  const removeKeepUrl = (url: string) => {
-    setKeepGalleryUrls(prev => prev.filter(u => u !== url))
+  const deleteExistingImage = async (ref: string) => {
+    if (!token || !id || saving) return
+
+    const confirmed = window.confirm("Delete this gallery image permanently?")
+    if (!confirmed) return
+
+    const targetRestaurantId = canonicalRestaurantId || id
+    const rawRef = String(ref || "").trim()
+    const normalizedRef = normalizeDeleteRef(rawRef)
+
+    try {
+      setDeletingRefs((prev) => [...prev, ref])
+
+      try {
+        await apiFetch(`/my-restaurants/${targetRestaurantId}/gallery`, {
+          method: "DELETE",
+          token,
+          headers: { "Content-Type": "application/json" },
+          body: { image_urls: [rawRef] },
+        })
+      } catch {
+        await apiFetch(`/my-restaurants/${targetRestaurantId}/gallery`, {
+          method: "DELETE",
+          token,
+          headers: { "Content-Type": "application/json" },
+          body: { image_urls: [normalizedRef] },
+        })
+      }
+
+      setInitialGallery((prev) => prev.filter((u) => u !== ref))
+      setKeepGalleryUrls((prev) => prev.filter((u) => u !== ref))
+      toast({ title: "Deleted", description: "Gallery image removed." })
+      await load()
+      router.refresh()
+    } catch (err: any) {
+      toast({ title: "Delete failed", description: err?.message || "Could not delete image.", variant: "destructive" })
+    } finally {
+      setDeletingRefs((prev) => prev.filter((u) => u !== ref))
+    }
   }
 
   const removeNewImage = (index: number) => {
@@ -96,32 +222,61 @@ export default function GalleryPage() {
     try {
       setSaving(true)
       setUploadProgress(0)
+      const targetRestaurantId = canonicalRestaurantId || id
       const removedUrls = initialGallery.filter((url) => !keepGalleryUrls.includes(url))
+      const keepRefsRaw = keepGalleryUrls.map((value) => String(value || "").trim()).filter(Boolean)
+      const keepRefsNormalized = keepRefsRaw.map((value) => normalizeDeleteRef(value))
 
       if (removedUrls.length === 0 && newImages.length === 0) {
         toast({ title: "No changes", description: "Gallery is already up to date." })
         return
       }
 
-      let usePatchFallback = false
-
       if (removedUrls.length > 0) {
+        const deleteRefsRaw = removedUrls.map((value) => String(value || "").trim()).filter(Boolean)
+        const deleteRefsNormalized = deleteRefsRaw.map((value) => normalizeDeleteRef(value))
         try {
-          await apiFetch(`/my-restaurants/${id}/gallery`, {
+          await apiFetch(`/my-restaurants/${targetRestaurantId}/gallery`, {
             method: "DELETE",
             token,
-            body: { image_urls: removedUrls },
+            headers: { "Content-Type": "application/json" },
+            body: { image_urls: deleteRefsRaw },
           })
-        } catch (err) {
-          if (isNotFoundError(err)) {
-            usePatchFallback = true
-          } else {
-            throw err
+        } catch (err: any) {
+          try {
+            await apiFetch(`/my-restaurants/${targetRestaurantId}/gallery`, {
+              method: "DELETE",
+              token,
+              headers: { "Content-Type": "application/json" },
+              body: { image_urls: deleteRefsNormalized },
+            })
+          } catch {
+            try {
+              await apiFetch(`/my-restaurants/${targetRestaurantId}/gallery/reorder`, {
+                method: "PATCH",
+                token,
+                headers: { "Content-Type": "application/json" },
+                body: { image_urls: keepRefsRaw },
+              })
+            } catch {
+              try {
+                await apiFetch(`/my-restaurants/${targetRestaurantId}/gallery/reorder`, {
+                  method: "PATCH",
+                  token,
+                  headers: { "Content-Type": "application/json" },
+                  body: { image_urls: keepRefsNormalized },
+                })
+              } catch (reorderErr: any) {
+                const message = String(err?.message || "")
+                const reorderMessage = String(reorderErr?.message || "")
+                throw new Error(`Failed to delete gallery image(s): ${message || reorderMessage}`)
+              }
+            }
           }
         }
       }
 
-      if (newImages.length > 0 && !usePatchFallback) {
+      if (newImages.length > 0) {
         const uploadFormData = new FormData()
         newImages.forEach((file) => {
           uploadFormData.append("gallery_images", file)
@@ -130,47 +285,16 @@ export default function GalleryPage() {
         const uploadMethod = keepGalleryUrls.length === 0 ? "PUT" : "POST"
 
         try {
-          await apiFetchWithProgress(`/my-restaurants/${id}/gallery`, {
+          await apiFetchWithProgress(`/my-restaurants/${targetRestaurantId}/gallery`, {
             method: uploadMethod,
             token,
             body: uploadFormData,
             onProgress: (p) => setUploadProgress(p),
           })
-        } catch (err) {
-          if (isNotFoundError(err)) {
-            usePatchFallback = true
-          } else {
-            throw err
-          }
+        } catch (err: any) {
+          const message = String(err?.message || "")
+          throw new Error(`Failed to upload gallery image(s): ${message}`)
         }
-      }
-
-      if (usePatchFallback) {
-        if (removedUrls.length > 0) {
-          toast({
-            title: "Partial support on this backend",
-            description: "This server version cannot remove existing gallery images from the dashboard yet. New uploads can still be added.",
-            variant: "destructive",
-          })
-        }
-
-        if (newImages.length === 0) {
-          await load()
-          return
-        }
-
-        const fallbackForm = new FormData()
-
-        newImages.forEach((file) => {
-          fallbackForm.append("gallery_images", file)
-        })
-
-        await apiFetchWithProgress(`/my-restaurants/${id}`, {
-          method: "PATCH",
-          token,
-          body: fallbackForm,
-          onProgress: (p) => setUploadProgress(p),
-        })
       }
 
       toast({ title: "Success", description: "Gallery updated" })
@@ -197,16 +321,16 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className="space-y-6 text-foreground">
+    <div className="relative space-y-6 text-foreground">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Photo Gallery</h1>
           <p className="text-muted-foreground font-medium">Showcase your restaurant's atmosphere and dishes.</p>
         </div>
-        <Button asChild className="rounded-xl h-11 px-6 font-black uppercase text-[10px] tracking-widest shadow-xl">
+        <Button asChild className="rounded-xl h-11 px-6 font-black uppercase text-[10px] tracking-widest shadow-xl" disabled={saving}>
           <label className="cursor-pointer">
             <Plus className="h-4 w-4 mr-2" /> Add Photos
-            <input type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} />
+            <input type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} disabled={saving} />
           </label>
         </Button>
       </div>
@@ -219,10 +343,11 @@ export default function GalleryPage() {
               <div key={`keep-${idx}`} className="group relative aspect-square rounded-xl overflow-hidden bg-muted border border-border/50">
                 <img src={getImageUrl(url)} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
                 <button 
-                  onClick={() => removeKeepUrl(url)}
+                  onClick={() => deleteExistingImage(url)}
+                  disabled={saving || deletingRefs.includes(url)}
                   className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive"
                 >
-                  <X className="h-4 w-4" />
+                  {deletingRefs.includes(url) ? <LoadingSignal size="sm" className="h-4 w-4" /> : <X className="h-4 w-4" />}
                 </button>
               </div>
             ))}
@@ -234,6 +359,7 @@ export default function GalleryPage() {
                 <div className="absolute inset-0 bg-primary/20 pointer-events-none" />
                 <button 
                   onClick={() => removeNewImage(idx)}
+                  disabled={saving}
                   className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white"
                 >
                   <X className="h-4 w-4" />
@@ -248,7 +374,7 @@ export default function GalleryPage() {
             <label className="aspect-square rounded-xl border-2 border-dashed border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary">
                <Upload className="h-6 w-6" />
                <span className="text-[10px] font-black uppercase tracking-widest">Upload</span>
-               <input type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} />
+              <input type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} disabled={saving} />
             </label>
           </div>
 
@@ -278,6 +404,12 @@ export default function GalleryPage() {
           </Button>
         </div>
       </div>
+
+      {saving && (
+        <div className="absolute inset-0 z-20 rounded-2xl bg-background/70 backdrop-blur-[2px] flex items-center justify-center">
+          <LoadingSignal size="lg" message="Saving gallery updates..." />
+        </div>
+      )}
     </div>
   )
 }

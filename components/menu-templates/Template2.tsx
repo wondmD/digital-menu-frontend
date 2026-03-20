@@ -80,7 +80,7 @@ export default function Template2({
                 <Input
                   value={searchQuery}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="What are you craving?"
+                  placeholder="What Ethiopian dish are you craving?"
                   className="pl-12 h-12 rounded-2xl bg-muted/30 border-none ring-1 ring-border focus-visible:ring-primary font-bold shadow-sm"
                 />
               </div>

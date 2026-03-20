@@ -139,7 +139,7 @@ export default function LoginPage() {
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="headchef@agelgil.com"
+                    placeholder="manager@addiskitchen.et"
                     defaultValue={savedEmail}
                     required
                     className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-6 text-lg transition-all"

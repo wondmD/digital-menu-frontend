@@ -125,7 +125,7 @@ export default function ProfilePage() {
     description: "",
     city: "",
     country: "",
-    phone: "",
+    phone: "+251",
     email: "",
     address: "",
     cuisine_type: "",
@@ -242,7 +242,7 @@ export default function ProfilePage() {
 
   const resetDraft = () => {
     setDraft({
-      name: "", description: "", city: "", country: "", phone: "", email: "", address: "", cuisine_type: "", is_published: false,
+      name: "", description: "", city: "", country: "", phone: "+251", email: "", address: "", cuisine_type: "", is_published: false,
       slug: "", website: "", timezone: DEFAULT_TIMEZONE,
       logo: null, cover: null, gallery_images: [], keep_gallery_urls: []
     })
@@ -327,23 +327,23 @@ export default function ProfilePage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+                  className="grid grid-cols-1 xl:grid-cols-12 gap-4 md:gap-6 items-start"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-2 xl:col-span-6">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Slug</Label>
-                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="my-restaurant" value={draft.slug} onChange={e => setDraft(d => ({ ...d, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") }))} />
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="addis-gebeya" value={draft.slug} onChange={e => setDraft(d => ({ ...d, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") }))} />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 xl:col-span-6">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Restaurant Name</Label>
-                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl focus:ring-primary/20" placeholder="e.g. Harbor View Bistro" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl focus:ring-primary/20" placeholder="e.g. Addis Ababa Kitchen" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 xl:col-span-12">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cuisine Type</Label>
-                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="e.g. Modern Italian" value={draft.cuisine_type} onChange={e => setDraft(d => ({ ...d, cuisine_type: e.target.value }))} />
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="e.g. Ethiopian, Habesha Fusion" value={draft.cuisine_type} onChange={e => setDraft(d => ({ ...d, cuisine_type: e.target.value }))} />
                   </div>
 
                   {/* Logo & Cover Upload */}
-                  <div className="space-y-2">
+                  <div className="space-y-2 xl:col-span-5">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Logo (Profile)</Label>
                     <div className="flex gap-4 items-center">
                       <div className="h-20 w-20 rounded-2xl bg-muted border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
@@ -367,7 +367,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 xl:col-span-7">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cover Photo</Label>
                     <div className="h-20 w-full rounded-2xl bg-muted border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
                       {previews.cover ? (
@@ -391,7 +391,7 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Gallery */}
-                  <div className="md:col-span-2 space-y-3">
+                  <div className="md:col-span-2 xl:col-span-12 space-y-3">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Gallery</Label>
                     <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
                       {previews.gallery.map((url, idx) => (
@@ -426,9 +426,14 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="md:col-span-2 space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Short Description</Label>
-                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="Tell customers about your kitchen..." value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} />
+                  <div className="md:col-span-2 xl:col-span-12 space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description</Label>
+                    <textarea
+                      className="w-full min-h-[110px] md:min-h-[140px] rounded-xl border border-border/50 bg-muted p-4 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30 resize-y"
+                      placeholder="Share what makes your Ethiopian menu special..."
+                      value={draft.description}
+                      onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
+                    />
                   </div>
                 </motion.div>
               ) : (
@@ -441,7 +446,7 @@ export default function ProfilePage() {
                 >
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Address</Label>
-                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="123 Main Street" value={draft.address} onChange={e => setDraft(d => ({ ...d, address: e.target.value }))} />
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="Bole Road, Addis Ababa" value={draft.address} onChange={e => setDraft(d => ({ ...d, address: e.target.value }))} />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">City</Label>
@@ -453,15 +458,15 @@ export default function ProfilePage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Phone</Label>
-                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl font-mono" placeholder="+1..." value={draft.phone} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} />
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl font-mono" placeholder="+251912345678" value={draft.phone} onFocus={() => { if (!draft.phone.trim()) setDraft(d => ({ ...d, phone: "+251" })) }} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))} />
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Business Email</Label>
-                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="contact@restaurant.com" value={draft.email} onChange={e => setDraft(d => ({ ...d, email: e.target.value }))} />
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="info@addiskitchen.et" value={draft.email} onChange={e => setDraft(d => ({ ...d, email: e.target.value }))} />
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Website</Label>
-                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="https://restaurant.com" value={draft.website} onChange={e => setDraft(d => ({ ...d, website: e.target.value }))} />
+                    <Input className="bg-muted border-border/50 h-11 md:h-12 rounded-xl" placeholder="https://addiskitchen.et" value={draft.website} onChange={e => setDraft(d => ({ ...d, website: e.target.value }))} />
                   </div>
                   <div className="md:col-span-2 space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Timezone</Label>

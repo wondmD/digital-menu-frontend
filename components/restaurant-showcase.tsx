@@ -19,7 +19,6 @@ import { GallerySection } from "@/components/restaurant/GallerySection"
 import { TestimonialsSection } from "@/components/restaurant/TestimonialsSection"
 import { EventsSection } from "@/components/restaurant/EventsSection"
 import { LocationSection } from "@/components/restaurant/LocationSection"
-import { ReservationSection } from "@/components/restaurant/ReservationSection"
 import { FooterSection } from "@/components/restaurant/FooterSection"
 import { FloatingSocialCTA } from "@/components/restaurant/FloatingSocialCTA"
 
@@ -456,7 +455,6 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
         logoImage={getImageUrl(restaurant.logo_url) || null}
         menuLink={menuLink}
         mapLink={mapLink}
-        reservationEnabled={Boolean(restaurant.phone || restaurant.email)}
       />
 
       <ExperienceHighlightsSection hotel={heroRestaurant as any} />
@@ -467,7 +465,6 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
       <TestimonialsSection testimonials={fallbackTestimonials(restaurant.name || "Our Restaurant")} />
       <EventsSection events={eventCards as any} />
       <LocationSection hotel={heroRestaurant as any} mapSrc={mapSrc} mapLink={mapLink} />
-      <ReservationSection hotel={heroRestaurant as any} />
       <FooterSection hotel={heroRestaurant as any} />
       <FloatingSocialCTA hotel={heroRestaurant as any} />
     </main>

@@ -136,12 +136,6 @@ export function FooterSection({ hotel }: FooterSectionProps) {
                   View Menu
                 </Link>
                 <Link 
-                  href="#reservation" 
-                  className="block text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
-                  Make Reservation
-                </Link>
-                <Link 
                   href="#events" 
                   className="block text-sm text-muted-foreground hover:text-primary transition-colors"
                 >

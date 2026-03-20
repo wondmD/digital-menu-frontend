@@ -277,9 +277,9 @@ export default function QRPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20 px-4 md:px-0">
+    <div className="dashboard-surface-polish max-w-6xl mx-auto space-y-8 pb-20 px-4 md:px-0">
       {/* 1. QR CODE SETTINGS */}
-      <div className="relative overflow-hidden rounded-3xl bg-card/40 border border-border/60 p-1 px-1">
+      <div className="relative overflow-hidden rounded-3xl bg-card/40 border border-border/70 ring-1 ring-border/60 p-1 px-1">
         <div className="absolute inset-0 bg-linear-to-r from-primary/10 via-transparent to-transparent opacity-50" />
         <div className="relative flex flex-col md:flex-row md:items-center justify-between p-6 md:p-8 gap-6">
           <div className="space-y-3 text-center md:text-left">
@@ -337,7 +337,7 @@ export default function QRPage() {
       ) : (
         <div className="grid gap-6 md:gap-8 lg:grid-cols-12">
           {/* Main Card: Sharing link */}
-          <Card className="lg:col-span-7 bg-card/40 backdrop-blur-3xl border-border/60 shadow-xl rounded-2xl overflow-hidden border">
+          <Card className="lg:col-span-7 bg-card/40 backdrop-blur-3xl border-border/70 ring-1 ring-border/60 shadow-xl rounded-2xl overflow-hidden border">
             <CardHeader className="p-6 md:p-10 flex flex-col sm:flex-row sm:items-center justify-between border-b border-border/60 gap-6">
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
@@ -394,7 +394,7 @@ export default function QRPage() {
 
           {/* QR Side Card: QR code */}
           <div className="lg:col-span-5 space-y-6 md:space-y-8">
-            <Card className="bg-card border border-border/60 rounded-3xl p-8 md:p-10 flex flex-col items-center shadow-xl relative overflow-hidden group">
+            <Card className="bg-card border border-border/70 ring-1 ring-border/60 rounded-3xl p-8 md:p-10 flex flex-col items-center shadow-xl relative overflow-hidden group">
                <div className="absolute inset-0 bg-primary/2 opacity-0 group-hover:opacity-100 transition-opacity" />
                <div className="relative z-10 p-4 rounded-3xl bg-white shadow-xl">
                  <div className="h-48 w-48 md:h-56 md:w-56 bg-white rounded-xl flex items-center justify-center p-2">
@@ -424,7 +424,7 @@ export default function QRPage() {
                </div>
             </Card>
 
-            <div className="p-6 md:p-8 rounded-2xl bg-primary/10 border border-primary/20 space-y-3 relative overflow-hidden">
+            <div className="p-6 md:p-8 rounded-2xl bg-primary/10 border border-primary/30 ring-1 ring-primary/20 space-y-3 relative overflow-hidden">
                <div className="absolute top-0 right-0 h-24 w-24 bg-primary/10 blur-2xl rounded-full" />
                <div className="flex items-center gap-3 text-primary relative z-10">
                   <div className="h-1.5 w-1.5 rounded-full bg-primary animate-ping" />

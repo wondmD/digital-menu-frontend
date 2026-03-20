@@ -48,14 +48,14 @@ export default function PaymentPage({
                   <label className="text-sm font-medium text-foreground">Cardholder name</label>
                   <input
                     className="h-11 w-full rounded-lg border border-primary/10 bg-white/70 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    placeholder="Avery Green"
+                    placeholder="Abebe Kebede"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Email for receipts</label>
                   <input
                     className="h-11 w-full rounded-lg border border-primary/10 bg-white/70 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    placeholder="manager@venue.com"
+                    placeholder="billing@addiskitchen.et"
                   />
                 </div>
               </div>
@@ -87,7 +87,7 @@ export default function PaymentPage({
                   <label className="text-sm font-medium text-foreground">ZIP / Postal code</label>
                   <input
                     className="h-11 w-full rounded-lg border border-primary/10 bg-white/70 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    placeholder="10001"
+                    placeholder="1000"
                   />
                 </div>
               </div>
