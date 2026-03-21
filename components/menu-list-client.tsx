@@ -136,7 +136,6 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
               throw new Error("No restaurant data found")
             }
           } catch (err) {
-            console.error("Failed to load restaurant details:", err)
             setError("Restaurant details could not be loaded.")
             setLoading(false)
             return
@@ -185,7 +184,6 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
             setActiveCategory(categoriesWithItems[0].id)
           }
         } catch (err) {
-          console.error("Failed to load categories/items:", err)
         } finally {
           setItemsLoading(false)
         }

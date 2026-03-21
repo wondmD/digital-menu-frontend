@@ -64,8 +64,6 @@ export default function DashboardPage() {
         const list: Restaurant[] = Array.isArray(restRes) ? restRes : (restRes?.data ?? [])
         setRestaurants(list)
         setSubscription(subRes?.data || subRes)
-      } catch (err: any) {
-        console.error("Dashboard Load Error:", err)
       } finally {
         setLoading(false)
       }

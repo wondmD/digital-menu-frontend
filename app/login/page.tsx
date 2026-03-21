@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
+import { getSession, signIn } from "next-auth/react"
 import { Coffee, Eye, EyeOff, ChefHat, Sparkles, ArrowLeft, Loader2, UtensilsCrossed } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -74,7 +74,13 @@ export default function LoginPage() {
       }
 
       toast({ title: "Welcome back!", description: "We're setting your table in the dashboard." })
-      router.push(res.url || "/dashboard")
+      const session = await getSession()
+      const role = String((session?.user as any)?.role || "").toLowerCase()
+      if (role === "admin") {
+        router.push("/admin")
+      } else {
+        router.push(res.url || "/dashboard")
+      }
     } catch (err: any) {
       triggerShake()
       toast({

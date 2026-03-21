@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
             name: `${user?.first_name || ""} ${user?.last_name || ""}`.trim(),
             accessToken: data.data.access_token,
             refreshToken: data.data.refresh_token,
+            role: user?.role,
             remember: credentials.remember === "true",
           }
         } catch (error) {
@@ -58,6 +59,7 @@ export const authOptions: NextAuthOptions = {
         const now = Date.now()
         token.accessToken = u.accessToken
         token.refreshToken = u.refreshToken
+        token.role = u.role
         token.remember = remember
         token.refreshFailureCount = 0
         token.sessionExpiresAt = now + (remember ? REMEMBER_ME_SECONDS : DEFAULT_SESSION_SECONDS) * 1000
@@ -91,7 +93,6 @@ export const authOptions: NextAuthOptions = {
       }
 
       // 3. Access token has expired, try to refresh it
-      console.log("[Auth] Access token expired, attempting refresh...")
 
       try {
         if (!token.refreshToken) {
@@ -121,8 +122,6 @@ export const authOptions: NextAuthOptions = {
           if (payload.exp) newExpiry = payload.exp * 1000
         } catch (e) {}
 
-        console.log("[Auth] Token refreshed successfully")
-        
         return {
           ...token,
           accessToken: newAccessToken,
@@ -132,7 +131,6 @@ export const authOptions: NextAuthOptions = {
           error: undefined,
         }
       } catch (error) {
-        console.error("[Auth] RefreshAccessTokenError:", error)
         const nextFailureCount = Number(token.refreshFailureCount || 0) + 1
         const shouldForceSignOut = !token.remember || nextFailureCount >= 3
         
@@ -147,6 +145,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         ;(session.user as any).accessToken = token.accessToken
         ;(session.user as any).refreshToken = token.refreshToken
+        ;(session.user as any).role = token.role
         ;(session.user as any).error = token.error
         ;(session.user as any).remember = token.remember
         ;(session.user as any).refreshFailureCount = token.refreshFailureCount

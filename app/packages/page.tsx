@@ -95,30 +95,24 @@ export default function PackageSelectionPage() {
   // Load current usage, subscription and plans
   useEffect(() => {
     const loadData = async () => {
-      console.log("PackageSelectionPage: Loading data...")
       try {
         setLoading(true)
         const endpoints = [
           token ? apiFetch<any>("/subscription/me", { token }).catch(err => {
-            console.error("Failed to fetch /subscription/me", err)
             return null
           }) : Promise.resolve(null),
           token ? apiFetch<any>("/my-restaurants", { token }).catch(err => {
-            console.error("Failed to fetch /my-restaurants", err)
             return []
           }) : Promise.resolve([]),
           apiFetch<any>("/subscription/plans").catch(err => {
-            console.error("Failed to fetch /subscription/plans", err)
             return null
           })
         ]
 
         const [subRes, restRes, plansRes] = await Promise.all(endpoints)
-        console.log("API Responses:", { subRes, restRes, plansRes })
         
         if (subRes) {
           const sub = subRes?.data || subRes
-          console.log("Subscription metadata check:", sub)
           setCurrentPlanId(sub?.plan_id || null)
           setCurrentPlanSlug(sub?.plan_slug || null)
           
@@ -145,7 +139,6 @@ export default function PackageSelectionPage() {
         setUsage({ restaurants: restaurants.length, items: 0, staff: 0 })
 
         const rawPlans = plansRes?.data || plansRes
-        console.log("Raw Plans:", rawPlans)
         
         if (rawPlans && Array.isArray(rawPlans)) {
           const fetchedPlans = rawPlans.map((p: any) => {
@@ -188,19 +181,14 @@ export default function PackageSelectionPage() {
                      p.name.toLowerCase().includes('trial') ? Zap : Star
             }
           })
-          console.log("Successfully Mapped Plans:", fetchedPlans)
           setPlans(fetchedPlans)
           
           const filteredForSelection = fetchedPlans.filter(p => p.slug !== 'free-trial' && !p.name.toLowerCase().includes('trial'))
           if (!filteredForSelection.find((p: any) => p.slug === selectedPlan)) {
             setSelectedPlan(filteredForSelection.find((p: any) => p.highlighted)?.slug || filteredForSelection[0]?.slug || "silver-monthly")
           }
-        } else {
-          console.warn("No plans found or invalid format:", plansRes)
-          // Don't overwrite DEFAULT_PLANS if fetch failed
         }
       } catch (err) {
-        console.error("Major failure in loadData", err)
       } finally {
         setLoading(false)
       }
@@ -250,7 +238,6 @@ export default function PackageSelectionPage() {
 
     setProcessing(true)
     try {
-      console.log(`Initiating selection for plan: ${planToProcess}`)
       const res = await apiFetch<any>("/payment/initiate", {
         method: "POST",
         token,
@@ -265,7 +252,6 @@ export default function PackageSelectionPage() {
       
       // If it's a free trial OR if there's no checkout URL returned (implicit activation)
       if (planToProcess === "free-trial" || !checkoutUrl) {
-         console.log("Plan activated successfully (implicit or trial)")
          toast({ title: "Welcome to Agelgil (አገልግል)!", description: "Your membership has been activated successfully." })
          
          // Give the backend a moment to process the update before redirecting

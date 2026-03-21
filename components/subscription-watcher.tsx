@@ -29,9 +29,7 @@ export function SubscriptionWatcher({ children }: { children: React.ReactNode })
 
         const checkSubscription = async () => {
       try {
-        console.log("[SubscriptionWatcher] Checking subscription...")
         const res = await apiFetch<any>("/subscription/me", { token })
-        console.log("[SubscriptionWatcher] Raw Response:", res)
         
         // Handle various response wrappers
         const subscription = res?.data?.data || res?.data || res
@@ -48,20 +46,16 @@ export function SubscriptionWatcher({ children }: { children: React.ReactNode })
         const now = new Date()
         const isExpired = expiryDate ? (expiryDate.getTime() + 86400000 < now.getTime()) : false
         
-        console.log("[SubscriptionWatcher] Parsed:", { isActive, isTrial, isExpired, status, planSlug })
-
         // REDIRECT LOGIC: Only redirect if it's definitively NOT active/trial AND NOT successfully returned
         const shouldRedirect = !isActive && !isTrial
         
         if (shouldRedirect || (isExpired && !isActive)) {
-          console.log("[SubscriptionWatcher] Redirecting to /packages. Reason:", { shouldRedirect, isExpired, isActive })
           if (!pathname.startsWith("/packages") && !pathname.startsWith("/payment")) {
              router.push("/packages")
           }
         }
       } catch (err) {
         // If the subscription is missing (404), redirect to packages
-        console.error("[SubscriptionWatcher] Error:", err)
         if (!pathname.startsWith("/packages") && !pathname.startsWith("/payment")) {
            router.push("/packages")
         }

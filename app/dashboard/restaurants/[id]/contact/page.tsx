@@ -115,7 +115,6 @@ export default function ContactLocationPage() {
           throw new Error("Restaurant not found in your account")
         }
       } catch (err: any) {
-        console.error("Fetch error:", err)
         toast({ 
           title: "Error", 
           description: `Failed to load contact info: ${err.message}`, 

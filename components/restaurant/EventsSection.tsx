@@ -180,10 +180,6 @@ export function EventsSection({ events }: EventsSectionProps) {
                       <Button
                         variant="outline"
                         className="w-full rounded-xl group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300"
-                        onClick={() => {
-                          // Handle event registration or details
-                          console.log('Event clicked:', event.title)
-                        }}
                       >
                         Learn More
                         <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />

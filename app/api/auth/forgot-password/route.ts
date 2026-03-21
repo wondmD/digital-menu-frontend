@@ -7,7 +7,6 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    console.log(`[Auth Proxy] ForgotPassword -> ${targetUrl}`)
 
     const res = await fetch(targetUrl, {
       method: "POST",
@@ -21,8 +20,7 @@ export async function POST(request: Request) {
     const raw = await res.text()
     
     if (!res.ok) {
-        console.error(`[Auth Proxy Error] ${res.status} from ${targetUrl}:`, raw)
-        return new NextResponse(raw, { status: res.status })
+      return new NextResponse(raw, { status: res.status })
     }
 
     return new NextResponse(raw, { 
@@ -30,7 +28,6 @@ export async function POST(request: Request) {
         headers: { "Content-Type": "application/json" }
     })
   } catch (error: any) {
-    console.error("[Auth Proxy Exception]:", error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }

@@ -98,9 +98,7 @@ export default function SettingsPage() {
         try {
           const subRes = await apiFetch<any>("/subscription/me", { token })
           setSubscription(subRes?.data || subRes)
-        } catch (err) {
-          console.warn("No subscription info found")
-        }
+        } catch (err) {}
 
       } catch (err: any) {
         toast({ title: "Could not load profile", description: err?.message, variant: "destructive" })

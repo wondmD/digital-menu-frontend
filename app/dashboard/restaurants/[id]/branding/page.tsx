@@ -52,7 +52,6 @@ export default function BrandingPage() {
         throw new Error("Restaurant not found in your account")
       }
     } catch (err: any) {
-      console.error("Fetch error:", err)
       toast({ 
         title: "Error", 
         description: `Failed to load branding: ${err.message}`, 

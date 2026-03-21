@@ -326,9 +326,7 @@ export default function LandingClient() {
                 continue
               }
             }
-          } catch (e) {
-            console.error(`Failed to fetch dishes for ${rest.name}`, e)
-          }
+          } catch (e) {}
         }
 
         const deduplicated = featuredDishes.filter(
@@ -336,7 +334,6 @@ export default function LandingClient() {
         )
         setDishes(deduplicated)
       } catch (err) {
-        console.error("Failed to load initial data", err)
       } finally {
         setLoading(false)
       }
