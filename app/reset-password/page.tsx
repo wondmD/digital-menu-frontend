@@ -80,8 +80,6 @@ function ResetPasswordForm() {
       return
     }
 
-    console.log("[ResetPassword] Submitting with token:", token)
-
     setLoading(true)
     try {
       const res = await fetch("/api/auth/reset-password", {

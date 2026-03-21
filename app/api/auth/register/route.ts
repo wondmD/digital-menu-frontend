@@ -21,19 +21,12 @@ export async function POST(request: Request) {
 
     if (!res.ok) {
       const message = parsed?.error || parsed?.message || raw || "Registration failed"
-      console.error("Register proxy error", {
-        status: res.status,
-        message,
-        raw,
-        parsed,
-      })
       return NextResponse.json({ error: message, status: res.status, raw }, { status: res.status })
     }
 
     return NextResponse.json(parsed ?? {}, { status: res.status })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Registration failed"
-    console.error("Register proxy exception", message)
     return NextResponse.json({ error: message, status: 500 }, { status: 500 })
   }
 }

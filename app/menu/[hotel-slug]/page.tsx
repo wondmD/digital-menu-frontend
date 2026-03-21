@@ -80,9 +80,7 @@ export default async function HotelMenuLandingPage({ params }: Props) {
   let initialData = null
   try {
     initialData = await fetchPublicRestaurantBySlugOrId(hotelSlug)
-  } catch (err) {
-    console.error("Failed to fetch hotel data on server:", err)
-  }
+  } catch (err) {}
 
   return (
     <>

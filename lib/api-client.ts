@@ -19,15 +19,6 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   
   const method = (options.method || "GET").toUpperCase()
 
-  if (isClient) {
-    if (options.body instanceof FormData) {
-      const keys = Array.from(options.body.keys())
-      console.log(`[apiFetch] Calling endpoint: ${url} (Original path: ${path})`, { method, bodyKeys: keys })
-    } else {
-      console.log(`[apiFetch] Calling endpoint: ${url} (Original path: ${path})`, { method, options })
-    }
-  }
-
   const headers: Record<string, string> = {
     ...(options.headers || {}),
   }

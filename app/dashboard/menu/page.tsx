@@ -354,7 +354,6 @@ function MenuManagementContent() {
         setItems(itemsList.map(normalizeItem))
       } catch (err: any) {
         if (active) setItems([])
-        console.error("Error loading items:", err)
       } finally {
         if (active) setItemsLoading(false)
       }
