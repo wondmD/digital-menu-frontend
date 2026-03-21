@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import { FormEvent, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -8,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { savePartnerSession } from "@/lib/partner-auth"
 
-export default function PartnerLoginPage() {
+function PartnerLoginForm() {
   const router = useRouter()
   const params = useSearchParams()
   const [partnerIdInput, setPartnerIdInput] = useState("")
@@ -62,5 +63,13 @@ export default function PartnerLoginPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function PartnerLoginPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 py-10">Loading...</div>}>
+      <PartnerLoginForm />
+    </Suspense>
   )
 }
