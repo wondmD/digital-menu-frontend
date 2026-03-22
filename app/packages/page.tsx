@@ -220,6 +220,12 @@ export default function PackageSelectionPage() {
   const handleContinue = async (planIdOverride?: string) => {
     const planToProcess = planIdOverride || selectedPlan
     if (!planToProcess) return
+
+    const selected = plans.find((p: any) => p.slug === planToProcess || p.id === planToProcess)
+    const rawPlanSlug = String(selected?.slug || selected?.id || planToProcess)
+    const inferredBillingCycle = rawPlanSlug.includes("annual") ? "annual" : "monthly"
+    const normalizedPlanSlug = rawPlanSlug.replace(/-(monthly|annual)$/i, "")
+    const isTrialPlan = normalizedPlanSlug === "free-trial" || selected?.name?.toLowerCase().includes("trial")
     
     if (!token) {
       router.push("/login")
@@ -227,7 +233,7 @@ export default function PackageSelectionPage() {
     }
 
     // Prevent re-using trial if already marked as trialed
-    if (planToProcess === "free-trial" && hasUsedTrial) {
+    if (isTrialPlan && hasUsedTrial) {
        toast({
          title: "Free Trial Used",
          description: "Your free trial has already been claimed or has expired. Please upgrade to a membership plan to continue.",
@@ -236,22 +242,27 @@ export default function PackageSelectionPage() {
        return
     }
 
+    if (!isTrialPlan) {
+      router.push(`/payment?plan=${encodeURIComponent(normalizedPlanSlug)}&billing_cycle=${encodeURIComponent(inferredBillingCycle)}`)
+      return
+    }
+
     setProcessing(true)
     try {
       const res = await apiFetch<any>("/payment/initiate", {
         method: "POST",
         token,
         body: { 
-          plan: planToProcess,
+          plan: normalizedPlanSlug,
           // If free trial, the backend might handle it differently
-          type: planToProcess === "free-trial" ? "trial" : "upgrade"
+          type: "trial"
         }
       })
 
       const checkoutUrl = res?.data?.checkout_url || res?.checkout_url
       
       // If it's a free trial OR if there's no checkout URL returned (implicit activation)
-      if (planToProcess === "free-trial" || !checkoutUrl) {
+      if (isTrialPlan || !checkoutUrl) {
          toast({ title: "Welcome to Agelgil (አገልግል)!", description: "Your membership has been activated successfully." })
          
          // Give the backend a moment to process the update before redirecting
@@ -482,7 +493,7 @@ export default function PackageSelectionPage() {
            <div className="h-4 w-px bg-border/10 hidden md:block" />
            <div className="flex items-center gap-3">
               <Shield className="h-4 w-4 text-primary" />
-              <p className="text-xs font-bold uppercase tracking-widest leading-none mt-1 text-muted-foreground">Stripe Secure Encryption</p>
+              <p className="text-xs font-bold uppercase tracking-widest leading-none mt-1 text-muted-foreground">Transaction Reference Verification</p>
            </div>
            <div className="h-4 w-px bg-border/10 hidden md:block" />
            <div className="flex items-center gap-3">
