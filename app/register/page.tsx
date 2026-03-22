@@ -22,6 +22,10 @@ function RegisterForm() {
   const [step, setStep] = useState(1)
   const [errorShake, setErrorShake] = useState(false)
   const [passError, setPassError] = useState<string | null>(null)
+  const [touched, setTouched] = useState({
+    email: false,
+    phone: false,
+  })
   
   // FORM STATE
   const [formData, setFormData] = useState({
@@ -51,6 +55,19 @@ function RegisterForm() {
     setTimeout(() => setErrorShake(false), 500)
   }
 
+  const validateEmail = (email: string) => {
+    if (!email.trim()) {
+      return { isValid: false, message: "Email is required." }
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i
+    if (!emailRegex.test(email.trim())) {
+      return { isValid: false, message: "Enter a valid email address." }
+    }
+
+    return { isValid: true, message: "Email looks good." }
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
 
@@ -75,6 +92,13 @@ function RegisterForm() {
       return false
     }
 
+    const emailValidation = validateEmail(formData.email)
+    if (!emailValidation.isValid) {
+      toast({ title: "Invalid Mail", description: emailValidation.message, variant: "destructive" })
+      triggerShake()
+      return false
+    }
+
     const normalizedPhone = normalizeEthiopianPhone(formData.phone)
     if (!normalizedPhone) {
       toast({
@@ -88,11 +112,6 @@ function RegisterForm() {
 
     setFormData((prev) => ({ ...prev, phone: normalizedPhone }))
 
-    if (!formData.email.includes("@")) {
-      toast({ title: "Invalid Mail", description: "Please enter a valid work email.", variant: "destructive" })
-      triggerShake()
-      return false
-    }
     return true
   }
 
@@ -193,6 +212,9 @@ function RegisterForm() {
     }
   }
 
+  const emailValidation = validateEmail(formData.email)
+  const phoneIsValid = !!normalizeEthiopianPhone(formData.phone)
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 font-sans relative overflow-hidden selection:bg-primary/30">
       {/* LUXURY BACKGROUND RADIALS */}
@@ -272,12 +294,27 @@ function RegisterForm() {
                             type="email" 
                             value={formData.email}
                             onChange={handleInputChange}
+                            onBlur={() => setTouched((prev) => ({ ...prev, email: true }))}
                             placeholder="manager@addiskitchen.et" 
                             required 
-                            className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all" 
+                            className={cn(
+                              "h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all",
+                              touched.email && !emailValidation.isValid && "border-red-500/50 bg-red-500/5",
+                              touched.email && emailValidation.isValid && "border-emerald-500/50 bg-emerald-500/5"
+                            )}
                           />
                           <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
                         </div>
+                        {touched.email && (
+                          <p
+                            className={cn(
+                              "text-xs mt-2 ml-2 font-medium",
+                              emailValidation.isValid ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                            )}
+                          >
+                            {emailValidation.message}
+                          </p>
+                        )}
                       </div>
 
                       <div className="group relative">
@@ -288,6 +325,7 @@ function RegisterForm() {
                             type="tel" 
                             value={formData.phone}
                             onChange={handleInputChange}
+                            onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
                             onFocus={() => {
                               if (!formData.phone.trim()) {
                                 setFormData((prev) => ({ ...prev, phone: ETHIOPIA_DIAL_CODE }))
@@ -296,10 +334,26 @@ function RegisterForm() {
                             placeholder="+251 912 345 678" 
                             inputMode="tel"
                             autoComplete="tel-national"
-                            className="h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all" 
+                            className={cn(
+                              "h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all",
+                              touched.phone && !phoneIsValid && "border-red-500/50 bg-red-500/5",
+                              touched.phone && phoneIsValid && "border-emerald-500/50 bg-emerald-500/5"
+                            )}
                           />
                           <Smartphone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
                         </div>
+                        {touched.phone && (
+                          <p
+                            className={cn(
+                              "text-xs mt-2 ml-2 font-medium",
+                              phoneIsValid ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                            )}
+                          >
+                            {phoneIsValid
+                              ? "Valid Ethiopian phone number."
+                              : "Use +2519XXXXXXXX, +2517XXXXXXXX, 09XXXXXXXX, or 07XXXXXXXX."}
+                          </p>
+                        )}
                       </div>
                     </motion.div>
                   ) : (
@@ -376,13 +430,13 @@ function RegisterForm() {
                </AnimatePresence>
             </div>
 
-            <div className="flex gap-4">
+            <div className="sticky bottom-0 z-20 -mx-2 px-2 py-3 bg-card/85 backdrop-blur rounded-2xl flex flex-col sm:flex-row gap-3">
               {step > 1 && (
                 <Button 
                   type="button" 
                   onClick={() => setStep(step - 1)}
                   variant="outline" 
-                  className="h-18 px-8 rounded-2xl border-border text-foreground hover:bg-muted transition-all"
+                  className="w-full sm:w-auto h-14 sm:h-16 px-8 rounded-2xl border-border text-foreground hover:bg-muted transition-all"
                 >
                   Back
                 </Button>
@@ -393,13 +447,13 @@ function RegisterForm() {
                 onClick={() => {
                   if (step === 1) {
                     if (validateStep1()) {
-                      setPassError(null);
-                      setStep(2);
+                      setPassError(null)
+                      setStep(2)
                     }
                   }
                 }}
                 disabled={loading}
-                className="flex-1 h-18 rounded-2xl bg-primary text-xl font-bold text-white shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none relative overflow-hidden group"
+                className="w-full flex-1 h-14 sm:h-16 rounded-2xl bg-primary text-base sm:text-xl font-bold text-white shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none relative overflow-hidden group touch-manipulation"
               >
                  <AnimatePresence mode="wait">
                   {loading ? (

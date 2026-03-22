@@ -53,11 +53,24 @@ function extractList(payload: any): any[] {
   if (Array.isArray(normalized?.items)) return normalized.items
   if (Array.isArray(normalized?.results)) return normalized.results
   if (Array.isArray(normalized?.rows)) return normalized.rows
+  if (Array.isArray(normalized?.ledger)) return normalized.ledger
+  if (Array.isArray(normalized?.entries)) return normalized.entries
+  if (Array.isArray(normalized?.records)) return normalized.records
+  if (Array.isArray(normalized?.commissions)) return normalized.commissions
   return []
 }
 
 function toNumber(value: any, fallback = 0): number {
   const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function parseMoney(value: any, fallback = 0): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : fallback
+  const raw = String(value ?? "").trim()
+  if (!raw) return fallback
+  const normalized = raw.replace(/,/g, "").replace(/[^0-9.-]/g, "")
+  const n = Number(normalized)
   return Number.isFinite(n) ? n : fallback
 }
 
@@ -164,14 +177,58 @@ export async function fetchPartnerCommissions(_: string): Promise<PartnerCommiss
     const rows = extractList(await fetchPartnerEndpoint<any>("/partners/me/ledger?page=1&page_size=100"))
     if (!rows.length) return []
 
-    return rows.map((row: any, index: number) => ({
-      id: String(row?.id || row?.commission_id || `com_${index}`),
-      restaurantName: String(row?.restaurant_name || row?.owner_name || row?.name || "Unknown"),
-      firstPaymentCommission: toNumber(row?.first_payment_commission || row?.commission_first || 0),
-      recurringCommission: toNumber(row?.recurring_commission || row?.commission_recurring || row?.amount || 0),
-      status: toPaymentStatus(row?.status || row?.payment_status),
-      paidAt: row?.paid_at || row?.created_at || undefined,
-    }))
+    return rows.map((row: any, index: number) => {
+      const entryType = String(
+        row?.entry_type || row?.type || row?.event_type || row?.commission_type || ""
+      ).toLowerCase()
+
+      const firstExplicit = parseMoney(
+        row?.first_payment_commission ?? row?.commission_first ?? row?.first_commission,
+        0
+      )
+      const recurringExplicit = parseMoney(
+        row?.recurring_commission ?? row?.commission_recurring ?? row?.recurring_amount,
+        0
+      )
+
+      const genericAmount = parseMoney(
+        row?.amount ??
+          row?.commission_amount ??
+          row?.net_amount ??
+          row?.gross_amount ??
+          row?.value ??
+          row?.total_commission,
+        0
+      )
+
+      let firstPaymentCommission = firstExplicit
+      let recurringCommission = recurringExplicit
+
+      // Some backends emit a single `amount` per ledger row, classify by entry/event type.
+      if (firstPaymentCommission === 0 && recurringCommission === 0 && genericAmount > 0) {
+        if (/(first|signup|activation|activated|initial)/.test(entryType)) {
+          firstPaymentCommission = genericAmount
+        } else {
+          recurringCommission = genericAmount
+        }
+      }
+
+      return {
+        id: String(row?.id || row?.commission_id || row?.ledger_id || `com_${index}`),
+        restaurantName: String(
+          row?.restaurant_name ||
+            row?.restaurant?.name ||
+            row?.owner_name ||
+            row?.business_name ||
+            row?.name ||
+            "Unknown"
+        ),
+        firstPaymentCommission,
+        recurringCommission,
+        status: toPaymentStatus(row?.status || row?.payment_status || row?.entry_status),
+        paidAt: row?.paid_at || row?.payout_at || row?.created_at || undefined,
+      }
+    })
   } catch {
     return MOCK_PARTNER_COMMISSIONS
   }
