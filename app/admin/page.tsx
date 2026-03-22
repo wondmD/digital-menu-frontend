@@ -38,7 +38,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  FileJson,
   Eye,
   Settings,
   Layers,
@@ -130,6 +129,12 @@ type CrudDialogState = {
   payload: string
 }
 
+type DetailDialogState = {
+  open: boolean
+  title: string
+  data: any
+}
+
 const EMPTY_CRUD_DIALOG: CrudDialogState = {
   open: false,
   title: "",
@@ -137,6 +142,82 @@ const EMPTY_CRUD_DIALOG: CrudDialogState = {
   endpoint: "",
   method: "POST",
   payload: "{}",
+}
+
+function formatFieldLabel(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function isPrimitive(value: any): boolean {
+  return value === null || ["string", "number", "boolean"].includes(typeof value)
+}
+
+function DetailValue({ value }: { value: any }) {
+  if (value === null || value === undefined || value === "") {
+    return <span className="text-muted-foreground">-</span>
+  }
+
+  if (typeof value === "boolean") {
+    return <Badge variant={value ? "secondary" : "outline"}>{value ? "Yes" : "No"}</Badge>
+  }
+
+  if (typeof value === "number") {
+    return <span className="font-medium">{value.toLocaleString()}</span>
+  }
+
+  if (typeof value === "string") {
+    return <span className="break-all font-medium">{value}</span>
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return <span className="text-muted-foreground">No items</span>
+    }
+
+    return (
+      <div className="space-y-2">
+        {value.map((item, index) => (
+          <div key={index} className="rounded-md border border-border/50 bg-muted/20 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Item {index + 1}</p>
+            <DetailObjectView data={item} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return <DetailObjectView data={value} />
+}
+
+function DetailObjectView({ data }: { data: any }) {
+  if (!data || typeof data !== "object") {
+    return <DetailValue value={data} />
+  }
+
+  const entries = Object.entries(data)
+  if (entries.length === 0) {
+    return <span className="text-muted-foreground">No data</span>
+  }
+
+  return (
+    <div className="space-y-2">
+      {entries.map(([key, value]) => (
+        <div key={key} className="rounded-md border border-border/50 bg-card p-3">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{formatFieldLabel(key)}</p>
+          {isPrimitive(value) ? (
+            <DetailValue value={value} />
+          ) : (
+            <div className="mt-2 rounded-md border border-border/40 bg-muted/20 p-2">
+              <DetailValue value={value} />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function AdminPage() {
@@ -192,10 +273,10 @@ export default function AdminPage() {
     approve: true,
     note: "",
   })
-  const [detailDialog, setDetailDialog] = useState<{ open: boolean; title: string; content: string }>({
+  const [detailDialog, setDetailDialog] = useState<DetailDialogState>({
     open: false,
     title: "",
-    content: "",
+    data: null,
   })
   const [snapshot, setSnapshot] = useState<AdminSnapshot>({
     stats: null,
@@ -323,7 +404,7 @@ export default function AdminPage() {
     setDetailDialog({
       open: true,
       title,
-      content: toJson(content),
+      data: content,
     })
   }
 
@@ -598,6 +679,12 @@ export default function AdminPage() {
                 >
                   <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                   Refresh Snapshot
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                >
+                  Logout
                 </Button>
               </div>
             </div>
@@ -1017,6 +1104,7 @@ export default function AdminPage() {
                 {snapshot.payments.slice(0, 12).map((payment: any, index: number) => {
                   const statusValue = String(payment.status || payment.payment_status || "unknown").toLowerCase()
                   const paymentId = String(payment.id || "")
+                  const canVerify = !["succeeded", "completed", "failed", "refunded", "rejected", "approved"].includes(statusValue)
                   const isCurrentPaymentLoading = verifyingPaymentId !== null && paymentId === verifyingPaymentId
                   const isApproveLoading = isCurrentPaymentLoading && verifyingAction === "approve"
                   const isRejectLoading = isCurrentPaymentLoading && verifyingAction === "reject"
@@ -1041,41 +1129,42 @@ export default function AdminPage() {
                         <Button size="sm" variant="outline" disabled={detailLoading} onClick={() => loadAndShowDetail(`Payment Detail: ${payment.id}`, `/admin/payments/${payment.id}`)}>
                           <Eye className="mr-1 h-3 w-3" /> View
                         </Button>
-                        <Button size="sm" variant="outline" disabled={detailLoading} onClick={() => loadAndShowDetail(`Payment Details Payload: ${payment.id}`, `/admin/payments/${payment.id}/details`)}>
-                          <FileJson className="mr-1 h-3 w-3" /> Details
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={isCurrentPaymentLoading}
-                          onClick={() =>
-                            setVerificationDialog({
-                              open: true,
-                              payment,
-                              approve: true,
-                              note: "Receipt amount mismatch resolved after manual review.",
-                            })
-                          }
-                        >
-                          <CheckCircle2 className={`mr-1 h-3 w-3 ${isApproveLoading ? "animate-spin" : ""}`} />
-                          {isApproveLoading ? "Approving..." : "Approve"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          disabled={isCurrentPaymentLoading}
-                          onClick={() =>
-                            setVerificationDialog({
-                              open: true,
-                              payment,
-                              approve: false,
-                              note: "Payment rejected after manual review.",
-                            })
-                          }
-                        >
-                          <XCircle className={`mr-1 h-3 w-3 ${isRejectLoading ? "animate-spin" : ""}`} />
-                          {isRejectLoading ? "Rejecting..." : "Reject"}
-                        </Button>
+                        {canVerify ? (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isCurrentPaymentLoading}
+                              onClick={() =>
+                                setVerificationDialog({
+                                  open: true,
+                                  payment,
+                                  approve: true,
+                                  note: "Receipt amount mismatch resolved after manual review.",
+                                })
+                              }
+                            >
+                              <CheckCircle2 className={`mr-1 h-3 w-3 ${isApproveLoading ? "animate-spin" : ""}`} />
+                              {isApproveLoading ? "Approving..." : "Approve"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              disabled={isCurrentPaymentLoading}
+                              onClick={() =>
+                                setVerificationDialog({
+                                  open: true,
+                                  payment,
+                                  approve: false,
+                                  note: "Payment rejected after manual review.",
+                                })
+                              }
+                            >
+                              <XCircle className={`mr-1 h-3 w-3 ${isRejectLoading ? "animate-spin" : ""}`} />
+                              {isRejectLoading ? "Rejecting..." : "Reject"}
+                            </Button>
+                          </>
+                        ) : null}
                       </div>
                       {isCurrentPaymentLoading ? (
                         <p className="mt-2 text-[11px] text-muted-foreground">
@@ -1380,11 +1469,13 @@ export default function AdminPage() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{detailDialog.title}</DialogTitle>
-            <DialogDescription>Read-only JSON detail.</DialogDescription>
+            <DialogDescription>Structured detail view.</DialogDescription>
           </DialogHeader>
-          <Textarea value={detailDialog.content} readOnly rows={16} className="font-mono text-xs" />
+          <div className="max-h-[70vh] overflow-auto rounded-md border border-border/50 bg-muted/20 p-3">
+            <DetailObjectView data={detailDialog.data} />
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailDialog({ open: false, title: "", content: "" })}>
+            <Button variant="outline" onClick={() => setDetailDialog({ open: false, title: "", data: null })}>
               Close
             </Button>
           </DialogFooter>
