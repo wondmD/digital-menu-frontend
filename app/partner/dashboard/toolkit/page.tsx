@@ -10,11 +10,12 @@ import { fetchPartnerOverview, fetchPartnerToolkit } from "@/lib/partner-api"
 import { usePartnerSession } from "@/components/partner/use-partner-session"
 
 export default function PartnerToolkitPage() {
-  const { partnerId } = usePartnerSession()
+  const { partnerId, referralCode } = usePartnerSession()
   const [assets, setAssets] = useState<any[]>([])
   const [level, setLevel] = useState("Starter")
   const [progress, setProgress] = useState(0)
   const [target, setTarget] = useState(6)
+  const [currentReferralCode, setCurrentReferralCode] = useState("")
 
   useEffect(() => {
     if (!partnerId) return
@@ -24,14 +25,17 @@ export default function PartnerToolkitPage() {
       setLevel(overview.level)
       setProgress(overview.progress)
       setTarget(overview.nextLevelTarget)
+      setCurrentReferralCode(overview.referralCode || "")
     })
   }, [partnerId])
 
   const referralLink = useMemo(() => {
-    if (!partnerId) return ""
-    if (typeof window === "undefined") return `/signup?ref=${partnerId}`
-    return `${window.location.origin}/signup?ref=${partnerId}`
-  }, [partnerId])
+    const code = currentReferralCode || referralCode || partnerId
+    if (!code) return ""
+    const path = `/register?marketer_referral_code=${encodeURIComponent(code)}&campaign=partner_program`
+    if (typeof window === "undefined") return path
+    return `${window.location.origin}${path}`
+  }, [currentReferralCode, referralCode, partnerId])
 
   return (
     <div className="space-y-6">

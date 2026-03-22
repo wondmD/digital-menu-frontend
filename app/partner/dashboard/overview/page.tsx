@@ -16,7 +16,7 @@ import {
 import { usePartnerSession } from "@/components/partner/use-partner-session"
 
 export default function PartnerOverviewPage() {
-  const { partnerId } = usePartnerSession()
+  const { partnerId, referralCode } = usePartnerSession()
   const [overview, setOverview] = useState<PartnerOverview | null>(null)
   const [notifications, setNotifications] = useState<any[]>([])
   const [checklist, setChecklist] = useState<any[]>([])
@@ -36,10 +36,12 @@ export default function PartnerOverviewPage() {
   }, [partnerId])
 
   const referralLink = useMemo(() => {
-    if (!partnerId) return ""
-    if (typeof window === "undefined") return `/signup?ref=${partnerId}`
-    return `${window.location.origin}/signup?ref=${partnerId}`
-  }, [partnerId])
+    const code = overview?.referralCode || referralCode || partnerId
+    if (!code) return ""
+    const path = `/register?marketer_referral_code=${encodeURIComponent(code)}&campaign=partner_program`
+    if (typeof window === "undefined") return path
+    return `${window.location.origin}${path}`
+  }, [overview?.referralCode, referralCode, partnerId])
 
   if (!overview) {
     return <p className="text-sm text-muted-foreground">Loading overview...</p>

@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState, FormEvent, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useState, FormEvent, useEffect } from "react"
 import { ChefHat, Sparkles, ArrowLeft, Loader2, Utensils, Smartphone, Mail, User, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,9 +14,10 @@ import { Logo } from "@/components/logo"
 
 const ETHIOPIA_DIAL_CODE = "+251"
 
-export default function RegisterPage() {
+function RegisterForm() {
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
   const [errorShake, setErrorShake] = useState(false)
@@ -27,8 +28,23 @@ export default function RegisterPage() {
     full_name: "",
     email: "",
     phone: ETHIOPIA_DIAL_CODE,
-    password: ""
+    password: "",
+    marketer_referral_code: "",
   })
+
+  useEffect(() => {
+    const fromUrl =
+      searchParams.get("marketer_referral_code") ||
+      searchParams.get("referral_code") ||
+      searchParams.get("ref") ||
+      ""
+
+    if (!fromUrl) return
+    setFormData((prev) => ({
+      ...prev,
+      marketer_referral_code: prev.marketer_referral_code || fromUrl,
+    }))
+  }, [searchParams])
 
   const triggerShake = () => {
     setErrorShake(true)
@@ -145,6 +161,9 @@ export default function RegisterPage() {
           full_name: formData.full_name.trim(),
           role: "owner",
           phone: formData.phone,
+          ...(formData.marketer_referral_code.trim()
+            ? { marketer_referral_code: formData.marketer_referral_code.trim() }
+            : {}),
         }),
       })
 
@@ -330,6 +349,23 @@ export default function RegisterPage() {
                         </AnimatePresence>
                       </div>
 
+                      <div className="group relative">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-focus-within:text-primary transition-colors ml-1 mb-2 block">
+                          Referral Code (Optional)
+                        </Label>
+                        <Input
+                          name="marketer_referral_code"
+                          type="text"
+                          value={formData.marketer_referral_code}
+                          onChange={handleInputChange}
+                          placeholder="e.g. MKT001"
+                          className="h-14 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground px-6 text-sm tracking-[0.08em] uppercase transition-all"
+                        />
+                        <p className="mt-2 ml-2 text-xs text-muted-foreground">
+                          If this restaurant was referred by a partner, enter their code to apply attribution.
+                        </p>
+                      </div>
+
                       <div className="flex items-center gap-4 text-xs text-muted-foreground italic">
                          <div className="h-px flex-1 bg-border" />
                          Finalizing Your Credentials
@@ -406,5 +442,21 @@ export default function RegisterPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background p-4">
+          <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading registration...
+          </div>
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   )
 }
