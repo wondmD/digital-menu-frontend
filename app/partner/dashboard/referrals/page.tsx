@@ -30,7 +30,7 @@ function formatJoinedDate(value: string): string {
 }
 
 export default function PartnerReferralsPage() {
-  const { partnerId } = usePartnerSession()
+  const { partnerId, referralCode } = usePartnerSession()
   const [rows, setRows] = useState<any[]>([])
 
   useEffect(() => {
@@ -39,10 +39,12 @@ export default function PartnerReferralsPage() {
   }, [partnerId])
 
   const referralLink = useMemo(() => {
-    if (!partnerId) return ""
-    if (typeof window === "undefined") return `/signup?ref=${partnerId}`
-    return `${window.location.origin}/signup?ref=${partnerId}`
-  }, [partnerId])
+    const code = referralCode || partnerId
+    if (!code) return ""
+    const path = `/register?marketer_referral_code=${encodeURIComponent(code)}&campaign=partner_program`
+    if (typeof window === "undefined") return path
+    return `${window.location.origin}${path}`
+  }, [referralCode, partnerId])
 
   return (
     <div className="space-y-6">
