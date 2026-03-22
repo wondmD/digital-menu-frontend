@@ -7,23 +7,66 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { apiFetch } from "@/lib/api-client"
 import { savePartnerSession } from "@/lib/partner-auth"
+import { useToast } from "@/components/ui/use-toast"
 
 function PartnerLoginForm() {
   const router = useRouter()
   const params = useSearchParams()
-  const [partnerIdInput, setPartnerIdInput] = useState("")
-  const [usernameInput, setUsernameInput] = useState("")
+  const { toast } = useToast()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const onSubmit = (event: FormEvent) => {
+  const onSubmit = async (event: FormEvent) => {
     event.preventDefault()
-    const partnerId = partnerIdInput.trim() || "partner_9fd2"
-    const username = usernameInput.trim() || "partner_user"
-    setLoading(true)
-    savePartnerSession(partnerId, username)
-    const next = params.get("next") || "/partner/dashboard/overview"
-    router.replace(next)
+    try {
+      setLoading(true)
+      const response = await apiFetch<any>("/auth/login", {
+        method: "POST",
+        body: {
+          email: email.trim(),
+          password,
+        },
+      })
+
+      const data = response?.data || response
+      const user = data?.user || {}
+      const role = String(user?.role || "").toLowerCase()
+
+      if (role && role !== "partner") {
+        throw new Error("This account is not a partner account.")
+      }
+
+      const accessToken = String(data?.access_token || "")
+      if (!accessToken) {
+        throw new Error("Login response did not include an access token.")
+      }
+
+      const partnerId = String(user?.id || user?.partner_id || `partner_${email.split("@")[0]}`)
+      const username = String(user?.username || user?.full_name || user?.name || email.split("@")[0])
+
+      savePartnerSession({
+        partnerId,
+        username,
+        accessToken,
+        refreshToken: data?.refresh_token,
+        referralCode: user?.referral_code || user?.marketer_referral_code,
+        email: user?.email || email,
+      })
+
+      const next = params.get("next") || "/partner/dashboard/overview"
+      router.replace(next)
+    } catch (err: any) {
+      toast({
+        title: "Partner login failed",
+        description: err?.message || "Invalid credentials or account type.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -36,20 +79,22 @@ function PartnerLoginForm() {
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Partner ID</label>
+              <label className="text-sm font-medium">Partner Email</label>
               <Input
-                placeholder="partner_9fd2"
-                value={partnerIdInput}
-                onChange={(e) => setPartnerIdInput(e.target.value)}
+                placeholder="partner@company.com"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Username</label>
+              <label className="text-sm font-medium">Password</label>
               <Input
-                placeholder="partner_user"
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
+                placeholder="Enter password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
@@ -58,7 +103,7 @@ function PartnerLoginForm() {
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
-            New partner? <Link className="text-primary underline" href="/partner/register">Create an account</Link>
+            Partner access is provisioned by admin.
           </p>
         </CardContent>
       </Card>

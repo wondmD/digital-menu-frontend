@@ -14,6 +14,21 @@ function statusVariant(status: string): "secondary" | "outline" | "destructive" 
   return "destructive"
 }
 
+function prettySubscriptionStatus(value: string): string {
+  const v = String(value || "").trim().toLowerCase()
+  if (v === "past_due") return "Past Due"
+  if (v === "canceled") return "Canceled"
+  if (v === "active") return "Active"
+  if (v === "trial") return "Trial"
+  return v ? v.replace(/_/g, " ") : "-"
+}
+
+function formatJoinedDate(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "-"
+  return date.toLocaleDateString()
+}
+
 export default function PartnerReferralsPage() {
   const { partnerId } = usePartnerSession()
   const [rows, setRows] = useState<any[]>([])
@@ -70,8 +85,8 @@ export default function PartnerReferralsPage() {
                     <td className="p-3">
                       <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
                     </td>
-                    <td className="p-3 text-muted-foreground">{new Date(row.joinedAt).toLocaleDateString()}</td>
-                    <td className="p-3">{row.subscriptionStatus}</td>
+                    <td className="p-3 text-muted-foreground">{formatJoinedDate(row.joinedAt)}</td>
+                    <td className="p-3">{prettySubscriptionStatus(row.subscriptionStatus)}</td>
                   </tr>
                 ))}
               </tbody>

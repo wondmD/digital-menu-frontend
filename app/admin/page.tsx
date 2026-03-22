@@ -12,7 +12,6 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
-import { MOCK_PARTNER_REFERRALS, type ReferralStatus } from "@/lib/mock-data"
 import {
   Dialog,
   DialogContent,
@@ -50,11 +49,14 @@ type AdminSnapshot = {
   logs: any[]
   restaurants: any[]
   users: any[]
+  partners: any[]
   payments: any[]
   plans: any[]
   receivers: any[]
   verificationSettings: Record<string, any> | null
 }
+
+type ReferralStatus = "pending" | "active" | "churned"
 
 type AdminReferralRow = {
   id: string
@@ -64,6 +66,407 @@ type AdminReferralRow = {
   status: ReferralStatus
   joinedAt: string
   subscriptionStatus: string
+}
+
+function resolvePartnerId(value: any): string {
+  return String(
+    value?.id ||
+      value?.partner_id ||
+      value?.partnerId ||
+      value?.user_id ||
+      value?.userId ||
+      ""
+  ).trim()
+}
+
+function resolvePartnerName(value: any, fallback = ""): string {
+  return String(
+    value?.full_name ||
+      value?.partner_full_name ||
+      value?.name ||
+      value?.partner_name ||
+      fallback ||
+      ""
+  ).trim()
+}
+
+function resolvePartnerReferralCount(value: any): number {
+  const direct = Number(
+    value?.total_referrals ||
+      value?.referrals_count ||
+      value?.referral_count ||
+      value?.totalReferred ||
+      value?.total_referred ||
+      value?.stats?.total_referrals ||
+      value?.stats?.referrals_count ||
+      0
+  )
+
+  if (Number.isFinite(direct) && direct > 0) return direct
+  return 0
+}
+
+function normalizeSubscriptionStatusLabel(value: any): string {
+  const raw = String(value || "").trim().toLowerCase()
+  if (!raw) return "pending"
+  if (["active", "paid", "succeeded", "completed"].includes(raw)) return "active"
+  if (["trial", "pending", "incomplete"].includes(raw)) return "trial"
+  if (["past_due", "overdue", "failed", "unpaid"].includes(raw)) return "past_due"
+  if (["canceled", "cancelled", "churned", "expired"].includes(raw)) return "canceled"
+  return raw
+}
+
+function normalizeReferralStatus(value: any): ReferralStatus {
+  const normalized = String(value || "").trim().toLowerCase()
+  if (["active", "converted", "approved", "completed", "paid", "success", "succeeded"].includes(normalized)) {
+    return "active"
+  }
+  if (["churned", "cancelled", "canceled", "inactive", "rejected", "failed", "expired"].includes(normalized)) {
+    return "churned"
+  }
+  return "pending"
+}
+
+function normalizeAdminReferralRow(row: any, partner: any, fallbackIndex: number): AdminReferralRow {
+  const partnerId =
+    resolvePartnerId(row) ||
+    resolvePartnerId(partner) ||
+    `partner_${fallbackIndex + 1}`
+  const partnerName = resolvePartnerName(row, resolvePartnerName(partner, `Partner ${fallbackIndex + 1}`))
+
+  const subscriptionRaw =
+    row?.subscription_status ||
+    row?.owner_subscription_status ||
+    row?.current_subscription_status ||
+    row?.latest_subscription_status ||
+    row?.plan_status ||
+    row?.subscription?.status ||
+    row?.subscription?.payment_status ||
+    row?.owner_subscription?.status ||
+    row?.owner_subscription?.payment_status ||
+    row?.payment_status
+
+  return {
+    id: String(row?.id || row?.owner_id || row?.user_id || `${partnerId}_ref_${fallbackIndex + 1}`),
+    partnerId,
+    partnerName,
+    restaurantName:
+      String(
+        row?.restaurant_name ||
+          row?.restaurant?.name ||
+          row?.restaurant?.title ||
+          row?.owner_name ||
+          row?.business_name ||
+          row?.name ||
+          "-"
+      ).trim() || "-",
+    status: normalizeReferralStatus(row?.status || row?.referral_status),
+    joinedAt: String(row?.joined_at || row?.created_at || row?.attributed_at || row?.updated_at || ""),
+    subscriptionStatus: normalizeSubscriptionStatusLabel(subscriptionRaw),
+  }
+}
+
+function resolvePartnerReferralCode(value: any): string {
+  return String(
+    value?.referral_code ||
+      value?.marketer_referral_code ||
+      value?.partner_referral_code ||
+      ""
+  )
+    .trim()
+    .toLowerCase()
+}
+
+function extractEmbeddedPartnerReferrals(payload: any): any[] {
+  const source = payload?.data && typeof payload.data === "object" ? payload.data : payload
+  if (!source || typeof source !== "object") return []
+
+  const candidates = [
+    source?.referrals,
+    source?.referral_rows,
+    source?.referred_restaurants,
+    source?.referredRestaurants,
+    source?.restaurants,
+    source?.owners,
+    source?.items,
+    source?.results,
+  ]
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length) {
+      return candidate
+    }
+  }
+
+  return []
+}
+
+function dedupeAdminReferrals(rows: AdminReferralRow[]): AdminReferralRow[] {
+  const seen = new Set<string>()
+  const deduped: AdminReferralRow[] = []
+
+  for (const row of rows) {
+    const key = `${row.partnerId}::${row.id}::${row.restaurantName}`.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    deduped.push(row)
+  }
+
+  return deduped
+}
+
+function normalizeLooseString(value: any): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+}
+
+function parseReferralCodeToken(value: any): string {
+  const raw = String(value || "").trim()
+  if (!raw) return ""
+
+  const lowered = raw.toLowerCase()
+  if (!lowered.includes("http://") && !lowered.includes("https://") && !lowered.includes("marketer_referral_code=")) {
+    return normalizeLooseString(raw)
+  }
+
+  try {
+    const url = lowered.startsWith("http://") || lowered.startsWith("https://") ? new URL(raw) : new URL(`https://dummy.local/?${raw}`)
+    const qp =
+      url.searchParams.get("marketer_referral_code") ||
+      url.searchParams.get("referral_code") ||
+      url.searchParams.get("ref") ||
+      ""
+    return normalizeLooseString(qp || raw)
+  } catch {
+    const maybe = raw.match(/(?:marketer_referral_code|referral_code|ref)=([^&\s]+)/i)?.[1]
+    return normalizeLooseString(maybe || raw)
+  }
+}
+
+function findFirstValueByKeyNames(payload: any, keyNames: string[]): any {
+  const wanted = new Set(keyNames.map((key) => key.toLowerCase()))
+  const nodes = collectObjectNodes(payload)
+
+  for (const node of nodes) {
+    for (const [key, value] of Object.entries(node || {})) {
+      if (!wanted.has(String(key).toLowerCase())) continue
+      if (value === undefined || value === null || value === "") continue
+      return value
+    }
+  }
+
+  return undefined
+}
+
+function resolvePartnerFromSignals(
+  rawPartnerId: string,
+  rawReferralCode: string,
+  partnerById: Map<string, any>,
+  partnerByCode: Map<string, any>,
+  allPartnerCodes: string[]
+): any {
+  if (rawPartnerId && partnerById.has(rawPartnerId)) {
+    return partnerById.get(rawPartnerId)
+  }
+
+  if (rawReferralCode && partnerByCode.has(rawReferralCode)) {
+    return partnerByCode.get(rawReferralCode)
+  }
+
+  if (rawReferralCode) {
+    const looseCode = allPartnerCodes.find((code) => rawReferralCode.includes(code))
+    if (looseCode) {
+      return partnerByCode.get(looseCode)
+    }
+  }
+
+  return null
+}
+
+function deriveReferralsFromAdminData(partners: any[], users: any[], restaurants: any[]): AdminReferralRow[] {
+  const partnerById = new Map<string, any>()
+  const partnerByCode = new Map<string, any>()
+  const allPartnerCodes: string[] = []
+
+  partners.forEach((partner) => {
+    const partnerId = resolvePartnerId(partner)
+    if (partnerId) partnerById.set(partnerId, partner)
+
+    const code = resolvePartnerReferralCode(partner)
+    if (code) {
+      partnerByCode.set(code, partner)
+      allPartnerCodes.push(code)
+    }
+  })
+
+  const candidateRows = [...restaurants, ...users]
+  const out: AdminReferralRow[] = []
+
+  candidateRows.forEach((row: any, index: number) => {
+    const rawCode = parseReferralCodeToken(
+      findFirstValueByKeyNames(row, [
+        "marketer_referral_code",
+        "referral_code",
+        "referred_by_code",
+        "partner_referral_code",
+        "ref",
+        "referral",
+      ])
+    )
+
+    const rawPartnerId = normalizeLooseString(
+      findFirstValueByKeyNames(row, [
+        "partner_id",
+        "referred_by_partner_id",
+        "marketer_partner_id",
+        "partnerId",
+      ])
+    )
+
+    const partner = resolvePartnerFromSignals(rawPartnerId, rawCode, partnerById, partnerByCode, allPartnerCodes)
+    if (!partner) return
+
+    out.push(normalizeAdminReferralRow(row, partner, index))
+  })
+
+  return out
+}
+
+function collectObjectNodes(input: any, out: any[] = []): any[] {
+  if (!input || typeof input !== "object") return out
+  if (Array.isArray(input)) {
+    input.forEach((item) => collectObjectNodes(item, out))
+    return out
+  }
+
+  out.push(input)
+  Object.values(input).forEach((value) => collectObjectNodes(value, out))
+  return out
+}
+
+function deriveReferralsFromLogs(logs: any[], partners: any[]): AdminReferralRow[] {
+  const partnerById = new Map<string, any>()
+  const partnerByCode = new Map<string, any>()
+  const allPartnerCodes: string[] = []
+
+  partners.forEach((partner) => {
+    const partnerId = resolvePartnerId(partner)
+    if (partnerId) partnerById.set(partnerId, partner)
+
+    const code = resolvePartnerReferralCode(partner)
+    if (code) {
+      partnerByCode.set(code, partner)
+      allPartnerCodes.push(code)
+    }
+  })
+
+  const rows: AdminReferralRow[] = []
+  let index = 0
+
+  logs.forEach((log) => {
+    const nodes = collectObjectNodes(log)
+    nodes.forEach((node: any) => {
+      const rawPartnerId = normalizeLooseString(
+        findFirstValueByKeyNames(node, ["partner_id", "marketer_partner_id", "referred_by_partner_id", "partnerId"])
+      )
+      const rawCode = parseReferralCodeToken(
+        findFirstValueByKeyNames(node, ["marketer_referral_code", "referral_code", "referred_by_code", "ref", "referral"])
+      )
+
+      const partner = resolvePartnerFromSignals(rawPartnerId, rawCode, partnerById, partnerByCode, allPartnerCodes)
+      if (!partner) return
+
+      const eventType = String(node?.event_type || node?.type || node?.action || "").toLowerCase()
+      const looksLikeReferral =
+        Boolean(node?.restaurant_id || node?.restaurant_name || node?.owner_id || node?.owner_name) ||
+        eventType.includes("referr") ||
+        eventType.includes("signup")
+
+      if (!looksLikeReferral) return
+
+      const normalized = normalizeAdminReferralRow(
+        {
+          id: node?.id || node?.event_id || node?.owner_id || node?.restaurant_id || `log_ref_${index + 1}`,
+          restaurant_name:
+            node?.restaurant_name ||
+            node?.restaurant?.name ||
+            node?.owner_name ||
+            node?.business_name ||
+            node?.name ||
+            node?.restaurant_id ||
+            "-",
+          status: node?.status || node?.referral_status || node?.event_status || "pending",
+          joined_at: node?.joined_at || node?.attributed_at || node?.created_at || node?.timestamp || log?.created_at,
+          subscription_status:
+            node?.subscription_status ||
+            node?.owner_subscription_status ||
+            node?.payment_status ||
+            node?.subscription?.status,
+          partner_id: rawPartnerId || resolvePartnerId(partner),
+          partner_name: resolvePartnerName(partner),
+        },
+        partner,
+        index
+      )
+
+      rows.push(normalized)
+      index += 1
+    })
+  })
+
+  return rows
+}
+
+function deriveReferralsFromPartnerCounts(partners: any[]): AdminReferralRow[] {
+  const rows: AdminReferralRow[] = []
+
+  partners.forEach((partner: any, partnerIndex: number) => {
+    const count = resolvePartnerReferralCount(partner)
+    if (!count) return
+
+    const partnerId = resolvePartnerId(partner) || `partner_${partnerIndex + 1}`
+    const partnerName = resolvePartnerName(partner, `Partner ${partnerIndex + 1}`)
+
+    for (let i = 0; i < count; i += 1) {
+      rows.push({
+        id: `${partnerId}_count_ref_${i + 1}`,
+        partnerId,
+        partnerName,
+        restaurantName: `Referral ${i + 1}`,
+        status: "pending",
+        joinedAt: String(partner?.updated_at || partner?.created_at || ""),
+        subscriptionStatus: "pending",
+      })
+    }
+  })
+
+  return rows
+}
+
+async function fetchAdminRestaurants(token: string, maxPages = 10, pageSize = 100): Promise<any[]> {
+  const out: any[] = []
+  for (let page = 1; page <= maxPages; page += 1) {
+    const res = await apiFetch<any>(`/admin/restaurants?page=${page}&page_size=${pageSize}`, { token }).catch(() => null)
+    const rows = extractList(res)
+    if (!rows.length) break
+    out.push(...rows)
+    if (rows.length < pageSize) break
+  }
+  return out
+}
+
+async function fetchAdminUsers(token: string, maxPages = 10, limit = 100): Promise<any[]> {
+  const out: any[] = []
+  for (let page = 0; page < maxPages; page += 1) {
+    const offset = page * limit
+    const res = await apiFetch<any>(`/admin/users?limit=${limit}&offset=${offset}`, { token }).catch(() => null)
+    const rows = extractList(res)
+    if (!rows.length) break
+    out.push(...rows)
+    if (rows.length < limit) break
+  }
+  return out
 }
 
 function extractList(payload: any): any[] {
@@ -126,7 +529,7 @@ type CrudDialogState = {
   description: string
   endpoint: string
   method: "POST" | "PATCH" | "PUT"
-  payload: string
+  payload: Record<string, any>
 }
 
 type DetailDialogState = {
@@ -141,7 +544,16 @@ const EMPTY_CRUD_DIALOG: CrudDialogState = {
   description: "",
   endpoint: "",
   method: "POST",
-  payload: "{}",
+  payload: {},
+}
+
+type CrudFieldType = "text" | "number" | "boolean" | "multiline"
+
+function inferCrudFieldType(value: any): CrudFieldType {
+  if (typeof value === "boolean") return "boolean"
+  if (typeof value === "number") return "number"
+  if (typeof value === "string" && value.length > 80) return "multiline"
+  return "text"
 }
 
 function formatFieldLabel(key: string): string {
@@ -234,6 +646,7 @@ export default function AdminPage() {
   const [verificationSettingsSaving, setVerificationSettingsSaving] = useState(false)
   const [activeOperations, setActiveOperations] = useState<string[]>([])
   const [lastCompletedAction, setLastCompletedAction] = useState<string>("No operation completed yet.")
+  const [partnerApiAvailable, setPartnerApiAvailable] = useState<boolean>(true)
   const [savingDialog, setSavingDialog] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [verifyingPaymentId, setVerifyingPaymentId] = useState<string | null>(null)
@@ -241,21 +654,15 @@ export default function AdminPage() {
   const [autoVerifyLoading, setAutoVerifyLoading] = useState(false)
   const [searchRestaurants, setSearchRestaurants] = useState("")
   const [searchUsers, setSearchUsers] = useState("")
+  const [searchPartners, setSearchPartners] = useState("")
   const [searchReferrals, setSearchReferrals] = useState("")
   const [searchPlans, setSearchPlans] = useState("")
   const [searchReceivers, setSearchReceivers] = useState("")
-  const [adminReferrals, setAdminReferrals] = useState<AdminReferralRow[]>(
-    MOCK_PARTNER_REFERRALS.map((row, index) => ({
-      id: row.id,
-      partnerId: `partner_${String(index + 1).padStart(3, "0")}`,
-      partnerName: `Partner ${index + 1}`,
-      restaurantName: row.restaurantName,
-      status: row.status,
-      joinedAt: row.joinedAt,
-      subscriptionStatus: row.subscriptionStatus,
-    }))
-  )
+  const [adminReferrals, setAdminReferrals] = useState<AdminReferralRow[]>([])
+  const [referralsLoading, setReferralsLoading] = useState(false)
+  const [updatingReferralId, setUpdatingReferralId] = useState<string | null>(null)
   const [verificationSettingsDraft, setVerificationSettingsDraft] = useState("{}")
+  const [activeAdminTab, setActiveAdminTab] = useState("overview")
   const [crudDialog, setCrudDialog] = useState<CrudDialogState>(EMPTY_CRUD_DIALOG)
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; endpoint: string; label: string }>({
     open: false,
@@ -283,6 +690,7 @@ export default function AdminPage() {
     logs: [],
     restaurants: [],
     users: [],
+    partners: [],
     payments: [],
     plans: [],
     receivers: [],
@@ -310,11 +718,12 @@ export default function AdminPage() {
       startOperation(operationLabel)
       setSnapshotLoading(true)
       setError(null)
-      const [statsRes, logsRes, restaurantsRes, usersRes, paymentsRes, plansRes, receiversRes, verificationSettingsRes] = await Promise.all([
+      const [statsRes, logsRes, restaurantsAll, usersAll, partnersRes, paymentsRes, plansRes, receiversRes, verificationSettingsRes] = await Promise.all([
         apiFetch<any>("/admin/stats", { token }).catch(() => null),
-        apiFetch<any>("/admin/logs?limit=20", { token }).catch(() => null),
-        apiFetch<any>("/admin/restaurants?page=1&page_size=20", { token }).catch(() => null),
-        apiFetch<any>("/admin/users?limit=20&offset=0", { token }).catch(() => null),
+        apiFetch<any>("/admin/logs?limit=200", { token }).catch(() => null),
+        fetchAdminRestaurants(token),
+        fetchAdminUsers(token),
+        apiFetch<any>("/admin/partners?page=1&page_size=50", { token }).catch((err) => ({ __error: err })),
         apiFetch<any>("/admin/payments?limit=20&offset=0", { token }).catch(() => null),
         apiFetch<any>("/admin/subscription/plans", { token }).catch(() => null),
         apiFetch<any>("/admin/payment-receivers", { token }).catch(() => null),
@@ -322,12 +731,64 @@ export default function AdminPage() {
       ])
 
       const verificationSettings = extractObject(verificationSettingsRes)
+      const partnersError = (partnersRes as any)?.__error
+      const partnersErrorMessage = String(partnersError?.message || "").toLowerCase()
+      const partnerModuleMissing =
+        partnersErrorMessage.includes("404") ||
+        partnersErrorMessage.includes("not found") ||
+        partnersErrorMessage.includes("404 page not found")
+
+      setPartnerApiAvailable(!partnerModuleMissing)
+      const partners = partnerModuleMissing ? [] : extractList(partnersRes)
+      const logs = extractList(logsRes)
+      const users = Array.isArray(usersAll) ? usersAll : []
+      const restaurants = Array.isArray(restaurantsAll) ? restaurantsAll : []
+
+      setReferralsLoading(true)
+      const embeddedFromPartnerList = partners.flatMap((partner: any, partnerIndex: number) =>
+        extractEmbeddedPartnerReferrals(partner).map((row, rowIndex) =>
+          normalizeAdminReferralRow(row, partner, partnerIndex * 1000 + rowIndex)
+        )
+      )
+
+      let embeddedFromPartnerDetail: AdminReferralRow[] = []
+      if (!embeddedFromPartnerList.length && partners.length > 0) {
+        const detailReferralsByPartner = await Promise.all(
+          partners.map(async (partner: any, partnerIndex: number) => {
+            const partnerId = resolvePartnerId(partner)
+            if (!partnerId) return [] as AdminReferralRow[]
+
+            const detailRes = await apiFetch<any>(`/admin/partners/${partnerId}`, { token }).catch(() => null)
+            const detail = extractObject(detailRes) || detailRes
+            const rows = extractEmbeddedPartnerReferrals(detail)
+
+            return rows.map((row, rowIndex) => normalizeAdminReferralRow(row, partner, partnerIndex * 1000 + rowIndex))
+          })
+        )
+        embeddedFromPartnerDetail = detailReferralsByPartner.flat()
+      }
+
+      const derivedReferrals = deriveReferralsFromAdminData(partners, users, restaurants)
+      const derivedReferralsFromLogs = deriveReferralsFromLogs(logs, partners)
+      let mergedReferrals = dedupeAdminReferrals([
+        ...embeddedFromPartnerList,
+        ...embeddedFromPartnerDetail,
+        ...derivedReferrals,
+        ...derivedReferralsFromLogs,
+      ])
+
+      if (!mergedReferrals.length) {
+        mergedReferrals = deriveReferralsFromPartnerCounts(partners)
+      }
+
+      setAdminReferrals(mergedReferrals)
 
       setSnapshot({
         stats: extractObject(statsRes),
-        logs: extractList(logsRes),
-        restaurants: extractList(restaurantsRes),
-        users: extractList(usersRes),
+        logs,
+        restaurants,
+        users,
+        partners,
         payments: extractList(paymentsRes),
         plans: extractList(plansRes),
         receivers: extractList(receiversRes),
@@ -340,6 +801,7 @@ export default function AdminPage() {
       setError(err?.message || "Failed to load admin data")
     } finally {
       setSnapshotLoading(false)
+      setReferralsLoading(false)
       endOperation(operationLabel, success ? "Admin snapshot updated" : undefined)
     }
   }
@@ -351,12 +813,66 @@ export default function AdminPage() {
     try {
       startOperation(operationLabel)
       setSavingDialog(true)
-      const payload = parseJsonSafe(crudDialog.payload)
-      await apiFetch<any>(crudDialog.endpoint, {
-        method: crudDialog.method,
-        token,
-        body: payload,
-      })
+      const payload = crudDialog.payload || {}
+
+      const tryEndpoint = async (endpoint: string) => {
+        return apiFetch<any>(endpoint, {
+          method: crudDialog.method,
+          token,
+          body: payload,
+        })
+      }
+
+      const tryEndpointWithMethod = async (endpoint: string, method: "POST" | "PUT") => {
+        return apiFetch<any>(endpoint, {
+          method,
+          token,
+          body: payload,
+        })
+      }
+
+      const isPartnerCreateAction =
+        crudDialog.method === "POST" &&
+        ["/admin/partners", "/admin/partners/", "/admin/partner", "/admin/partners/create"].includes(
+          crudDialog.endpoint
+        )
+
+      if (isPartnerCreateAction) {
+        if (!partnerApiAvailable) {
+          throw new Error("Partner Program endpoints are not available on this backend deployment.")
+        }
+
+        const candidateAttempts: Array<{ endpoint: string; method: "POST" | "PUT" }> = [
+          { endpoint: "/admin/partners", method: "POST" },
+          { endpoint: "/admin/partners/", method: "POST" },
+          { endpoint: "/admin/partner", method: "POST" },
+          { endpoint: "/admin/partners/create", method: "POST" },
+          { endpoint: "/admin/partner/create", method: "POST" },
+          { endpoint: "/admin/partners/new", method: "POST" },
+          { endpoint: "/admin/partners", method: "PUT" },
+          { endpoint: "/admin/partners/", method: "PUT" },
+        ]
+
+        let created = false
+        let lastError: any = null
+
+        for (const attempt of candidateAttempts) {
+          try {
+            await tryEndpointWithMethod(attempt.endpoint, attempt.method)
+            created = true
+            break
+          } catch (err) {
+            lastError = err
+          }
+        }
+
+        if (!created) {
+          throw lastError || new Error("Partner create endpoint not available on this backend deployment.")
+        }
+      } else {
+        await tryEndpoint(crudDialog.endpoint)
+      }
+
       setCrudDialog(EMPTY_CRUD_DIALOG)
       toast({ title: "Success", description: "Operation completed successfully." })
       await loadAdminData("Refreshing snapshot after save")
@@ -388,11 +904,19 @@ export default function AdminPage() {
   }
 
   const openCrudDialog = (state: Partial<CrudDialogState>) => {
+    const rawPayload = state.payload ?? {}
+    const normalizedPayload =
+      typeof rawPayload === "string"
+        ? parseJsonSafe(rawPayload)
+        : rawPayload && typeof rawPayload === "object"
+        ? rawPayload
+        : {}
+
     setCrudDialog({
       ...EMPTY_CRUD_DIALOG,
       ...state,
       open: true,
-      payload: state.payload ?? "{}",
+      payload: normalizedPayload,
       title: state.title ?? "Admin Operation",
       description: state.description ?? "Review payload before execution.",
       endpoint: state.endpoint ?? "",
@@ -421,6 +945,54 @@ export default function AdminPage() {
     } finally {
       setDetailLoading(false)
       endOperation(operationLabel, "Detail payload loaded")
+    }
+  }
+
+  const loadAndShowPartnerDetail = async (partner: any) => {
+    if (!token) return
+    const partnerId = resolvePartnerId(partner)
+    if (!partnerId) return
+
+    const operationLabel = "Loading partner detail payload"
+    try {
+      startOperation(operationLabel)
+      setDetailLoading(true)
+
+      const [detailRes, referralsRes, restaurantsRes, ledgerRes] = await Promise.all([
+        apiFetch<any>(`/admin/partners/${partnerId}`, { token }).catch(() => null),
+        Promise.resolve(null),
+        apiFetch<any>(`/admin/partners/${partnerId}/restaurants?page=1&page_size=100`, { token }).catch(() => null),
+        apiFetch<any>(`/admin/partners/${partnerId}/ledger?page=1&page_size=100`, { token }).catch(() => null),
+      ])
+
+      const detail = extractObject(detailRes) || detailRes || partner
+      const referralsFromDetail = extractEmbeddedPartnerReferrals(detail)
+      const referralsFromState = adminReferrals
+        .filter((row) => row.partnerId === partnerId)
+        .map((row) => ({
+          id: row.id,
+          restaurant_name: row.restaurantName,
+          status: row.status,
+          subscription_status: row.subscriptionStatus,
+          joined_at: row.joinedAt,
+          partner_id: row.partnerId,
+          partner_name: row.partnerName,
+        }))
+      const referrals = referralsFromDetail.length ? referralsFromDetail : referralsFromState
+      const referredRestaurants = extractList(restaurantsRes)
+      const ledger = extractList(ledgerRes)
+
+      openDetailDialog(`Partner Detail: ${partner?.full_name || partner?.name || partnerId}`, {
+        ...detail,
+        referrals,
+        referred_restaurants: referredRestaurants,
+        commission_ledger: ledger,
+      })
+    } catch (err: any) {
+      toast({ title: "Failed to load partner detail", description: err?.message || "Request failed", variant: "destructive" })
+    } finally {
+      setDetailLoading(false)
+      endOperation(operationLabel, "Partner detail loaded")
     }
   }
 
@@ -543,6 +1115,15 @@ export default function AdminPage() {
     })
   }, [snapshot.users, searchUsers])
 
+  const filteredPartners = useMemo(() => {
+    const q = searchPartners.trim().toLowerCase()
+    if (!q) return snapshot.partners
+    return snapshot.partners.filter((row) => {
+      const hay = `${resolvePartnerId(row)} ${row?.email || ""} ${resolvePartnerName(row)} ${row?.referral_code || row?.marketer_referral_code || ""} ${row?.level || ""} ${row?.status || row?.owner_status || (row?.is_active ? "active" : "inactive") || ""}`.toLowerCase()
+      return hay.includes(q)
+    })
+  }, [snapshot.partners, searchPartners])
+
   const filteredReferrals = useMemo(() => {
     const q = searchReferrals.trim().toLowerCase()
     if (!q) return adminReferrals
@@ -561,9 +1142,55 @@ export default function AdminPage() {
     return { total, active, pending, churned, conversionRate }
   }, [adminReferrals])
 
-  const setReferralStatus = (id: string, status: ReferralStatus) => {
-    setAdminReferrals((prev) => prev.map((row) => (row.id === id ? { ...row, status } : row)))
-    toast({ title: "Referral updated", description: `Referral status changed to ${status}.` })
+  const setReferralStatus = async (row: AdminReferralRow, status: ReferralStatus) => {
+    if (!token) return
+
+    const operationLabel = `Updating referral status (${row.id})`
+    const encodedPartnerId = encodeURIComponent(row.partnerId)
+    const encodedReferralId = encodeURIComponent(row.id)
+    const attempts: Array<{ method: "PATCH" | "POST"; endpoint: string }> = [
+      { method: "PATCH", endpoint: `/admin/partners/${encodedPartnerId}/referrals/${encodedReferralId}/status` },
+      { method: "PATCH", endpoint: `/admin/partners/${encodedPartnerId}/referrals/${encodedReferralId}` },
+      { method: "POST", endpoint: `/admin/partners/${encodedPartnerId}/referrals/${encodedReferralId}/status` },
+    ]
+
+    try {
+      startOperation(operationLabel)
+      setUpdatingReferralId(row.id)
+
+      let updated = false
+      let lastError: any = null
+
+      for (const attempt of attempts) {
+        try {
+          await apiFetch<any>(attempt.endpoint, {
+            method: attempt.method,
+            token,
+            body: { status },
+          })
+          updated = true
+          break
+        } catch (err) {
+          lastError = err
+        }
+      }
+
+      if (!updated) {
+        throw lastError || new Error("Referral status endpoint is not available on backend.")
+      }
+
+      setAdminReferrals((prev) => prev.map((item) => (item.id === row.id ? { ...item, status } : item)))
+      toast({ title: "Referral updated", description: `Referral status changed to ${status}.` })
+    } catch (err: any) {
+      toast({
+        title: "Referral update failed",
+        description: err?.message || "Could not update referral status on backend.",
+        variant: "destructive",
+      })
+    } finally {
+      setUpdatingReferralId(null)
+      endOperation(operationLabel, "Referral status sync finished")
+    }
   }
 
   const filteredPlans = useMemo(() => {
@@ -711,14 +1338,24 @@ export default function AdminPage() {
           </CardHeader>
         </Card>
 
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 gap-2 md:grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="operations">Operations</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="referrals">Referrals</TabsTrigger>
-            <TabsTrigger value="configuration">Configuration</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeAdminTab} onValueChange={setActiveAdminTab} className="grid gap-6 lg:grid-cols-[250px_1fr]">
+          <Card className="h-fit border-border/60 bg-card/50 lg:sticky lg:top-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Admin Navigation</CardTitle>
+              <CardDescription>System management sections</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TabsList className="grid h-auto w-full grid-cols-1 gap-2 bg-transparent p-0">
+                <TabsTrigger value="overview" className="justify-start">Overview</TabsTrigger>
+                <TabsTrigger value="operations" className="justify-start">Operations</TabsTrigger>
+                <TabsTrigger value="partners" className="justify-start">Partners</TabsTrigger>
+                <TabsTrigger value="payments" className="justify-start">Payments</TabsTrigger>
+                <TabsTrigger value="configuration" className="justify-start">Configuration</TabsTrigger>
+              </TabsList>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6">
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
@@ -913,13 +1550,13 @@ export default function AdminPage() {
                     description: "Create a new subscription plan.",
                     endpoint: "/admin/subscription/plans",
                     method: "POST",
-                    payload: toJson({
+                    payload: {
                       name: "Platinum",
                       slug: "platinum",
                       billing_cycle: "monthly",
                       price: 0,
                       is_active: true,
-                    }),
+                    },
                   })
                 }
               >
@@ -966,7 +1603,7 @@ export default function AdminPage() {
                                 description: "Edit plan payload and save.",
                                 endpoint: `/admin/subscription/plans/${plan.id}`,
                                 method: "PATCH",
-                                payload: toJson(plan),
+                                payload: plan,
                               })
                             }
                           >
@@ -981,7 +1618,7 @@ export default function AdminPage() {
                                 description: "Set plan activation status.",
                                 endpoint: `/admin/subscription/plans/${plan.id}/status`,
                                 method: "PATCH",
-                                payload: toJson({ is_active: !Boolean(plan.is_active) }),
+                                payload: { is_active: !Boolean(plan.is_active) },
                               })
                             }
                           >
@@ -1043,7 +1680,7 @@ export default function AdminPage() {
                               description: "Patch user fields (e.g., role, is_active).",
                               endpoint: `/admin/users/${row.id}`,
                               method: "PATCH",
-                              payload: toJson({ role: row.role, is_active: row.is_active }),
+                              payload: { role: row.role, is_active: row.is_active },
                             })
                           }
                         >
@@ -1064,6 +1701,285 @@ export default function AdminPage() {
               </div>
             </CardContent>
           </Card>
+          </TabsContent>
+
+          <TabsContent value="partners" className="space-y-6">
+            <Card className="border-border/60 bg-card/50">
+              <CardHeader>
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Handshake className="h-5 w-5 text-primary" /> Partner Management (Admin-only)
+                    </CardTitle>
+                    <CardDescription>Create and manage partner accounts. Self-registration is disabled.</CardDescription>
+                  </div>
+                  <Button
+                    disabled={!partnerApiAvailable}
+                    onClick={() =>
+                      openCrudDialog({
+                        title: "Create Partner",
+                        description: "Create partner user/profile from admin side.",
+                        endpoint: "/admin/partners",
+                        method: "POST",
+                        payload: {
+                          email: "partner@company.com",
+                          password: "PartnerPass123",
+                          full_name: "Marketer Partner",
+                          phone: "+251900009999",
+                          referral_code: "PARTNER-CODE-001",
+                          level: "starter",
+                          payout_account: "CBE-1234567890",
+                        },
+                      })
+                    }
+                  >
+                    <Plus className="mr-2 h-4 w-4" /> New Partner
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!partnerApiAvailable ? (
+                  <div className="rounded-md border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-700">
+                    Partner Program API is not available on the connected backend. The documented endpoint is POST /admin/partners,
+                    but this deployment returns 404 for partner routes.
+                  </div>
+                ) : null}
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={searchPartners}
+                    onChange={(e) => setSearchPartners(e.target.value)}
+                    placeholder="Search partners..."
+                    className="pl-9"
+                  />
+                </div>
+
+                <div className="overflow-auto rounded-md border border-border/60">
+                  <table className="w-full min-w-220 text-sm">
+                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="p-3">Partner</th>
+                        <th className="p-3">Referral Code</th>
+                        <th className="p-3">Level</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Payout</th>
+                        <th className="p-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPartners.slice(0, 50).map((partner: any, index: number) => {
+                        const partnerId = resolvePartnerId(partner)
+                        const partnerName = resolvePartnerName(partner, "-")
+                        const partnerReferral = partner.referral_code || partner.marketer_referral_code || "-"
+                        const partnerStatus = String(partner.status || partner.owner_status || (partner.is_active ? "active" : "inactive") || "unknown")
+
+                        return (
+                        <tr key={partnerId || index} className="border-t border-border/40">
+                          <td className="p-3">
+                            <p className="font-medium">{partnerName}</p>
+                            <p className="text-xs text-muted-foreground">{partner.email || partnerId || "-"}</p>
+                          </td>
+                          <td className="p-3">{partnerReferral}</td>
+                          <td className="p-3">{partner.level || "-"}</td>
+                          <td className="p-3">
+                            <Badge variant={partnerStatus.toLowerCase() === "active" ? "secondary" : "outline"}>
+                              {partnerStatus}
+                            </Badge>
+                          </td>
+                          <td className="p-3 text-muted-foreground">{partner.payout_account || "-"}</td>
+                          <td className="p-3">
+                            <div className="flex flex-wrap gap-2">
+                              <Button size="sm" variant="outline" disabled={detailLoading} onClick={() => loadAndShowPartnerDetail(partner)}>
+                                <Eye className="mr-1 h-3 w-3" /> View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  openCrudDialog({
+                                    title: `Update Partner: ${partnerName || partnerId}`,
+                                    description: "Edit partner profile fields.",
+                                    endpoint: `/admin/partners/${partnerId}`,
+                                    method: "PATCH",
+                                    payload: {
+                                      full_name: partnerName,
+                                      phone: partner.phone,
+                                      referral_code: partnerReferral === "-" ? "" : partnerReferral,
+                                      level: partner.level,
+                                      payout_account: partner.payout_account,
+                                      status: partnerStatus,
+                                    },
+                                  })
+                                }
+                              >
+                                <Pencil className="mr-1 h-3 w-3" /> Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  openCrudDialog({
+                                    title: `Update Partner Status: ${partnerName || partnerId}`,
+                                    description: "Set partner status.",
+                                    endpoint: `/admin/partners/${partnerId}/status`,
+                                    method: "PATCH",
+                                    payload: { status: partnerStatus.toLowerCase() === "active" ? "inactive" : "active" },
+                                  })
+                                }
+                              >
+                                <Settings className="mr-1 h-3 w-3" /> Status
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() =>
+                                  setDeleteDialog({
+                                    open: true,
+                                    endpoint: `/admin/partners/${partnerId}`,
+                                    label: partnerName || partner.email || partnerId || "partner",
+                                  })
+                                }
+                              >
+                                <Trash2 className="mr-1 h-3 w-3" /> Delete
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )})}
+                    </tbody>
+                  </table>
+                </div>
+
+                {filteredPartners.length === 0 ? <p className="text-sm text-muted-foreground">No partners found.</p> : null}
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <Card className="border-border/60 bg-card/50">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Total Referrals</p>
+                  <p className="mt-2 text-2xl font-bold">{referralSummary.total}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/60 bg-card/50">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Active</p>
+                  <p className="mt-2 text-2xl font-bold">{referralSummary.active}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/60 bg-card/50">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                  <p className="mt-2 text-2xl font-bold">{referralSummary.pending}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/60 bg-card/50">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Churned</p>
+                  <p className="mt-2 text-2xl font-bold">{referralSummary.churned}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/60 bg-card/50">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Conversion Rate</p>
+                  <p className="mt-2 text-2xl font-bold">{referralSummary.conversionRate}%</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="border-border/60 bg-card/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Handshake className="h-5 w-5 text-primary" /> Partner Referrals
+                </CardTitle>
+                <CardDescription>Manage restaurant referrals within the same partner workspace.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={searchReferrals}
+                    onChange={(e) => setSearchReferrals(e.target.value)}
+                    placeholder="Search referrals..."
+                    className="pl-9"
+                  />
+                </div>
+
+                <div className="overflow-auto rounded-md border border-border/60">
+                  <table className="w-full min-w-205 text-sm">
+                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="p-3">Partner</th>
+                        <th className="p-3">Restaurant</th>
+                        <th className="p-3">Joined</th>
+                        <th className="p-3">Subscription</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Manage</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredReferrals.map((row) => (
+                        <tr key={row.id} className="border-t border-border/40">
+                          <td className="p-3">
+                            <p className="font-medium">{row.partnerName}</p>
+                            <p className="text-xs text-muted-foreground">{row.partnerId}</p>
+                          </td>
+                          <td className="p-3 font-medium">{row.restaurantName}</td>
+                          <td className="p-3 text-muted-foreground">{formatDate(row.joinedAt)}</td>
+                          <td className="p-3">{row.subscriptionStatus}</td>
+                          <td className="p-3">
+                            <Badge
+                              variant={
+                                row.status === "active"
+                                  ? "secondary"
+                                  : row.status === "pending"
+                                  ? "outline"
+                                  : "destructive"
+                              }
+                            >
+                              {row.status}
+                            </Badge>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={updatingReferralId === row.id}
+                                onClick={() => setReferralStatus(row, "pending")}
+                              >
+                                Pending
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={updatingReferralId === row.id}
+                                onClick={() => setReferralStatus(row, "active")}
+                              >
+                                Active
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                disabled={updatingReferralId === row.id}
+                                onClick={() => setReferralStatus(row, "churned")}
+                              >
+                                Churned
+                              </Button>
+                            </div>
+                            {updatingReferralId === row.id ? (
+                              <p className="mt-2 text-[11px] text-muted-foreground">Syncing status with backend...</p>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              {referralsLoading ? <p className="text-sm text-muted-foreground">Loading referrals from backend...</p> : null}
+              {!referralsLoading && filteredReferrals.length === 0 ? <p className="text-sm text-muted-foreground">No referrals found from backend.</p> : null}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="payments" className="space-y-6">
@@ -1180,109 +2096,6 @@ export default function AdminPage() {
           </Card>
           </TabsContent>
 
-          <TabsContent value="referrals" className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <Card className="border-border/60 bg-card/50">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Total Referrals</p>
-                  <p className="mt-2 text-2xl font-bold">{referralSummary.total}</p>
-                </CardContent>
-              </Card>
-              <Card className="border-border/60 bg-card/50">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Active</p>
-                  <p className="mt-2 text-2xl font-bold">{referralSummary.active}</p>
-                </CardContent>
-              </Card>
-              <Card className="border-border/60 bg-card/50">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Pending</p>
-                  <p className="mt-2 text-2xl font-bold">{referralSummary.pending}</p>
-                </CardContent>
-              </Card>
-              <Card className="border-border/60 bg-card/50">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Churned</p>
-                  <p className="mt-2 text-2xl font-bold">{referralSummary.churned}</p>
-                </CardContent>
-              </Card>
-              <Card className="border-border/60 bg-card/50">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Conversion Rate</p>
-                  <p className="mt-2 text-2xl font-bold">{referralSummary.conversionRate}%</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="border-border/60 bg-card/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Handshake className="h-5 w-5 text-primary" /> Referral Management
-                </CardTitle>
-                <CardDescription>Manage partner-referred restaurants and lifecycle status.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative max-w-sm">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={searchReferrals}
-                    onChange={(e) => setSearchReferrals(e.target.value)}
-                    placeholder="Search referrals..."
-                    className="pl-9"
-                  />
-                </div>
-
-                <div className="overflow-auto rounded-md border border-border/60">
-                  <table className="w-full min-w-205 text-sm">
-                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <tr>
-                        <th className="p-3">Partner</th>
-                        <th className="p-3">Restaurant</th>
-                        <th className="p-3">Joined</th>
-                        <th className="p-3">Subscription</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3">Manage</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredReferrals.map((row) => (
-                        <tr key={row.id} className="border-t border-border/40">
-                          <td className="p-3">
-                            <p className="font-medium">{row.partnerName}</p>
-                            <p className="text-xs text-muted-foreground">{row.partnerId}</p>
-                          </td>
-                          <td className="p-3 font-medium">{row.restaurantName}</td>
-                          <td className="p-3 text-muted-foreground">{formatDate(row.joinedAt)}</td>
-                          <td className="p-3">{row.subscriptionStatus}</td>
-                          <td className="p-3">
-                            <Badge
-                              variant={
-                                row.status === "active"
-                                  ? "secondary"
-                                  : row.status === "pending"
-                                  ? "outline"
-                                  : "destructive"
-                              }
-                            >
-                              {row.status}
-                            </Badge>
-                          </td>
-                          <td className="p-3">
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="outline" onClick={() => setReferralStatus(row.id, "pending")}>Pending</Button>
-                              <Button size="sm" variant="outline" onClick={() => setReferralStatus(row.id, "active")}>Active</Button>
-                              <Button size="sm" variant="destructive" onClick={() => setReferralStatus(row.id, "churned")}>Churned</Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="configuration" className="space-y-6">
             <div className="grid gap-6 xl:grid-cols-2">
               <Card className="border-border/60 bg-card/50">
@@ -1301,7 +2114,7 @@ export default function AdminPage() {
                       description: "Create a new admin payment receiver profile.",
                       endpoint: "/admin/payment-receivers",
                       method: "POST",
-                      payload: toJson({ provider: "telebirr", receiver_account: "0911001122", receiver_name: "MenuVista Telebirr", is_active: true }),
+                      payload: { provider: "telebirr", receiver_account: "0911001122", receiver_name: "MenuVista Telebirr", is_active: true },
                     })
                   }
                 >
@@ -1333,7 +2146,7 @@ export default function AdminPage() {
                               description: "Edit payment receiver profile fields.",
                               endpoint: `/admin/payment-receivers/${receiver.id}`,
                               method: "PATCH",
-                              payload: toJson(receiver),
+                              payload: receiver,
                             })
                           }
                         >
@@ -1407,7 +2220,7 @@ export default function AdminPage() {
           </Card>
             </div>
           </TabsContent>
-
+          </div>
         </Tabs>
 
         <Separator />
@@ -1428,12 +2241,71 @@ export default function AdminPage() {
               Endpoint: {crudDialog.method} {crudDialog.endpoint}
             </p>
           </DialogHeader>
-          <Textarea
-            value={crudDialog.payload}
-            onChange={(e) => setCrudDialog((prev) => ({ ...prev, payload: e.target.value }))}
-            rows={16}
-            className="font-mono text-xs"
-          />
+
+          <div className="max-h-[60vh] space-y-3 overflow-auto rounded-md border border-border/50 bg-muted/20 p-3">
+            {Object.keys(crudDialog.payload || {}).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No form fields for this action.</p>
+            ) : (
+              Object.entries(crudDialog.payload || {}).map(([key, value]) => {
+                const fieldType = inferCrudFieldType(value)
+                return (
+                  <div key={key} className="space-y-2 rounded-md border border-border/40 bg-card p-3">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {formatFieldLabel(key)}
+                    </label>
+
+                    {fieldType === "boolean" ? (
+                      <select
+                        className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+                        value={String(Boolean(value))}
+                        onChange={(e) =>
+                          setCrudDialog((prev) => ({
+                            ...prev,
+                            payload: {
+                              ...prev.payload,
+                              [key]: e.target.value === "true",
+                            },
+                          }))
+                        }
+                      >
+                        <option value="true">True</option>
+                        <option value="false">False</option>
+                      </select>
+                    ) : fieldType === "multiline" ? (
+                      <Textarea
+                        value={String(value ?? "")}
+                        rows={4}
+                        onChange={(e) =>
+                          setCrudDialog((prev) => ({
+                            ...prev,
+                            payload: {
+                              ...prev.payload,
+                              [key]: e.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    ) : (
+                      <Input
+                        type={fieldType === "number" ? "number" : "text"}
+                        value={String(value ?? "")}
+                        onChange={(e) =>
+                          setCrudDialog((prev) => ({
+                            ...prev,
+                            payload: {
+                              ...prev.payload,
+                              [key]: fieldType === "number" ? Number(e.target.value || 0) : e.target.value,
+                            },
+                          }))
+                        }
+                      />
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setCrudDialog(EMPTY_CRUD_DIALOG)} disabled={savingDialog}>
               Cancel
