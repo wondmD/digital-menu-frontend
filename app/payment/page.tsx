@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { ArrowLeft, ArrowRight, Clock, Loader2, ReceiptText, ShieldCheck } from "lucide-react"
@@ -44,8 +44,7 @@ function extractList(res: any): any[] {
   return []
 }
 
-export default function PaymentPage({
-}: {}) {
+function PaymentPageClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -382,5 +381,24 @@ export default function PaymentPage({
         </div>
       </div>
     </div>
+  )
+}
+
+function PaymentPageFallback() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="flex items-center gap-3 text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Loading payment page...
+      </div>
+    </div>
+  )
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<PaymentPageFallback />}>
+      <PaymentPageClient />
+    </Suspense>
   )
 }
