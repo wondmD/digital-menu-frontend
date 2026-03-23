@@ -5,6 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024
+
+export function getOversizedFiles(files: File[] | FileList, maxBytes = MAX_UPLOAD_SIZE_BYTES): File[] {
+  const list = Array.from(files as ArrayLike<File>)
+  return list.filter((file) => file.size > maxBytes)
+}
+
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace(/\/$/, '')
 const API_ORIGIN = API_BASE.replace(/\/api\/v\d+\/?$/, '')
 

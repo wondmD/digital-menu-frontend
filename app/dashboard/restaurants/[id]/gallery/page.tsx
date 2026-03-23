@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Save, Upload, X, ImageIcon, Plus } from "lucide-react"
-import { getImageUrl, getImageUrls } from "@/lib/utils"
+import { getImageUrl, getImageUrls, getOversizedFiles, MAX_UPLOAD_SIZE_BYTES } from "@/lib/utils"
 import { normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
 function isNotFoundError(err: unknown): boolean {
@@ -164,9 +164,22 @@ export default function GalleryPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    setNewImages(prev => [...prev, ...files])
-    const newPreviews = files.map(f => URL.createObjectURL(f))
-    setPreviews(prev => [...prev, ...newPreviews])
+    const oversized = getOversizedFiles(files)
+    if (oversized.length > 0) {
+      toast({
+        title: "Some files were skipped",
+        description: "Each upload must be 5MB or less.",
+        variant: "destructive",
+      })
+    }
+
+    const allowed = files.filter((file) => file.size <= MAX_UPLOAD_SIZE_BYTES)
+    if (allowed.length > 0) {
+      setNewImages(prev => [...prev, ...allowed])
+      const newPreviews = allowed.map(f => URL.createObjectURL(f))
+      setPreviews(prev => [...prev, ...newPreviews])
+    }
+    e.currentTarget.value = ""
   }
 
   const deleteExistingImage = async (ref: string) => {
@@ -221,6 +234,17 @@ export default function GalleryPage() {
     try {
       setSaving(true)
       setUploadProgress(0)
+
+      const oversized = getOversizedFiles(newImages)
+      if (oversized.length > 0) {
+        toast({
+          title: "Upload too large",
+          description: "Each upload must be 5MB or less.",
+          variant: "destructive",
+        })
+        return
+      }
+
       const targetRestaurantId = canonicalRestaurantId || id
       const removedUrls = initialGallery.filter((url) => !keepGalleryUrls.includes(url))
       const keepRefsRaw = keepGalleryUrls.map((value) => String(value || "").trim()).filter(Boolean)

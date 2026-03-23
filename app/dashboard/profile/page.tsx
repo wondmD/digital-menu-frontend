@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
 import { apiFetch } from "@/lib/api-client"
-import { cn, getImageUrl } from "@/lib/utils"
+import { cn, getImageUrl, getOversizedFiles, MAX_UPLOAD_SIZE_BYTES } from "@/lib/utils"
 import { 
   Building2, 
   MapPin, 
@@ -146,6 +146,18 @@ export default function ProfilePage() {
     gallery: string[];
   }>({ logo: null, cover: null, gallery: [] })
 
+  const getAllowedFiles = (files: File[]) => {
+    const oversized = getOversizedFiles(files)
+    if (oversized.length > 0) {
+      toast({
+        title: "Some files were skipped",
+        description: "Each upload must be 5MB or less.",
+        variant: "destructive",
+      })
+    }
+    return files.filter((file) => file.size <= MAX_UPLOAD_SIZE_BYTES)
+  }
+
 
   useEffect(() => {
     if (!token) return
@@ -171,6 +183,17 @@ export default function ProfilePage() {
     if (!token || !draft.name.trim()) return
     try {
       setSaving(true)
+      const allFiles = [draft.logo, draft.cover, ...draft.gallery_images].filter((file): file is File => Boolean(file))
+      const oversized = getOversizedFiles(allFiles)
+      if (oversized.length > 0) {
+        toast({
+          title: "Upload too large",
+          description: "Each upload must be 5MB or less.",
+          variant: "destructive",
+        })
+        return
+      }
+
       const url = editingId ? `/my-restaurants/${editingId}` : "/my-restaurants"
       const method = editingId ? "PATCH" : "POST"
       
@@ -357,10 +380,13 @@ export default function ProfilePage() {
                         </Label>
                         <input id="logo-upload" type="file" className="hidden" accept="image/*" onChange={e => {
                           const file = e.target.files?.[0]
-                          if (file) {
-                            setDraft(d => ({ ...d, logo: file }))
-                            setPreviews(p => ({ ...p, logo: URL.createObjectURL(file) }))
+                          const allowed = getAllowedFiles(file ? [file] : [])
+                          if (allowed[0]) {
+                            const safeFile = allowed[0]
+                            setDraft(d => ({ ...d, logo: safeFile }))
+                            setPreviews(p => ({ ...p, logo: URL.createObjectURL(safeFile) }))
                           }
+                          e.currentTarget.value = ""
                         }} />
                       </div>
                       <p className="text-[9px] text-muted-foreground uppercase font-bold max-w-[120px]">Recommended: Square 512x512</p>
@@ -382,10 +408,13 @@ export default function ProfilePage() {
                       </Label>
                       <input id="cover-upload" type="file" className="hidden" accept="image/*" onChange={e => {
                         const file = e.target.files?.[0]
-                        if (file) {
-                          setDraft(d => ({ ...d, cover: file }))
-                          setPreviews(p => ({ ...p, cover: URL.createObjectURL(file) }))
+                        const allowed = getAllowedFiles(file ? [file] : [])
+                        if (allowed[0]) {
+                          const safeFile = allowed[0]
+                          setDraft(d => ({ ...d, cover: safeFile }))
+                          setPreviews(p => ({ ...p, cover: URL.createObjectURL(safeFile) }))
                         }
+                        e.currentTarget.value = ""
                       }} />
                     </div>
                   </div>
@@ -419,8 +448,12 @@ export default function ProfilePage() {
                         <Plus className="h-6 w-6 text-muted-foreground/30" />
                         <input id="gallery-upload" type="file" multiple className="hidden" accept="image/*" onChange={e => {
                           const files = Array.from(e.target.files || [])
-                          setDraft(d => ({ ...d, gallery_images: [...d.gallery_images, ...files] }))
-                          setPreviews(p => ({ ...p, gallery: [...p.gallery, ...files.map(f => URL.createObjectURL(f))] }))
+                          const allowed = getAllowedFiles(files)
+                          if (allowed.length > 0) {
+                            setDraft(d => ({ ...d, gallery_images: [...d.gallery_images, ...allowed] }))
+                            setPreviews(p => ({ ...p, gallery: [...p.gallery, ...allowed.map(f => URL.createObjectURL(f))] }))
+                          }
+                          e.currentTarget.value = ""
                         }} />
                       </Label>
                     </div>

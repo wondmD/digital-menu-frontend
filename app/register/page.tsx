@@ -22,17 +22,22 @@ function RegisterForm() {
   const [step, setStep] = useState(1)
   const [errorShake, setErrorShake] = useState(false)
   const [passError, setPassError] = useState<string | null>(null)
+  const [confirmPassError, setConfirmPassError] = useState<string | null>(null)
+  const [step2SubmitAttempted, setStep2SubmitAttempted] = useState(false)
   const [touched, setTouched] = useState({
     email: false,
     phone: false,
+    password: false,
+    confirm_password: false,
   })
   
   // FORM STATE
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
-    phone: ETHIOPIA_DIAL_CODE,
+    phone: "",
     password: "",
+    confirm_password: "",
     marketer_referral_code: "",
   })
 
@@ -72,7 +77,7 @@ function RegisterForm() {
     const { name, value } = e.target
 
     if (name === "phone") {
-      const cleaned = value.replace(/[^\d+\s()-]/g, "")
+      const cleaned = value.replace(/\D/g, "")
       setFormData((prev) => ({ ...prev, phone: cleaned }))
       return
     }
@@ -80,8 +85,17 @@ function RegisterForm() {
     setFormData(prev => ({ ...prev, [name]: value }))
     
     if (name === "password") {
+      setTouched((prev) => ({ ...prev, password: true }))
       const { message } = validatePassword(value)
       setPassError(message)
+      const confirmValidation = validatePasswordConfirmation(value, formData.confirm_password)
+      setConfirmPassError(confirmValidation.message)
+    }
+
+    if (name === "confirm_password") {
+      setTouched((prev) => ({ ...prev, confirm_password: true }))
+      const confirmValidation = validatePasswordConfirmation(formData.password, value)
+      setConfirmPassError(confirmValidation.message)
     }
   }
 
@@ -123,18 +137,16 @@ function RegisterForm() {
     return { message: "Perfectly seasoned! This key is ready for the vault. ✨", isValid: true }
   }
 
+  const validatePasswordConfirmation = (password: string, confirmation: string) => {
+    if (!confirmation) return { message: null, isValid: false }
+    if (password !== confirmation) {
+      return { message: "Passwords do not match yet.", isValid: false }
+    }
+    return { message: "Passwords match.", isValid: true }
+  }
+
   const normalizeEthiopianPhone = (rawPhone: string): string | null => {
-    const compact = rawPhone.replace(/[\s()-]/g, "")
-
-    if (compact.startsWith("+251")) {
-      const local = compact.slice(4)
-      return /^[79]\d{8}$/.test(local) ? `+251${local}` : null
-    }
-
-    if (compact.startsWith("251")) {
-      const local = compact.slice(3)
-      return /^[79]\d{8}$/.test(local) ? `+251${local}` : null
-    }
+    const compact = rawPhone.replace(/\D/g, "")
 
     if (/^0[79]\d{8}$/.test(compact)) {
       return `+251${compact.slice(1)}`
@@ -160,9 +172,17 @@ function RegisterForm() {
     }
 
     // Final validation for Step 2
+    setStep2SubmitAttempted(true)
     const { message, isValid } = validatePassword(formData.password)
     if (!isValid) {
       setPassError(message || "Even a ghost kitchen needs a secret key! 👻")
+      triggerShake()
+      return
+    }
+
+    const confirmPasswordValidation = validatePasswordConfirmation(formData.password, formData.confirm_password)
+    if (!confirmPasswordValidation.isValid) {
+      setConfirmPassError(confirmPasswordValidation.message || "Please confirm your password.")
       triggerShake()
       return
     }
@@ -320,27 +340,27 @@ function RegisterForm() {
                       <div className="group relative">
                         <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-focus-within:text-primary transition-colors ml-1 mb-2 block">Direct Line</Label>
                         <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-2 rounded-xl border border-border bg-background/90 px-3 py-2 text-sm font-semibold text-foreground">
+                            <span aria-hidden="true">🇪🇹</span>
+                            <span>{ETHIOPIA_DIAL_CODE}</span>
+                          </div>
                           <Input 
                             name="phone" 
                             type="tel" 
                             value={formData.phone}
                             onChange={handleInputChange}
                             onBlur={() => setTouched((prev) => ({ ...prev, phone: true }))}
-                            onFocus={() => {
-                              if (!formData.phone.trim()) {
-                                setFormData((prev) => ({ ...prev, phone: ETHIOPIA_DIAL_CODE }))
-                              }
-                            }}
-                            placeholder="+251 912 345 678" 
+                            placeholder="912345678" 
                             inputMode="tel"
                             autoComplete="tel-national"
+                            maxLength={10}
                             className={cn(
-                              "h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all",
+                              "h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-36 text-lg transition-all",
                               touched.phone && !phoneIsValid && "border-red-500/50 bg-red-500/5",
                               touched.phone && phoneIsValid && "border-emerald-500/50 bg-emerald-500/5"
                             )}
                           />
-                          <Smartphone className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
+                          <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
                         </div>
                         {touched.phone && (
                           <p
@@ -351,7 +371,7 @@ function RegisterForm() {
                           >
                             {phoneIsValid
                               ? "Valid Ethiopian phone number."
-                              : "Use +2519XXXXXXXX, +2517XXXXXXXX, 09XXXXXXXX, or 07XXXXXXXX."}
+                              : "Enter 9XXXXXXXX, 7XXXXXXXX, 09XXXXXXXX, or 07XXXXXXXX."}
                           </p>
                         )}
                       </div>
@@ -379,14 +399,15 @@ function RegisterForm() {
                           value={formData.password}
                           onChange={handleInputChange}
                           autoFocus
+                          onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
                           className={cn(
                             "h-20 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground px-8 text-2xl tracking-[0.3em] transition-all",
-                            passError && !passError.includes("Perfectly") && "border-red-500/50 bg-red-500/5",
-                            passError?.includes("Perfectly") && "border-emerald-500/50 bg-emerald-500/5 focus:border-emerald-500/50"
+                            (step2SubmitAttempted || touched.password) && passError && !passError.includes("Perfectly") && "border-red-500/50 bg-red-500/5",
+                            (step2SubmitAttempted || touched.password) && passError?.includes("Perfectly") && "border-emerald-500/50 bg-emerald-500/5 focus:border-emerald-500/50"
                           )}
                         />
                         <AnimatePresence mode="wait">
-                          {passError && (
+                          {(step2SubmitAttempted || touched.password) && passError && (
                             <motion.p
                               key={passError}
                               initial={{ opacity: 0, y: -10 }}
@@ -398,6 +419,38 @@ function RegisterForm() {
                               )}
                             >
                               {passError.includes("Perfectly") ? "✨" : "⚠️"} {passError}
+                            </motion.p>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      <div className="group relative">
+                        <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-focus-within:text-primary transition-colors ml-1 mb-2 block">Confirm Key (Repeat Password)</Label>
+                        <Input
+                          name="confirm_password"
+                          type="password"
+                          value={formData.confirm_password}
+                          onChange={handleInputChange}
+                          onBlur={() => setTouched((prev) => ({ ...prev, confirm_password: true }))}
+                          className={cn(
+                            "h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground px-8 text-xl tracking-[0.2em] transition-all",
+                            (step2SubmitAttempted || touched.confirm_password) && confirmPassError && !confirmPassError.includes("match.") && "border-red-500/50 bg-red-500/5",
+                            (step2SubmitAttempted || touched.confirm_password) && confirmPassError?.includes("match.") && "border-emerald-500/50 bg-emerald-500/5 focus:border-emerald-500/50"
+                          )}
+                        />
+                        <AnimatePresence mode="wait">
+                          {(step2SubmitAttempted || touched.confirm_password) && confirmPassError && (
+                            <motion.p
+                              key={confirmPassError}
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              className={cn(
+                                "text-xs mt-3 ml-2 font-medium italic flex items-center gap-2",
+                                confirmPassError.includes("match.") ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                              )}
+                            >
+                              {confirmPassError.includes("match.") ? "✨" : "⚠️"} {confirmPassError}
                             </motion.p>
                           )}
                         </AnimatePresence>
@@ -434,7 +487,13 @@ function RegisterForm() {
               {step > 1 && (
                 <Button 
                   type="button" 
-                  onClick={() => setStep(step - 1)}
+                  onClick={() => {
+                    setStep(step - 1)
+                    setStep2SubmitAttempted(false)
+                    setPassError(null)
+                    setConfirmPassError(null)
+                    setTouched((prev) => ({ ...prev, password: false, confirm_password: false }))
+                  }}
                   variant="outline" 
                   className="w-full sm:w-auto h-14 sm:h-16 px-8 rounded-2xl border-border text-foreground hover:bg-muted transition-all"
                 >
@@ -442,43 +501,62 @@ function RegisterForm() {
                 </Button>
               )}
               
-              <Button
-                type={step === 2 ? "submit" : "button"}
-                onClick={() => {
-                  if (step === 1) {
+              {step === 1 ? (
+                <Button
+                  type="button"
+                  onClick={() => {
                     if (validateStep1()) {
                       setPassError(null)
+                      setConfirmPassError(null)
+                      setStep2SubmitAttempted(false)
+                      setTouched((prev) => ({ ...prev, password: false, confirm_password: false }))
                       setStep(2)
                     }
-                  }
-                }}
-                disabled={loading}
-                className="w-full flex-1 h-14 sm:h-16 rounded-2xl bg-primary text-base sm:text-xl font-bold text-white shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none relative overflow-hidden group touch-manipulation"
-              >
-                 <AnimatePresence mode="wait">
-                  {loading ? (
-                    <motion.div 
-                      key="loading" 
-                      initial={{ opacity: 0, y: 10 }} 
-                      animate={{ opacity: 1, y: 0 }} 
-                      className="flex items-center gap-3"
-                    >
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                      Seasoning your account...
-                    </motion.div>
-                  ) : (
-                    <motion.div 
-                      key="text" 
-                      initial={{ opacity: 0, y: 10 }} 
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-3"
-                    >
-                      {step === 1 ? "Next Step" : "Ignite Dashboard"}
-                      <Sparkles className="h-5 w-5 fill-white group-hover:animate-pulse" />
-                    </motion.div>
-                  )}
-                 </AnimatePresence>
-              </Button>
+                  }}
+                  disabled={loading}
+                  className="w-full flex-1 h-14 sm:h-16 rounded-2xl bg-primary text-base sm:text-xl font-bold text-white shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none relative overflow-hidden group touch-manipulation"
+                >
+                  <motion.div
+                    key="next-text"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3"
+                  >
+                    Next Step
+                    <Sparkles className="h-5 w-5 fill-white group-hover:animate-pulse" />
+                  </motion.div>
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex-1 h-14 sm:h-16 rounded-2xl bg-primary text-base sm:text-xl font-bold text-white shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none relative overflow-hidden group touch-manipulation"
+                >
+                  <AnimatePresence mode="wait">
+                    {loading ? (
+                      <motion.div
+                        key="loading"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-3"
+                      >
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        Seasoning your account...
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="submit-text"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-3"
+                      >
+                        Ignite Dashboard
+                        <Sparkles className="h-5 w-5 fill-white group-hover:animate-pulse" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Button>
+              )}
             </div>
           </form>
 

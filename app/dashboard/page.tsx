@@ -334,7 +334,7 @@ export default function DashboardPage() {
                   </div>
                </div>
                <Button className="w-full rounded-2xl h-12 md:h-14 bg-primary text-[10px] md:text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:scale-[1.02] transition-transform text-white" asChild>
-                  <Link href="/packages">View plans</Link>
+                <Link href="/dashboard/subscription">View details</Link>
                </Button>
             </Card>
           </motion.div>
