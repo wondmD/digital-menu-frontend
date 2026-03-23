@@ -3,35 +3,16 @@
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { 
-  ShieldCheck, 
-  UserRound, 
-  Mail, 
-  Smartphone, 
-  Shield, 
-  CalendarDays, 
   Pencil, 
-  X, 
-  Check, 
-  CreditCard, 
-  Sparkles,
-  ArrowUpRight,
-  TrendingUp,
-  Clock,
-  LayoutGrid,
-  Settings,
-  ChevronRight,
-  Hotel,
   Loader2
 } from "lucide-react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
 import { apiFetch } from "@/lib/api-client"
-import Link from "next/link"
 
 interface Profile {
   id: string
@@ -43,32 +24,12 @@ interface Profile {
   created_at?: string
 }
 
-interface Subscription {
-  plan_name: string
-  plan_slug: string
-  price: number
-  currency: string
-  status: string
-  start_date: string
-  end_date: string
-  days_remaining: number
-  features: {
-    max_restaurants: number
-    max_categories: number
-    max_menu_items: number
-    max_staff_accounts: number
-    activity_log_enabled: boolean
-    analytics_enabled: boolean
-  }
-}
-
 export default function SettingsPage() {
   const { data: session, status } = useSession()
   const token = (session?.user as any)?.accessToken as string | undefined
   const { toast } = useToast()
 
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [subscription, setSubscription] = useState<Subscription | null>(null)
   
   const [fullName, setFullName] = useState("")
   const [phone, setPhone] = useState("")
@@ -93,12 +54,6 @@ export default function SettingsPage() {
           setFullName(data.full_name || session?.user?.name || "")
           setPhone(data.phone || "")
         }
-
-        // Load Subscription
-        try {
-          const subRes = await apiFetch<any>("/subscription/me", { token })
-          setSubscription(subRes?.data || subRes)
-        } catch (err) {}
 
       } catch (err: any) {
         toast({ title: "Could not load profile", description: err?.message, variant: "destructive" })
@@ -150,11 +105,6 @@ export default function SettingsPage() {
   const role = profile?.role || (session?.user as any)?.role || "owner"
   const isActive = profile?.is_active ?? true
 
-  const getPlanName = () => {
-    if (!subscription) return "Trial"
-    return subscription.plan_name || "Active Plan"
-  }
-
   return (
     <div className="max-w-6xl mx-auto space-y-12 md:space-y-16 pb-12 md:pb-24 px-3 sm:px-4 lg:px-0">
       {/* 1. OPERATIONAL CONTROL HEADER */}
@@ -167,7 +117,7 @@ export default function SettingsPage() {
             Account <span className="text-muted-foreground italic font-serif lowercase tracking-normal">settings</span>
           </h1>
           <p className="text-muted-foreground font-medium max-w-md text-base md:text-lg italic serif leading-relaxed">
-            Manage your personal information and subscription details.
+            Manage your personal information and account details.
           </p>
         </div>
         
@@ -182,9 +132,8 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <div className="grid gap-10 lg:grid-cols-12">
-        {/* Left Column: Personal Information */}
-        <div className="lg:col-span-7 space-y-12 md:space-y-16">
+      <div className="space-y-12 md:space-y-16">
+        <div className="space-y-12 md:space-y-16">
           <section className="space-y-8 md:space-y-10">
             <div className="flex items-center gap-4 px-2">
               <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
@@ -239,43 +188,40 @@ export default function SettingsPage() {
                 </div>
               </Card>
             ) : (
-              <div className="grid gap-6 md:gap-8 md:grid-cols-2">
-                <div className="p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border-2 border-border/60 bg-card/40 backdrop-blur-3xl hover:border-primary/30 transition-all group shadow-3xl">
-                  <div className="flex items-center gap-4 mb-4 md:mb-6 opacity-30 group-hover:opacity-100 transition-opacity">
-                    <div className="h-1 w-12 bg-primary rounded-full" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-foreground">Full Name</span>
-                  </div>
-                  <p className="text-2xl md:text-3xl font-black text-foreground tracking-tighter uppercase leading-none">{profile?.full_name || "No name set"}</p>
-                </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Card className="p-4 rounded-2xl border border-border/60 bg-card/50">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Name</p>
+                  <p className="mt-2 text-base font-bold text-foreground leading-tight">{profile?.full_name || "No name set"}</p>
+                </Card>
 
-                <div className="p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border-2 border-border/60 bg-card/40 backdrop-blur-3xl hover:border-primary/30 transition-all group shadow-3xl">
-                  <div className="flex items-center gap-4 mb-4 md:mb-6 opacity-30 group-hover:opacity-100 transition-opacity">
-                    <div className="h-1 w-12 bg-primary rounded-full" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-foreground">Email</span>
-                  </div>
-                  <p className="text-xl md:text-2xl font-black text-foreground tracking-tighter truncate leading-none">{email}</p>
-                </div>
+                <Card className="p-4 rounded-2xl border border-border/60 bg-card/50">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Email</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground truncate">{email}</p>
+                </Card>
 
-                <div className="p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border-2 border-border/60 bg-card/40 backdrop-blur-3xl hover:border-primary/30 transition-all group shadow-3xl">
-                  <div className="flex items-center gap-4 mb-4 md:mb-6 opacity-30 group-hover:opacity-100 transition-opacity">
-                    <div className="h-1 w-12 bg-primary rounded-full" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-foreground">Account ID</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                     <p className="text-xl md:text-2xl font-black text-foreground tracking-widest leading-none">#{profile?.id?.slice(0, 8).toUpperCase() || "UNASSIGNED"}</p>
-                     <Badge className="bg-primary/10 text-primary border border-primary/20 font-black text-[9px] px-3 uppercase tracking-widest w-fit">Active</Badge>
-                  </div>
-                </div>
+                <Card className="p-4 rounded-2xl border border-border/60 bg-card/50">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Phone</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{profile?.phone || "—"}</p>
+                </Card>
 
-                <div className="p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border-2 border-border/60 bg-card/40 backdrop-blur-3xl hover:border-primary/30 transition-all group shadow-3xl">
-                  <div className="flex items-center gap-4 mb-4 md:mb-6 opacity-30 group-hover:opacity-100 transition-opacity">
-                    <div className="h-1 w-12 bg-primary rounded-full" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.4em] text-foreground">Member since</span>
-                  </div>
-                  <p className="text-xl md:text-2xl font-black text-foreground tracking-tighter leading-none italic serif lowercase">
-                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : "—"}
+                <Card className="p-4 rounded-2xl border border-border/60 bg-card/50">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Role</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground capitalize">{role}</p>
+                </Card>
+
+                <Card className="p-4 rounded-2xl border border-border/60 bg-card/50">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Status</p>
+                  <Badge className="mt-2 bg-primary/10 text-primary border border-primary/20 font-bold text-[10px] uppercase tracking-widest">
+                    {isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </Card>
+
+                <Card className="p-4 rounded-2xl border border-border/60 bg-card/50">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Member Since</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">
+                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" }) : "—"}
                   </p>
-                </div>
+                </Card>
               </div>
             )}
           </section>
@@ -298,81 +244,6 @@ export default function SettingsPage() {
                   </Button>
                </div>
             </Card>
-          </section>
-        </div>
-
-        {/* Right Column: Plan Details */}
-        <div className="lg:col-span-5 space-y-12 md:space-y-16">
-          <section className="space-y-8 md:space-y-10">
-            <div className="flex items-center gap-4 px-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-              <h3 className="text-[11px] font-black uppercase tracking-[0.5em] text-muted-foreground">Current plan</h3>
-            </div>
-
-            <Card className="bg-card border-2 border-primary/20 rounded-[2.5rem] md:rounded-[4.5rem] p-8 md:p-16 relative overflow-hidden shadow-3xl group">
-               <div className="absolute top-0 right-0 h-80 w-80 bg-primary/10 blur-[120px] rounded-full group-hover:bg-primary/20 transition-all duration-1000" />
-               <div className="relative z-10 text-center space-y-8 md:space-y-12">
-                  <Badge className="bg-primary text-white font-black text-[10px] uppercase tracking-[0.5em] px-6 md:px-10 py-2.5 md:py-3 rounded-full shadow-[0_15px_30px_rgba(230,57,70,0.5)]">
-                    {subscription?.plan_name.toUpperCase() || "TRIAL PLAN"}
-                  </Badge>
-                  
-                  <div className="space-y-2">
-                     <h4 className="text-3xl md:text-4xl font-black text-foreground uppercase leading-none tracking-tighter">Subscription</h4>
-                     <div className="flex items-baseline justify-center gap-2">
-                        <span className="text-5xl md:text-7xl font-black text-foreground italic serif">{subscription?.currency === "EUR" ? "€" : "$"}{subscription?.price || "0"}</span>
-                        <span className="text-muted-foreground font-black uppercase text-[10px] tracking-widest mb-4">/ month</span>
-                     </div>
-                  </div>
-
-                  <div className="space-y-6 md:space-y-8 pt-8 md:pt-10 border-t border-border/60">
-                     {[
-                       { icon: Hotel, label: "Restaurants", value: subscription?.features.max_restaurants || 1 },
-                       { icon: LayoutGrid, label: "Categories", value: subscription?.features.max_categories || 10 },
-                       { icon: Sparkles, label: "Menu items", value: subscription?.features.max_menu_items || 50 }
-                     ].map((stat, i) => (
-                       <div key={i} className="flex items-center justify-between group/stat">
-                          <div className="flex items-center gap-4">
-                             <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl md:rounded-2xl bg-muted/30 border border-border/60 flex items-center justify-center group-hover/stat:bg-primary transition-all">
-                                <stat.icon className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground group-hover/stat:text-white" />
-                             </div>
-                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground group-hover/stat:text-foreground transition-colors">{stat.label}</span>
-                          </div>
-                          <span className="text-xl md:text-2xl font-black text-foreground italic serif">{stat.value}</span>
-                       </div>
-                     ))}
-                  </div>
-
-                  <div className="pt-4 md:pt-6 space-y-4 md:space-y-6">
-                     <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">
-                        <span>Subscription period</span>
-                        <span className="text-secondary">{subscription?.days_remaining || 0} days left</span>
-                     </div>
-                     <div className="h-4 w-full bg-muted/30 rounded-full overflow-hidden border border-border/60 p-1">
-                        <div 
-                          className="h-full rounded-full bg-gradient-to-r from-primary via-orange-500 to-red-600 shadow-[0_0_20px_rgba(230,57,70,0.6)]" 
-                          style={{ width: `${Math.min(100, (subscription?.days_remaining || 0) / 30 * 100)}%` }} 
-                        />
-                     </div>
-                  </div>
-
-                  <Button className="w-full h-20 md:h-24 rounded-2xl md:rounded-[2.5rem] border-2 border-border/60 bg-transparent text-foreground font-black uppercase text-xs tracking-[0.5em] group/btn hover:bg-foreground hover:text-background transition-all" asChild>
-                     <Link href="/packages" className="flex items-center justify-center gap-4">
-                       Upgrade plan <ArrowUpRight className="h-5 w-5 md:h-6 md:w-6 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-all" />
-                     </Link>
-                  </Button>
-               </div>
-            </Card>
-
-            <div className="p-8 md:p-12 rounded-[2.5rem] md:rounded-[4rem] bg-card/40 border border-border/60 backdrop-blur-3xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 h-32 w-32 bg-secondary/5 blur-[50px] rounded-full" />
-               <div className="flex items-center gap-4 text-secondary mb-4 md:mb-6 relative z-10">
-                  <Clock className="h-6 w-6" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.5em]">Next billing</span>
-               </div>
-               <p className="text-base md:text-lg text-muted-foreground font-medium leading-relaxed relative z-10 italic serif">
-                  Your next billing date is on <span className="text-foreground font-bold">{subscription?.end_date ? new Date(subscription.end_date).toLocaleDateString() : 'N/A'}</span>.
-               </p>
-            </div>
           </section>
         </div>
       </div>

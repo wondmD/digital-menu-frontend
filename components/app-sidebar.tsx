@@ -15,6 +15,7 @@ import {
   QrCode,
   Settings,
   Hotel,
+  CreditCard,
   LogOut,
   Coffee,
   ChevronRight,
@@ -68,6 +69,11 @@ const NAV_ITEMS = [
     icon: QrCode,
   },
   {
+    title: "Subscription",
+    url: "/dashboard/subscription",
+    icon: CreditCard,
+  },
+  {
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,
@@ -113,7 +119,13 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
     return subscription.plan?.name || (slug === 'free-trial' ? 'Free Trial' : "Active")
   }
 
-  const userName = session?.user?.name || "Proprietor"
+  const derivedNameFromEmail = session?.user?.email
+    ? session.user.email
+        .split("@")[0]
+        .replace(/[._-]+/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : ""
+  const userName = session?.user?.name || derivedNameFromEmail || "User"
   const userEmail = session?.user?.email || "—"
   const avatarFallback =
     (userName &&
@@ -226,19 +238,6 @@ export function AppSidebar({ children }: { children: React.ReactNode }) {
       </Sidebar>
 
       <SidebarInset className="bg-background flex min-h-screen min-w-0 flex-col transition-all duration-300 overflow-x-hidden">
-        {getDaysLeft() !== null && (
-          <div className="w-full bg-primary py-1.5 px-6 flex items-center justify-between shadow-lg relative z-[60]">
-             <div className="flex items-center gap-2">
-                <Zap className="h-3 w-3 text-white animate-pulse" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-white">
-                  Free Trial: <span className="underline decoration-white/30 underline-offset-4">{getDaysLeft()} Days Left</span>
-                </span>
-             </div>
-             <Link href="/packages" className="text-[8px] font-black uppercase tracking-widest text-white/90 hover:text-white flex items-center gap-1 transition-colors group">
-                Upgrade Plan <ArrowRight className="h-2.5 w-2.5 group-hover:translate-x-0.5 transition-transform" />
-             </Link>
-          </div>
-        )}
         <header className="flex h-16 md:h-20 items-center justify-between px-4 md:px-8 border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-50">
           <div className="flex items-center gap-2 md:gap-4">
              <SidebarTrigger className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg" />

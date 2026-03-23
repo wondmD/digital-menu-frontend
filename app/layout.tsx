@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthSessionProvider } from "@/components/auth-session-provider"
 import { ThemeProvider } from "@/components/theme-provider"
+import { FreeTrialBanner } from "@/components/free-trial-banner"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -104,6 +105,7 @@ export default function RootLayout({
             enableSystem 
             disableTransitionOnChange
           >
+            <FreeTrialBanner />
             {children}
             <Toaster />
             <Analytics />

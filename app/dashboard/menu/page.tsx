@@ -60,7 +60,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { apiFetch, apiFetchWithProgress } from "@/lib/api-client"
-import { cn, getImageUrl, getImageUrls } from "@/lib/utils"
+import { cn, getImageUrl, getImageUrls, getOversizedFiles, MAX_UPLOAD_SIZE_BYTES } from "@/lib/utils"
 import Link from "next/link"
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel"
 
@@ -195,6 +195,22 @@ function MenuManagementContent() {
 
   const isCreatingItem = savingItem && !activeItem
   const isCreatingCategory = savingCat && !activeCategory
+
+  const appendAllowedItemImages = (files: File[]) => {
+    const oversized = getOversizedFiles(files)
+    if (oversized.length > 0) {
+      toast({
+        title: "Some files were skipped",
+        description: "Each upload must be 5MB or less.",
+        variant: "destructive",
+      })
+    }
+
+    const allowed = files.filter((file) => file.size <= MAX_UPLOAD_SIZE_BYTES)
+    if (allowed.length === 0) return
+
+    setItemDraft((prev) => ({ ...prev, images: [...prev.images, ...allowed] }))
+  }
 
   const openItemDialog = (item: MenuItem | null, startStep: 1 | 2 = 1) => {
     setActiveItem(item)
@@ -418,6 +434,17 @@ function MenuManagementContent() {
     if (!token || !itemDraft.name.trim() || !restaurantId || !categoryId) return
     try {
       setSavingItem(true)
+      const newImageFiles = itemDraft.images.filter((img): img is File => img instanceof File)
+      const oversized = getOversizedFiles(newImageFiles)
+      if (oversized.length > 0) {
+        toast({
+          title: "Upload too large",
+          description: "Each upload must be 5MB or less.",
+          variant: "destructive",
+        })
+        return
+      }
+
       const numericPrice = Number(itemDraft.price || 0)
       if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
         toast({ title: "Invalid price", description: "Please enter a valid price greater than 0.", variant: "destructive" })
@@ -675,9 +702,9 @@ function MenuManagementContent() {
   }
 
   return (
-    <div className="dashboard-surface-polish flex flex-col gap-4 md:gap-6 pb-20 px-3 sm:px-4 lg:px-0">
+    <div className="dashboard-surface-polish flex flex-col gap-4 md:gap-6 pt-1 sm:pt-2 pb-20 px-3 sm:px-4 lg:px-0 overflow-x-hidden">
        {/* Menu management */}
-       <div className="bg-card/40 backdrop-blur-3xl border border-border/60 rounded-3xl p-4 md:p-6 flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8 shadow-3xl relative overflow-hidden group">
+      <div className="bg-card/40 backdrop-blur-3xl border border-border/60 rounded-3xl p-4 md:p-6 flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8 shadow-3xl relative overflow-visible group">
           <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-[120px] -mr-48 -mt-48 transition-all group-hover:bg-primary/10" />
           
           <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 z-10 text-center sm:text-left w-full sm:w-auto">
@@ -722,7 +749,7 @@ function MenuManagementContent() {
           </Button>
        </div>
 
-      <div className="flex flex-col gap-6 md:gap-8 md:flex-row md:items-end md:justify-between px-2 min-w-0">
+      <div className="relative z-20 flex flex-col gap-6 md:gap-8 md:flex-row md:items-end md:justify-between px-2 min-w-0">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
              <Activity className="h-4 w-4 text-primary animate-pulse" />
@@ -736,10 +763,10 @@ function MenuManagementContent() {
         
         <div className="flex w-full min-w-0 flex-col items-stretch gap-3 md:gap-4 md:w-auto md:items-end">
           {restaurants.length > 0 && (
-            <div className="flex w-full md:w-[420px] lg:w-[460px] min-w-0 flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4 bg-card/70 p-2.5 md:p-3 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl">
+            <div className="relative z-30 flex w-full md:w-full md:max-w-[460px] min-w-0 flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4 bg-card/70 p-2.5 md:p-3 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl">
               <div className="flex flex-col gap-2 flex-1 min-w-0">
                 <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.35em] text-primary">Managing Restaurant</span>
-                <div className="relative group/select">
+                <div className="relative z-40 group/select">
                   <select
                     className="h-11 md:h-12 w-full min-w-0 bg-muted/40 border border-border/60 rounded-xl px-4 pr-10 text-sm md:text-sm font-black tracking-[0.08em] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 appearance-none cursor-pointer"
                     value={restaurantId}
@@ -827,12 +854,12 @@ function MenuManagementContent() {
         </aside>
 
         <section className="lg:col-span-9 space-y-6 md:space-y-8">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center bg-card/60 backdrop-blur-3xl p-2 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl">
+          <div className="relative z-10 flex flex-col gap-3 md:flex-row md:items-center bg-card/60 backdrop-blur-3xl p-2 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40" />
               <Input placeholder="Search Ethiopian dishes..." className="pl-12 border-none bg-transparent h-11 focus-visible:ring-0 text-sm font-bold placeholder:text-muted-foreground/20 text-foreground" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <div className="flex w-full md:w-auto items-center gap-3 pr-0 md:pr-2">
+            <div className="relative z-20 flex w-full md:w-auto items-center gap-3 pr-0 md:pr-2">
               <select className="h-11 w-full sm:w-52 rounded-xl border border-border/50 bg-muted/40 px-4 text-[9px] font-black uppercase tracking-[0.16em] focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all appearance-none cursor-pointer pr-10 hover:bg-muted/60 text-foreground" style={{ backgroundImage: `url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.8rem center', backgroundSize: '1em' }} value={availabilityFilter} onChange={(e) => setAvailabilityFilter(e.target.value as any)}>
                 <option value="all" className="bg-card text-foreground">All items</option>
                 <option value="available" className="bg-card text-foreground">Available</option>
@@ -1184,7 +1211,11 @@ function MenuManagementContent() {
                       type="file"
                       className="hidden"
                       multiple
-                      onChange={e => setItemDraft(p => ({ ...p, images: [...p.images, ...Array.from(e.target.files || [])] }))}
+                      onChange={e => {
+                        const files = Array.from(e.target.files || [])
+                        appendAllowedItemImages(files)
+                        e.currentTarget.value = ""
+                      }}
                     />
                   </div>
                 </div>

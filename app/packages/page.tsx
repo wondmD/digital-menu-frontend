@@ -18,8 +18,8 @@ const DEFAULT_PLANS = [
     name: "Free Trial",
     price: "0",
     currency: "ETB",
-    cadence: "7 days",
-    description: "Experience all features. No credit card required for trial.",
+    cadence: "1 month",
+    description: "Try Agelgil for one month with core features, no card required.",
     features: ["1 restaurant", "20 items", "5 categories", "Basic analytics"],
     limits: { restaurants: 1, items: 20, staff: 0 },
     icon: Zap
@@ -60,6 +60,22 @@ const DEFAULT_PLANS = [
   },
 ]
 
+function getPlanTierScore(plan: any): number {
+  const slug = String(plan?.slug || plan?.id || "").toLowerCase()
+  const name = String(plan?.name || "").toLowerCase()
+
+  if (slug.includes("trial") || name.includes("trial") || slug.includes("free") || name.includes("free")) return 0
+  if (slug.includes("bronze") || name.includes("bronze")) return 1
+  if (slug.includes("silver") || name.includes("silver")) return 2
+  if (slug.includes("gold") || name.includes("gold")) return 3
+
+  const monthlyPrice = Number(String(plan?.price || 0).replace(/,/g, ""))
+  if (!Number.isFinite(monthlyPrice) || monthlyPrice <= 0) return 0
+  if (monthlyPrice < 1000) return 1
+  if (monthlyPrice < 3000) return 2
+  return 3
+}
+
 export default function PackageSelectionPage() {
   const [plans, setPlans] = useState(DEFAULT_PLANS)
   const [selectedPlan, setSelectedPlan] = useState<string>("silver-monthly")
@@ -69,13 +85,23 @@ export default function PackageSelectionPage() {
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
   const [currentPlanSlug, setCurrentPlanSlug] = useState<string | null>(null)
   const [hasUsedTrial, setHasUsedTrial] = useState(false)
-  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null)
   const router = useRouter()
   const { data: session, status } = useSession()
   const { toast } = useToast()
 
   const trialPlan = useMemo(() => plans.find(p => p.slug === 'free-trial' || p.name.toLowerCase().includes('trial')), [plans])
-  const paidPlans = useMemo(() => plans.filter(p => !p.slug?.includes('trial') && !p.id?.includes('trial')), [plans])
+  const paidPlans = useMemo(() => plans.filter((p) => {
+    const slug = String(p.slug || p.id || "").toLowerCase()
+    const name = String(p.name || "").toLowerCase()
+    return (
+      !slug.includes("trial") &&
+      !name.includes("trial") &&
+      !slug.includes("starter") &&
+      !name.includes("starter") &&
+      !slug.includes("free") &&
+      !name.includes("free")
+    )
+  }), [plans])
 
   const hasActivePaidPlan = useMemo(() => {
     if (!currentPlanId && !currentPlanSlug) return false
@@ -88,7 +114,20 @@ export default function PackageSelectionPage() {
     return (trialPlan && (currentPlanId === trialPlan.id || currentPlanSlug === trialPlan.slug));
   }, [currentPlanId, currentPlanSlug, trialPlan]);
 
-  const showTrialButton = !hasActivePaidPlan
+  const currentPaidPlan = useMemo(() => {
+    if (!hasActivePaidPlan) return null
+    return paidPlans.find((p) => p.id === currentPlanId || p.slug === currentPlanSlug) || null
+  }, [hasActivePaidPlan, paidPlans, currentPlanId, currentPlanSlug])
+
+  const currentTierScore = useMemo(() => {
+    if (!currentPaidPlan) return -1
+    return getPlanTierScore(currentPaidPlan)
+  }, [currentPaidPlan])
+
+  const hasUpgradeOptions = useMemo(() => {
+    if (!hasActivePaidPlan) return true
+    return paidPlans.some((p) => getPlanTierScore(p) > currentTierScore)
+  }, [hasActivePaidPlan, paidPlans, currentTierScore])
 
   const token = (session?.user as any)?.accessToken
 
@@ -123,16 +162,6 @@ export default function PackageSelectionPage() {
                            sub?.plan_slug === "free-trial";
           setHasUsedTrial(trialUsed)
 
-          // Calculate trial days left if currently trialling
-          if (sub?.plan_slug === "free-trial" && sub?.expires_at) {
-             const expiry = new Date(sub.expires_at)
-             const now = new Date()
-             const diff = expiry.getTime() - now.getTime()
-             const days = Math.ceil(diff / (1000 * 60 * 60 * 24))
-             setTrialDaysLeft(days > 0 ? days : 0)
-          } else {
-             setTrialDaysLeft(null)
-          }
         }
 
         const restaurants = restRes?.data || restRes || []
@@ -141,7 +170,13 @@ export default function PackageSelectionPage() {
         const rawPlans = plansRes?.data || plansRes
         
         if (rawPlans && Array.isArray(rawPlans)) {
-          const fetchedPlans = rawPlans.map((p: any) => {
+          const fetchedPlans = rawPlans
+            .filter((p: any) => {
+              const slug = String(p?.slug || p?.id || "").toLowerCase()
+              const name = String(p?.name || "").toLowerCase()
+              return !slug.includes("starter") && !name.includes("starter") && !slug.includes("free") && !name.includes("free")
+            })
+            .map((p: any) => {
             // Transform backend features object into a readable display array
             const displayFeatures = []
             if (p.features && typeof p.features === 'object') {
@@ -161,7 +196,7 @@ export default function PackageSelectionPage() {
               if (f.activity_log_enabled) displayFeatures.push("Activity logs")
             }
 
-            return {
+              return {
                id: p.id,
                slug: p.slug || p.id,
                name: p.name,
@@ -179,13 +214,24 @@ export default function PackageSelectionPage() {
                icon: p.name.toLowerCase().includes('gold') ? Crown : 
                      p.name.toLowerCase().includes('silver') ? Gem : 
                      p.name.toLowerCase().includes('trial') ? Zap : Star
-            }
-          })
+              }
+            })
           setPlans(fetchedPlans)
           
-          const filteredForSelection = fetchedPlans.filter(p => p.slug !== 'free-trial' && !p.name.toLowerCase().includes('trial'))
-          if (!filteredForSelection.find((p: any) => p.slug === selectedPlan)) {
-            setSelectedPlan(filteredForSelection.find((p: any) => p.highlighted)?.slug || filteredForSelection[0]?.slug || "silver-monthly")
+          const filteredForSelection = fetchedPlans.filter((p) => {
+            const slug = String(p.slug || p.id || "").toLowerCase()
+            const name = String(p.name || "").toLowerCase()
+            return !slug.includes("trial") && !name.includes("trial") && !slug.includes("free") && !name.includes("free")
+          })
+
+          const activeCurrent = filteredForSelection.find((p: any) => p.id === (subRes?.data || subRes)?.plan_id || p.slug === (subRes?.data || subRes)?.plan_slug)
+          const activeTier = activeCurrent ? getPlanTierScore(activeCurrent) : -1
+          const upgradeOnly = activeTier >= 0
+            ? filteredForSelection.filter((p: any) => getPlanTierScore(p) > activeTier)
+            : filteredForSelection
+
+          if (!upgradeOnly.find((p: any) => p.slug === selectedPlan)) {
+            setSelectedPlan(upgradeOnly.find((p: any) => p.highlighted)?.slug || upgradeOnly[0]?.slug || "silver-monthly")
           }
         }
       } catch (err) {
@@ -320,60 +366,74 @@ export default function PackageSelectionPage() {
           </p>
         </div>
 
-        {showTrialButton && (
-           <motion.div 
-             initial={{ opacity: 0, y: 20 }}
-             animate={{ opacity: 1, y: 0 }}
-             className={cn(
-               "max-w-3xl mx-auto mb-16 p-1 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 rounded-[2.5rem]",
-               hasUsedTrial && !isCurrentlyTrialling && "opacity-50 grayscale"
-             )}
-           >
-             <div className="p-8 rounded-[2.4rem] bg-card/60 backdrop-blur-3xl flex flex-col md:flex-row items-center justify-between gap-8 group transition-all duration-500">
-                <div className="flex items-center gap-6 text-left w-full">
-                   <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner border border-primary/20 shrink-0">
-                      <Zap className={cn("h-8 w-8", !hasUsedTrial && "animate-pulse")} />
-                   </div>
-                   <div className="text-left">
-                      <h3 className="text-2xl font-serif font-bold text-foreground">
-                        {isCurrentlyTrialling ? "You are on Free Trial" : "Begin Your Journey"}
-                      </h3>
-                      <p className="text-muted-foreground font-medium leading-relaxed">
-                        {isCurrentlyTrialling 
-                          ? `You have ${trialDaysLeft !== null ? `${trialDaysLeft} day${trialDaysLeft !== 1 ? 's' : ''}` : 'some time'} remaining on your trial. Access your dashboard or upgrade to keep your data.`
-                          : "Experience Agelgil (አገልግል) with a 7-day free trial. No commitment, cancel anytime."}
-                      </p>
-                   </div>
-                </div>
-                <Button 
-                  onClick={() => {
-                    if (isCurrentlyTrialling) router.push("/dashboard");
-                    else handleContinue('free-trial');
-                  }}
-                  disabled={processing || (hasUsedTrial && !isCurrentlyTrialling)}
-                  size="lg"
-                  className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
-                >
-                   {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : (
-                     <>
-                       {isCurrentlyTrialling ? "Continue to Dashboard" : 
-                        (hasUsedTrial ? "Trial Used" : "Start Free Trial")}
-                       <ArrowRight className="ml-2 h-5 w-5" />
-                     </>
-                   )}
-                </Button>
-             </div>
-           </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            "max-w-3xl mx-auto mb-16 p-1 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 rounded-[2.5rem]",
+            (hasUsedTrial || hasActivePaidPlan) && !isCurrentlyTrialling && "opacity-65"
+          )}
+        >
+          <div className="p-8 rounded-[2.4rem] bg-card/60 backdrop-blur-3xl flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-500">
+            <div className="flex items-center gap-6 text-left w-full">
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner border border-primary/20 shrink-0">
+                <Zap className={cn("h-8 w-8", !(hasUsedTrial || hasActivePaidPlan) && "animate-pulse")} />
+              </div>
+              <div className="text-left">
+                <h3 className="text-2xl font-serif font-bold text-foreground">Free Trial</h3>
+                {(hasUsedTrial || hasActivePaidPlan) && !isCurrentlyTrialling && (
+                  <p className="mt-2 text-xs font-bold uppercase tracking-wider text-destructive">
+                    Free trial is unavailable for this account.
+                  </p>
+                )}
+              </div>
+            </div>
+            <Button
+              onClick={() => {
+                if (isCurrentlyTrialling) {
+                  router.push("/dashboard")
+                  return
+                }
+                handleContinue("free-trial")
+              }}
+              disabled={processing || (hasUsedTrial && !isCurrentlyTrialling) || hasActivePaidPlan}
+              size="lg"
+              className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+            >
+              {processing ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  Continue with Free Trial for One Month
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
+            </Button>
+          </div>
+        </motion.div>
+
+        {hasActivePaidPlan && !hasUpgradeOptions && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-3xl mx-auto mb-12 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center"
+          >
+            <p className="font-bold text-emerald-700 dark:text-emerald-300">
+              You are currently on the top package. Downgrading is not possible, and there are no further upgrades.
+            </p>
+          </motion.div>
         )}
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-stretch mb-16">
           <AnimatePresence>
             {paidPlans.map((plan, idx) => {
               const isMatchesCurrent = currentPlanId === plan.id || currentPlanId === plan.slug
-              const isTrialPlan = plan.slug === 'free-trial' || plan.name.toLowerCase().includes('trial')
-              const isTrialUnavailable = isTrialPlan && hasUsedTrial && !isMatchesCurrent
-              
-              const possible = isDowngradePossible(plan.slug) && !isTrialUnavailable
+              const isTrialUnavailable = false
+
+              const isUpgradeForActivePlan = !hasActivePaidPlan || getPlanTierScore(plan) > currentTierScore
+              const blockedByDowngradeRule = hasActivePaidPlan && !isMatchesCurrent && !isUpgradeForActivePlan
+
+              const possible = isDowngradePossible(plan.slug) && !isTrialUnavailable && !blockedByDowngradeRule
               const isSelected = selectedPlan === plan.slug
               const PlanIcon = plan.icon || Star
 
@@ -411,6 +471,9 @@ export default function PackageSelectionPage() {
                         {plan.highlighted && !isMatchesCurrent && (
                           <Badge className="bg-primary text-[10px] font-black uppercase tracking-widest px-3">Most Popular</Badge>
                         )}
+                        {blockedByDowngradeRule && (
+                          <Badge className="bg-destructive text-[10px] font-black uppercase tracking-widest px-3">Downgrade blocked</Badge>
+                        )}
                       </div>
                       
                       <CardTitle className="text-3xl font-serif text-foreground mb-2 tracking-tight">{plan.name}</CardTitle>
@@ -418,6 +481,9 @@ export default function PackageSelectionPage() {
                         {plan.description}
                         {isTrialUnavailable && (
                           <span className="block mt-2 text-destructive font-bold text-[10px] uppercase">Trial no longer available</span>
+                        )}
+                        {blockedByDowngradeRule && (
+                          <span className="block mt-2 text-destructive font-bold text-[10px] uppercase">Downgrading is not possible</span>
                         )}
                       </CardDescription>
 
@@ -470,7 +536,7 @@ export default function PackageSelectionPage() {
                               <motion.div key="text" className="flex items-center gap-2">
                                 {isMatchesCurrent ? "Active Plan" : 
                                  (isTrialUnavailable ? "Already Used" : 
-                                  (plan.price === "0" ? "Start Free Trial" : "Select Plan"))}
+                                  (blockedByDowngradeRule ? "Downgrading not possible" : "Upgrade Plan"))}
                                 <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                               </motion.div>
                             )}
@@ -488,7 +554,7 @@ export default function PackageSelectionPage() {
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-12 py-8 border-t border-border/10">
            <div className="flex items-center gap-3">
               <Zap className="h-4 w-4 text-primary" />
-              <p className="text-xs font-bold uppercase tracking-widest leading-none mt-1 text-muted-foreground">7-Day Free Trial</p>
+              <p className="text-xs font-bold uppercase tracking-widest leading-none mt-1 text-muted-foreground">1-Month Free Trial</p>
            </div>
            <div className="h-4 w-px bg-border/10 hidden md:block" />
            <div className="flex items-center gap-3">

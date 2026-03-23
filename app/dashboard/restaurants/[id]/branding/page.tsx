@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Save, Upload, X, Building2, ImageIcon } from "lucide-react"
-import { getImageUrl } from "@/lib/utils"
+import { getImageUrl, getOversizedFiles } from "@/lib/utils"
 import { normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
 function findRestaurantByRouteId(input: any, routeId: string) {
@@ -69,15 +69,38 @@ export default function BrandingPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
     const file = e.target.files?.[0]
     if (file) {
+      const oversized = getOversizedFiles([file])
+      if (oversized.length > 0) {
+        toast({
+          title: "Upload too large",
+          description: "Each upload must be 5MB or less.",
+          variant: "destructive",
+        })
+        e.currentTarget.value = ""
+        return
+      }
+
       setDraft(d => ({ ...d, [type]: file }))
       setPreviews(p => ({ ...p, [type]: URL.createObjectURL(file) }))
     }
+    e.currentTarget.value = ""
   }
 
   const handleSave = async () => {
     if (!token || !id) return
     try {
       setSaving(true)
+      const selectedFiles = [draft.logo, draft.cover].filter((file): file is File => Boolean(file))
+      const oversized = getOversizedFiles(selectedFiles)
+      if (oversized.length > 0) {
+        toast({
+          title: "Upload too large",
+          description: "Each upload must be 5MB or less.",
+          variant: "destructive",
+        })
+        return
+      }
+
       const targetRestaurantId = canonicalRestaurantId || id
       const hasMediaChanges = Boolean(draft.logo || draft.cover)
 
