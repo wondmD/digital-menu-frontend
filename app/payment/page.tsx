@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { apiFetch } from "@/lib/api-client"
 import { useToast } from "@/components/ui/use-toast"
+import { getUpgradeRequestState } from "@/lib/subscription-upgrade"
 
 type Receiver = {
   id: string
@@ -68,6 +69,7 @@ function PaymentPageClient() {
   const [payerName, setPayerName] = useState("")
   const [channel, setChannel] = useState("bank_transfer")
   const [slipUploaded, setSlipUploaded] = useState(false)
+  const [hasPendingUpgrade, setHasPendingUpgrade] = useState(false)
 
   useEffect(() => {
     if (status === "loading") return
@@ -80,13 +82,18 @@ function PaymentPageClient() {
     const loadData = async () => {
       try {
         setLoading(true)
-        const [plansRes, receiversRes] = await Promise.all([
+        const [plansRes, receiversRes, subRes] = await Promise.all([
           apiFetch<any>("/subscription/plans").catch(() => null),
           apiFetch<any>("/subscription/payment-receivers", { token }).catch(() => null),
+          apiFetch<any>("/subscription/me", { token }).catch(() => null),
         ])
 
         const fetchedPlans = extractList(plansRes)
         const fetchedReceivers = extractList(receiversRes)
+        const currentSub = extractDataEnvelope<any>(subRes)
+
+        const state = getUpgradeRequestState(currentSub)
+        setHasPendingUpgrade(state.hasPendingUpgrade)
 
         setPlans(fetchedPlans)
         setReceivers(fetchedReceivers)
@@ -124,6 +131,15 @@ function PaymentPageClient() {
 
   const submitUpgrade = async () => {
     if (!token) return
+
+    if (hasPendingUpgrade) {
+      toast({
+        title: "Upgrade request already pending",
+        description: "A previous upgrade payment is still under review. Please wait for verification result.",
+        variant: "destructive",
+      })
+      return
+    }
 
     if (!provider) {
       toast({ title: "Provider required", description: "Please select a payment provider.", variant: "destructive" })
@@ -204,6 +220,12 @@ function PaymentPageClient() {
         <Badge variant="secondary" className="mb-4 border-primary/30 bg-primary/15 text-primary">
           Step 3 of 3 - Submit Transaction Reference
         </Badge>
+
+        {hasPendingUpgrade ? (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+            You already have a pending payment verification. New package upgrade submissions are temporarily blocked.
+          </div>
+        ) : null}
         <h1 className="text-3xl font-serif font-normal text-primary tracking-tight sm:text-4xl md:text-5xl">Manual subscription verification</h1>
         <p className="mt-3 max-w-2xl text-base text-muted-foreground sm:text-lg">
           Complete your payment using one of our receiver accounts, then submit the transaction reference below.
@@ -325,7 +347,7 @@ function PaymentPageClient() {
                     Back to packages
                   </Link>
                 </Button>
-                <Button className="w-full gap-2" onClick={submitUpgrade} disabled={submitting || !provider}>
+                <Button className="w-full gap-2" onClick={submitUpgrade} disabled={submitting || !provider || hasPendingUpgrade}>
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Submit transaction
                   <ArrowRight className="h-4 w-4" />
@@ -371,7 +393,7 @@ function PaymentPageClient() {
                     Back
                   </Link>
                 </Button>
-                <Button className="w-full" onClick={submitUpgrade} disabled={submitting || !provider}>
+                <Button className="w-full" onClick={submitUpgrade} disabled={submitting || !provider || hasPendingUpgrade}>
                   {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Submit
                 </Button>

@@ -10,6 +10,7 @@ import { useSession } from "next-auth/react"
 import { apiFetch } from "@/lib/api-client"
 import { useToast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
+import { getUpgradeRequestState } from "@/lib/subscription-upgrade"
 import { cn } from "@/lib/utils"
 
 const DEFAULT_PLANS = [
@@ -85,6 +86,7 @@ export default function PackageSelectionPage() {
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
   const [currentPlanSlug, setCurrentPlanSlug] = useState<string | null>(null)
   const [hasUsedTrial, setHasUsedTrial] = useState(false)
+  const [subscriptionSnapshot, setSubscriptionSnapshot] = useState<any>(null)
   const router = useRouter()
   const { data: session, status } = useSession()
   const { toast } = useToast()
@@ -130,6 +132,8 @@ export default function PackageSelectionPage() {
   }, [hasActivePaidPlan, paidPlans, currentTierScore])
 
   const token = (session?.user as any)?.accessToken
+  const upgradeRequestState = useMemo(() => getUpgradeRequestState(subscriptionSnapshot), [subscriptionSnapshot])
+  const isUpgradeBlockedByPending = upgradeRequestState.hasPendingUpgrade
 
   // Load current usage, subscription and plans
   useEffect(() => {
@@ -152,6 +156,7 @@ export default function PackageSelectionPage() {
         
         if (subRes) {
           const sub = subRes?.data || subRes
+          setSubscriptionSnapshot(sub)
           setCurrentPlanId(sub?.plan_id || null)
           setCurrentPlanSlug(sub?.plan_slug || null)
           
@@ -272,6 +277,15 @@ export default function PackageSelectionPage() {
     const inferredBillingCycle = rawPlanSlug.includes("annual") ? "annual" : "monthly"
     const normalizedPlanSlug = rawPlanSlug.replace(/-(monthly|annual)$/i, "")
     const isTrialPlan = normalizedPlanSlug === "free-trial" || selected?.name?.toLowerCase().includes("trial")
+
+    if (!isTrialPlan && isUpgradeBlockedByPending) {
+      toast({
+        title: "Upgrade request already pending",
+        description: "Wait for your current payment verification result before requesting another package upgrade.",
+        variant: "destructive",
+      })
+      return
+    }
     
     if (!token) {
       router.push("/login")
@@ -424,6 +438,18 @@ export default function PackageSelectionPage() {
           </motion.div>
         )}
 
+        {isUpgradeBlockedByPending && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-3xl mx-auto mb-12 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-center"
+          >
+            <p className="font-bold text-amber-700 dark:text-amber-300">
+              You already have a pending subscription payment verification. New upgrade requests are temporarily blocked.
+            </p>
+          </motion.div>
+        )}
+
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-stretch mb-16">
           <AnimatePresence>
             {paidPlans.map((plan, idx) => {
@@ -433,7 +459,8 @@ export default function PackageSelectionPage() {
               const isUpgradeForActivePlan = !hasActivePaidPlan || getPlanTierScore(plan) > currentTierScore
               const blockedByDowngradeRule = hasActivePaidPlan && !isMatchesCurrent && !isUpgradeForActivePlan
 
-              const possible = isDowngradePossible(plan.slug) && !isTrialUnavailable && !blockedByDowngradeRule
+              const blockedByPendingUpgrade = isUpgradeBlockedByPending && !isMatchesCurrent
+              const possible = isDowngradePossible(plan.slug) && !isTrialUnavailable && !blockedByDowngradeRule && !blockedByPendingUpgrade
               const isSelected = selectedPlan === plan.slug
               const PlanIcon = plan.icon || Star
 
@@ -474,6 +501,9 @@ export default function PackageSelectionPage() {
                         {blockedByDowngradeRule && (
                           <Badge className="bg-destructive text-[10px] font-black uppercase tracking-widest px-3">Downgrade blocked</Badge>
                         )}
+                        {blockedByPendingUpgrade && (
+                          <Badge className="bg-amber-500 text-[10px] font-black uppercase tracking-widest px-3">Pending review</Badge>
+                        )}
                       </div>
                       
                       <CardTitle className="text-3xl font-serif text-foreground mb-2 tracking-tight">{plan.name}</CardTitle>
@@ -484,6 +514,9 @@ export default function PackageSelectionPage() {
                         )}
                         {blockedByDowngradeRule && (
                           <span className="block mt-2 text-destructive font-bold text-[10px] uppercase">Downgrading is not possible</span>
+                        )}
+                        {blockedByPendingUpgrade && (
+                          <span className="block mt-2 text-amber-600 dark:text-amber-300 font-bold text-[10px] uppercase">Upgrade is temporarily blocked until verification completes</span>
                         )}
                       </CardDescription>
 
@@ -536,7 +569,8 @@ export default function PackageSelectionPage() {
                               <motion.div key="text" className="flex items-center gap-2">
                                 {isMatchesCurrent ? "Active Plan" : 
                                  (isTrialUnavailable ? "Already Used" : 
-                                  (blockedByDowngradeRule ? "Downgrading not possible" : "Upgrade Plan"))}
+                                  (blockedByDowngradeRule ? "Downgrading not possible" :
+                                   (blockedByPendingUpgrade ? "Pending verification" : "Upgrade Plan")))}
                                 <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
                               </motion.div>
                             )}

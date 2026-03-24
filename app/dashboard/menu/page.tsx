@@ -85,6 +85,72 @@ type MenuItem = {
   category_id: string
 }
 
+function extractImageIds(input: any): number[] {
+  if (!input) return []
+
+  const values = Array.isArray(input) ? input : [input]
+  const ids = values
+    .map((entry: any) => {
+      if (!entry || typeof entry !== "object") return null
+      const raw = entry.id ?? entry.image_id ?? entry.media_id
+      if (raw === undefined || raw === null) return null
+      const n = Number(raw)
+      return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null
+    })
+    .filter((v): v is number => v !== null)
+
+  return Array.from(new Set(ids))
+}
+
+function extensionFromType(type: string): string {
+  const normalized = String(type || "").toLowerCase()
+  if (normalized.includes("png")) return "png"
+  if (normalized.includes("webp")) return "webp"
+  if (normalized.includes("gif")) return "gif"
+  if (normalized.includes("avif")) return "avif"
+  return "jpg"
+}
+
+function nameFromImageUrl(url: string, index: number, mimeType: string): string {
+  const safeIndex = index + 1
+  try {
+    const parsed = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost")
+    const candidate = decodeURIComponent(parsed.pathname.split("/").pop() || "").trim()
+    if (candidate) return candidate
+  } catch {
+    // Fall through to generated filename.
+  }
+  return `existing-image-${safeIndex}.${extensionFromType(mimeType)}`
+}
+
+async function urlsToFiles(urls: string[]): Promise<File[]> {
+  if (urls.length === 0) return []
+
+  const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "")
+  const toProxyUrl = (url: string) => {
+    if (apiBase && url.startsWith(apiBase)) {
+      return `/api/proxy${url.slice(apiBase.length)}`
+    }
+    return url
+  }
+
+  const settled = await Promise.allSettled(
+    urls.map(async (url, index) => {
+      const response = await fetch(toProxyUrl(url), { cache: "no-store" })
+      if (!response.ok) {
+        throw new Error(`Failed to fetch existing image: ${response.status}`)
+      }
+      const blob = await response.blob()
+      const fileName = nameFromImageUrl(url, index, blob.type)
+      return new File([blob], fileName, { type: blob.type || "image/jpeg" })
+    })
+  )
+
+  return settled
+    .filter((entry): entry is PromiseFulfilledResult<File> => entry.status === "fulfilled")
+    .map((entry) => entry.value)
+}
+
 function extractList(payload: any): any[] {
   if (Array.isArray(payload)) return payload
   if (Array.isArray(payload?.data)) return payload.data
@@ -149,11 +215,6 @@ function MenuManagementContent() {
     [restaurants, restaurantId]
   )
 
-  const selectedCategory = useMemo(
-    () => categories.find((c) => c.id === categoryId),
-    [categories, categoryId]
-  )
-
   const togglePublish = async () => {
     if (!token || !selectedRestaurant) return
     try {
@@ -190,6 +251,8 @@ function MenuManagementContent() {
   const [subscription, setSubscription] = useState<any>(null)
   const [itemDraft, setItemDraft] = useState({
     name: "", description: "", price: "", currency: "ETB",
+    category_id: "",
+    existing_image_ids: [] as number[],
     is_available: true, images: [] as (File | string)[]
   })
 
@@ -212,17 +275,33 @@ function MenuManagementContent() {
     setItemDraft((prev) => ({ ...prev, images: [...prev.images, ...allowed] }))
   }
 
+  const requireCategoryBeforeAddingItem = (): boolean => {
+    if (categories.length > 0) return true
+    toast({
+      title: "Add a category first",
+      description: "Create at least one category before adding menu items.",
+      variant: "destructive",
+    })
+    setAddCatOpen(true)
+    return false
+  }
+
   const openItemDialog = (item: MenuItem | null, startStep: 1 | 2 = 1) => {
+    if (!item && !requireCategoryBeforeAddingItem()) return
+
     setActiveItem(item)
 
     if (item) {
       const isAvailable = item.available ?? item.is_available ?? true
       const rawImages = item.image_urls || item.images || item.image || item.image_url
+      const existingImageIds = extractImageIds(item.images || item.image)
       setItemDraft({
         name: item.name || "",
         description: item.description || "",
         price: item.price?.toString() || "0",
         currency: item.currency || "ETB",
+        category_id: String(item.category_id || categoryId || categories[0]?.id || ""),
+        existing_image_ids: existingImageIds,
         is_available: isAvailable,
         images: getImageUrls(rawImages),
       })
@@ -232,6 +311,8 @@ function MenuManagementContent() {
         description: "",
         price: "",
         currency: "ETB",
+        category_id: String(categoryId || categories[0]?.id || ""),
+        existing_image_ids: [],
         is_available: true,
         images: [],
       })
@@ -431,10 +512,20 @@ function MenuManagementContent() {
 
   // Item Handlers
   const handleSaveItem = async () => {
-    if (!token || !itemDraft.name.trim() || !restaurantId || !categoryId) return
+    if (!token || !itemDraft.name.trim() || !restaurantId) return
     try {
       setSavingItem(true)
+      const targetCategoryId = String(itemDraft.category_id || categoryId || "")
+      if (!targetCategoryId) {
+        toast({ title: "Category required", description: "Please select a category for this item.", variant: "destructive" })
+        return
+      }
+
       const newImageFiles = itemDraft.images.filter((img): img is File => img instanceof File)
+      const existingImageUrlsSnapshot = itemDraft.images
+        .filter((img): img is string => typeof img === "string")
+        .map((img) => img.trim())
+        .filter((img) => img.length > 0 && img !== "/placeholder.svg")
       const oversized = getOversizedFiles(newImageFiles)
       if (oversized.length > 0) {
         toast({
@@ -453,8 +544,8 @@ function MenuManagementContent() {
 
       const method = activeItem ? "PATCH" : "POST"
       const url = activeItem
-        ? `/my-restaurants/${restaurantId}/categories/${categoryId}/items/${activeItem.id}`
-        : `/my-restaurants/${restaurantId}/categories/${categoryId}/items`
+        ? `/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items/${activeItem.id}`
+        : `/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items`
 
       const getCreatedItemId = (payload: any): string | null => {
         const candidate =
@@ -491,7 +582,22 @@ function MenuManagementContent() {
           .map((img) => img.trim())
           .filter((img) => img.length > 0 && img !== "/placeholder.svg")
 
-        if (existingImageUrls.length > 0) {
+        // Preserve existing images on edit using URL-based keep hints.
+        // Different backend builds consume either `keep_image_urls` or `image_urls`.
+        if (activeItem && existingImageUrls.length > 0) {
+          for (const imageUrl of existingImageUrls) {
+            fd.append("keep_image_urls", imageUrl)
+            fd.append("image_urls", imageUrl)
+          }
+        }
+
+        // Some backend versions parse `images` as numeric IDs on PATCH.
+        // If IDs are present, provide them for compatibility.
+        if (activeItem && itemDraft.existing_image_ids.length > 0) {
+          for (const imageId of itemDraft.existing_image_ids) {
+            fd.append("images", String(imageId))
+          }
+        } else if (!activeItem && existingImageUrls.length > 0) {
           // Backend schema expects `images` as JSON payload metadata, not file parts.
           fd.append("images", JSON.stringify(existingImageUrls))
         }
@@ -527,7 +633,18 @@ function MenuManagementContent() {
           .filter((img): img is string => typeof img === "string")
           .map((img) => img.trim())
           .filter((img) => img.length > 0 && img !== "/placeholder.svg")
-        if (existingImageUrls.length > 0) {
+        if (activeItem && existingImageUrls.length > 0) {
+          for (const imageUrl of existingImageUrls) {
+            fd.append("keep_image_urls", imageUrl)
+            fd.append("image_urls", imageUrl)
+          }
+        }
+
+        if (activeItem && itemDraft.existing_image_ids.length > 0) {
+          for (const imageId of itemDraft.existing_image_ids) {
+            fd.append("images", String(imageId))
+          }
+        } else if (!activeItem && existingImageUrls.length > 0) {
           fd.append("images", JSON.stringify(existingImageUrls))
         }
 
@@ -550,7 +667,7 @@ function MenuManagementContent() {
       }
 
       const appendNewImagesToCreatedItem = async (itemId: string) => {
-        const appendUrl = `/my-restaurants/${restaurantId}/categories/${categoryId}/items/${itemId}`
+        const appendUrl = `/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items/${itemId}`
         try {
           await apiFetchWithProgress(appendUrl, {
             method: "PATCH",
@@ -592,6 +709,40 @@ function MenuManagementContent() {
               })
             }
           }
+        }
+      }
+
+      const verifyAndRecoverEditImages = async () => {
+        if (!activeItem || newImageFiles.length === 0 || existingImageUrlsSnapshot.length === 0) return
+
+        const expectedMinimum = existingImageUrlsSnapshot.length + newImageFiles.length
+        try {
+          const verifyRes = await apiFetch<any>(`/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items/${activeItem.id}`, { token })
+          const verified = verifyRes?.data?.item || verifyRes?.item || verifyRes?.data || verifyRes
+          const verifiedUrls = getImageUrls(verified?.image_urls || verified?.images || verified?.image || verified?.image_url)
+
+          if (verifiedUrls.length >= expectedMinimum) return
+
+          const existingImageFiles = await urlsToFiles(existingImageUrlsSnapshot)
+          if (existingImageFiles.length === 0) return
+
+          const recoveryFd = buildFormData(false, false, false)
+          for (const file of [...existingImageFiles, ...newImageFiles]) {
+            recoveryFd.append("image", file, file.name)
+          }
+
+          await apiFetchWithProgress(`/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items/${activeItem.id}`, {
+            method: "PATCH",
+            token,
+            body: recoveryFd,
+            onProgress: (pct) => setUploadProgress(pct),
+          })
+        } catch (recoveryErr: any) {
+          toast({
+            title: "Image append may be backend-limited",
+            description: `Detected replace behavior and automatic recovery failed: ${String(recoveryErr?.message || "unknown error")}`,
+            variant: "destructive",
+          })
         }
       }
 
@@ -662,12 +813,16 @@ function MenuManagementContent() {
           throw err
         }
       }
+
+      await verifyAndRecoverEditImages()
+
       toast({ title: activeItem ? "Item updated" : "Item created" })
       setUploadProgress(0)
       setItemDialogOpen(false)
       setItemStep(1)
       setActiveItem(null)
-      await refreshItems(restaurantId, categoryId)
+      setCategoryId(targetCategoryId)
+      await refreshItems(restaurantId, targetCategoryId)
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" })
     } finally {
@@ -865,7 +1020,7 @@ function MenuManagementContent() {
                 <option value="available" className="bg-card text-foreground">Available</option>
                 <option value="unavailable" className="bg-card text-foreground">Unavailable</option>
               </select>
-              <Button className="h-11 shrink-0 rounded-xl px-4 md:px-5 gap-2.5 justify-center shadow-[0_20px_40px_-12px_rgba(230,57,70,0.3)] bg-primary hover:bg-primary/90 text-white font-black uppercase text-[9px] md:text-[10px] tracking-[0.12em] whitespace-nowrap transition-all hover:scale-105 active:scale-95" disabled={!categoryId || isCreatingItem} onClick={() => openItemDialog(null, 1)}>
+              <Button className="h-11 shrink-0 rounded-xl px-4 md:px-5 gap-2.5 justify-center shadow-[0_20px_40px_-12px_rgba(230,57,70,0.3)] bg-primary hover:bg-primary/90 text-white font-black uppercase text-[9px] md:text-[10px] tracking-[0.12em] whitespace-nowrap transition-all hover:scale-105 active:scale-95" disabled={isCreatingItem} onClick={() => openItemDialog(null, 1)}>
                 {isCreatingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} {isCreatingItem ? "Adding..." : "Add item"}
               </Button>
             </div>
@@ -1103,12 +1258,6 @@ function MenuManagementContent() {
             <DialogDescription className="text-muted-foreground font-medium italic text-sm">
               {itemStep === 1 ? "Step 1: Item information" : "Step 2: Item images"}
             </DialogDescription>
-            <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 px-4 py-3">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Adding to category</p>
-              <p className="mt-1 text-sm font-black text-foreground">
-                {selectedCategory?.name || "No category selected"}
-              </p>
-            </div>
           </DialogHeader>
 
           <AnimatePresence mode="wait">
@@ -1128,6 +1277,20 @@ function MenuManagementContent() {
                     value={itemDraft.name}
                     onChange={e => setItemDraft(p => ({ ...p, name: e.target.value }))}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Category</Label>
+                  <select
+                    className="h-12 w-full rounded-xl border border-border/50 bg-muted px-4 text-sm font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    value={itemDraft.category_id}
+                    onChange={(e) => setItemDraft((p) => ({ ...p, category_id: e.target.value }))}
+                  >
+                    <option value="" disabled>Select category</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -1217,6 +1380,7 @@ function MenuManagementContent() {
                         e.currentTarget.value = ""
                       }}
                     />
+                    <span className="block text-[10px] text-muted-foreground mt-1">(max size 5MB)</span>
                   </div>
                 </div>
 
@@ -1256,7 +1420,7 @@ function MenuManagementContent() {
                 type="button"
                 className="w-full md:w-auto h-12 px-10 rounded-xl bg-foreground text-background font-black uppercase text-[10px] tracking-widest"
                 onClick={() => setItemStep(2)}
-                disabled={!itemDraft.name.trim()}
+                disabled={!itemDraft.name.trim() || !itemDraft.category_id}
               >
                 Next Step
               </Button>

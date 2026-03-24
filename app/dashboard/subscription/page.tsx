@@ -8,16 +8,20 @@ import {
   ArrowRight,
   Building2,
   CalendarClock,
+  CheckCircle2,
+  Clock3,
   Crown,
   Loader2,
   ShieldCheck,
   TrendingUp,
+  XCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { apiFetch } from "@/lib/api-client"
+import { getUpgradeRequestState } from "@/lib/subscription-upgrade"
 import { cn } from "@/lib/utils"
 
 type GenericObj = Record<string, any>
@@ -186,6 +190,8 @@ export default function DashboardSubscriptionPage() {
   const hasActivePlan = !!(subscription?.plan_slug || subscription?.plan_id || currentPlan)
 
   const currentTierScore = currentPlan?.tierScore ?? getTierScore(planSlug, String(subscription?.plan_name || ""), Number(subscription?.price_monthly || 0))
+  const upgradeRequestState = useMemo(() => getUpgradeRequestState(subscription), [subscription])
+  const isUpgradeBlockedByPending = upgradeRequestState.hasPendingUpgrade
 
   const upgradeCandidates = useMemo(() => {
     return plans
@@ -291,15 +297,97 @@ export default function DashboardSubscriptionPage() {
           <Button variant="outline" asChild>
             <Link href="/packages">Compare Plans</Link>
           </Button>
-          {!isOnTopPlan && (
-            <Button asChild>
-              <Link href="/packages">
-                Upgrade Plan <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-          )}
+          {!isOnTopPlan &&
+            (isUpgradeBlockedByPending ? (
+              <Button disabled>
+                Upgrade pending review
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link href="/packages">
+                  Upgrade Plan <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            ))}
         </div>
       </div>
+
+      <Card className="bg-card/40 border-border/60">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Clock3 className="h-5 w-5 text-primary" /> Upgrade Payment Progress
+          </CardTitle>
+          <CardDescription>
+            Track payment request state and avoid duplicate upgrade submissions.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            {[
+              {
+                title: "Payment submitted",
+                done: upgradeRequestState.currentStep !== "idle",
+                active:
+                  upgradeRequestState.currentStep === "payment_in_progress" ||
+                  upgradeRequestState.currentStep === "pending_verification",
+              },
+              {
+                title: "Pending verification",
+                done:
+                  upgradeRequestState.currentStep === "approved" ||
+                  upgradeRequestState.currentStep === "rejected",
+                active: upgradeRequestState.currentStep === "pending_verification",
+              },
+              {
+                title:
+                  upgradeRequestState.finalResult === "approved"
+                    ? "Result: Approved"
+                    : upgradeRequestState.finalResult === "rejected"
+                      ? "Result: Rejected"
+                      : "Result",
+                done: upgradeRequestState.finalResult !== "none",
+                active:
+                  upgradeRequestState.currentStep === "approved" ||
+                  upgradeRequestState.currentStep === "rejected",
+                rejected: upgradeRequestState.finalResult === "rejected",
+              },
+            ].map((step) => (
+              <div
+                key={step.title}
+                className={cn(
+                  "rounded-xl border p-4 text-sm",
+                  step.rejected
+                    ? "border-red-500/40 bg-red-500/10"
+                    : step.done
+                      ? "border-emerald-500/40 bg-emerald-500/10"
+                      : step.active
+                        ? "border-amber-500/40 bg-amber-500/10"
+                        : "border-border/60 bg-card/40",
+                )}
+              >
+                <div className="flex items-center gap-2 font-semibold">
+                  {step.rejected ? (
+                    <XCircle className="h-4 w-4 text-red-600" />
+                  ) : step.done ? (
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  ) : step.active ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+                  ) : (
+                    <Clock3 className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  {step.title}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {isUpgradeBlockedByPending ? (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+              You already have a pending upgrade request. Wait for verification result before requesting another package upgrade.
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Card className="bg-card/40 border-border/60">
@@ -445,11 +533,17 @@ export default function DashboardSubscriptionPage() {
                       <span className="text-muted-foreground">Menu Items</span>
                       <span className="font-semibold">{plan.features?.max_menu_items === -1 ? "Unlimited" : plan.features?.max_menu_items ?? "-"}</span>
                     </div>
-                    <Button className="w-full" asChild>
-                      <Link href={`/payment?plan=${encodeURIComponent(plan.slug.replace(/-(monthly|annual)$/i, ""))}&billing_cycle=${encodeURIComponent(billingCycle)}`}>
-                        Upgrade Plan <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
+                    {isUpgradeBlockedByPending ? (
+                      <Button className="w-full" disabled>
+                        Upgrade pending review
+                      </Button>
+                    ) : (
+                      <Button className="w-full" asChild>
+                        <Link href={`/payment?plan=${encodeURIComponent(plan.slug.replace(/-(monthly|annual)$/i, ""))}&billing_cycle=${encodeURIComponent(billingCycle)}`}>
+                          Upgrade Plan <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -465,9 +559,15 @@ export default function DashboardSubscriptionPage() {
             <CardDescription>Compare all available packages in one place.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button className="w-full" asChild>
-              <Link href="/packages">Upgrade Plan</Link>
-            </Button>
+            {isUpgradeBlockedByPending ? (
+              <Button className="w-full" disabled>
+                Upgrade pending review
+              </Button>
+            ) : (
+              <Button className="w-full" asChild>
+                <Link href="/packages">Upgrade Plan</Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
 
