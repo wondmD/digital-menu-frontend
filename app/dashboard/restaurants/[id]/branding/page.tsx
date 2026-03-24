@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { Save, Upload, X, Building2, ImageIcon } from "lucide-react"
-import { getImageUrl, getOversizedFiles } from "@/lib/utils"
+import { getImageUrl, getOversizedFiles, MAX_UPLOAD_SIZE_BYTES } from "@/lib/utils"
 import { normalizeRestaurantList } from "@/lib/restaurant-normalizers"
 
 function findRestaurantByRouteId(input: any, routeId: string) {
@@ -172,6 +172,7 @@ export default function BrandingPage() {
                 <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                   <Upload className="h-6 w-6 text-white" />
                   <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'logo')} disabled={saving} />
+                  <span className="block text-[10px] text-muted-foreground mt-1">(max size 5MB)</span>
                 </label>
               </div>
               <div className="space-y-4 text-center md:text-left">
@@ -219,6 +220,7 @@ export default function BrandingPage() {
               <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                 <Upload className="h-8 w-8 text-white" />
                 <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'cover')} disabled={saving} />
+                <span className="block text-[10px] text-muted-foreground mt-1">(max size 5MB)</span>
               </label>
             </div>
             

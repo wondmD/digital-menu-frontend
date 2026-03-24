@@ -354,6 +354,7 @@ export default function GalleryPage() {
           <label className="cursor-pointer">
             <Plus className="h-4 w-4 mr-2" /> Add Photos
             <input type="file" multiple className="hidden" accept="image/*" onChange={handleFileChange} disabled={saving} />
+            <span className="block text-[10px] text-muted-foreground mt-1">(max size 5MB)</span>
           </label>
         </Button>
       </div>

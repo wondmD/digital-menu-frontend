@@ -388,6 +388,7 @@ export default function ProfilePage() {
                           }
                           e.currentTarget.value = ""
                         }} />
+                    <span className="block text-[10px] text-muted-foreground mt-1">(max size 5MB)</span>
                       </div>
                       <p className="text-[9px] text-muted-foreground uppercase font-bold max-w-[120px]">Recommended: Square 512x512</p>
                     </div>
