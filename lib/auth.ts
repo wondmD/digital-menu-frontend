@@ -6,6 +6,32 @@ const ONE_DAY_SECONDS = 24 * 60 * 60
 const REMEMBER_ME_SECONDS = 30 * ONE_DAY_SECONDS
 const DEFAULT_SESSION_SECONDS = ONE_DAY_SECONDS
 
+function decodeAccessTokenExpiryMillis(accessToken: string): number | null {
+  try {
+    const parts = accessToken.split(".")
+    if (parts.length < 2) return null
+
+    // JWT uses base64url; convert to standard base64 for decoding.
+    const base64Url = parts[1]
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
+    const jsonPayload = Buffer.from(base64, "base64").toString()
+    const payload = JSON.parse(jsonPayload)
+    if (typeof payload?.exp === "number") return payload.exp * 1000
+  } catch {
+    // Ignore decoding failures and fall back to a safe default.
+  }
+  return null
+}
+
+function getAccessAndRefreshTokens(data: any): { accessToken?: string; refreshToken?: string } {
+  // Backend responses may be nested and/or use different key casing.
+  const container = data?.data || data
+  return {
+    accessToken: container?.access_token || container?.accessToken,
+    refreshToken: container?.refresh_token || container?.refreshToken,
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     Credentials({
@@ -19,11 +45,14 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null
 
         try {
+          const remember = credentials.remember === "true"
           const data = await apiFetch<{ data: { access_token: string; refresh_token?: string; user: any } }>("/auth/login", {
             method: "POST",
             body: {
               email: credentials.email,
               password: credentials.password,
+              // Backend may use this to decide whether to return/extend refresh tokens.
+              remember,
             },
           })
 
@@ -37,7 +66,7 @@ export const authOptions: NextAuthOptions = {
             accessToken: data.data.access_token,
             refreshToken: data.data.refresh_token,
             role: user?.role,
-            remember: credentials.remember === "true",
+            remember,
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : "Invalid credentials"
@@ -65,13 +94,8 @@ export const authOptions: NextAuthOptions = {
         token.sessionExpiresAt = now + (remember ? REMEMBER_ME_SECONDS : DEFAULT_SESSION_SECONDS) * 1000
         
         // Decode expiry from token if possible
-        try {
-          const payload = JSON.parse(Buffer.from(u.accessToken.split('.')[1], 'base64').toString())
-          token.accessTokenExpires = payload.exp * 1000
-        } catch (e) {
-          // If decoding fails, set a default 15 mins
-          token.accessTokenExpires = Date.now() + 15 * 60 * 1000
-        }
+        token.accessTokenExpires =
+          decodeAccessTokenExpiryMillis(u.accessToken) ?? Date.now() + 15 * 60 * 1000
 
         return token
       }
@@ -106,10 +130,8 @@ export const authOptions: NextAuthOptions = {
           },
         })
 
-        // Backend might return nested data or flat
-        const resData = response?.data || response
-        const newAccessToken = resData.access_token
-        const newRefreshToken = resData.refresh_token || token.refreshToken // Reuse if not rotated
+        const { accessToken: newAccessToken, refreshToken: rotatedRefreshToken } = getAccessAndRefreshTokens(response)
+        const newRefreshToken = rotatedRefreshToken || token.refreshToken // Reuse if backend didn't rotate.
         
         if (!newAccessToken) {
           throw new Error("Backend did not return a new access token")
@@ -117,10 +139,7 @@ export const authOptions: NextAuthOptions = {
 
         // Decode new expiry
         let newExpiry = now + 15 * 60 * 1000 // default 15m
-        try {
-          const payload = JSON.parse(Buffer.from(newAccessToken.split('.')[1], 'base64').toString())
-          if (payload.exp) newExpiry = payload.exp * 1000
-        } catch (e) {}
+        newExpiry = decodeAccessTokenExpiryMillis(newAccessToken) ?? newExpiry
 
         return {
           ...token,
@@ -128,11 +147,17 @@ export const authOptions: NextAuthOptions = {
           refreshToken: newRefreshToken,
           accessTokenExpires: newExpiry,
           refreshFailureCount: 0,
+          // Sliding session for "remember me" to avoid sudden logout.
+          // If the user keeps successfully refreshing, extend the session window.
+          sessionExpiresAt: token.remember
+            ? Date.now() + REMEMBER_ME_SECONDS * 1000
+            : token.sessionExpiresAt,
           error: undefined,
         }
       } catch (error) {
         const nextFailureCount = Number(token.refreshFailureCount || 0) + 1
-        const shouldForceSignOut = !token.remember || nextFailureCount >= 3
+        const forceSignOutThreshold = token.remember ? 6 : 3
+        const shouldForceSignOut = !token.remember || nextFailureCount >= forceSignOutThreshold
         
         return {
           ...token,

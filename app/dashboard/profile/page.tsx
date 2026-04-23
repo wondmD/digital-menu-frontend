@@ -395,7 +395,10 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="space-y-2 xl:col-span-7">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cover Photo</Label>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cover Photo</Label>
+                      <span className="block text-[10px] text-muted-foreground mt-1">(max size 5MB)</span>
+                    </div>
                     <div className="h-20 w-full rounded-2xl bg-muted border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
                       {previews.cover ? (
                         <img src={getImageUrl(previews.cover)} className="h-full w-full object-cover" />
@@ -422,7 +425,10 @@ export default function ProfilePage() {
 
                   {/* Gallery */}
                   <div className="md:col-span-2 xl:col-span-12 space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Gallery</Label>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Gallery</Label>
+                      <span className="block text-[10px] text-muted-foreground mt-1">(max size 5MB)</span>
+                    </div>
                     <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
                       {previews.gallery.map((url, idx) => (
                         <div key={idx} className="aspect-square rounded-xl bg-muted overflow-hidden relative group border border-border/50">

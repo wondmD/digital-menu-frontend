@@ -1,6 +1,15 @@
 import React from 'react'
 import { getImageUrl } from '@/lib/utils'
+import { getSiteUrl } from '@/lib/site-url'
 import { Smartphone, Globe, Info, Utensils } from 'lucide-react'
+
+const siteUrl = getSiteUrl()
+let siteHost = "agelgil.com"
+try {
+  siteHost = new URL(siteUrl).host
+} catch {
+  // Keep fallback for local/dev.
+}
 
 interface QRPrintCardProps {
   restaurant: {
@@ -139,13 +148,13 @@ export const QRPrintCard: React.FC<QRPrintCardProps> = ({ restaurant, qrUrl }) =
       <div className="w-full pt-3 pb-1 flex flex-col items-center gap-1.5 grayscale-[0.2]">
         <div className="flex items-center gap-3">
           <div className="h-[1px] w-8 bg-gray-200" />
-          <a href="https://agelgil.com" className="flex items-center gap-1.5 no-underline">
+          <a href={siteUrl} className="flex items-center gap-1.5 no-underline">
              {/* Simple Logo Decoration */}
              <div className="h-4 w-4 rounded-md bg-primary flex items-center justify-center rotate-45">
                 <span className="text-[8px] text-white font-black -rotate-45">A</span>
              </div>
              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-800">
-               www.<span className="text-primary italic">agelgil</span>.com
+               <span className="text-primary italic">{siteHost}</span>
              </span>
           </a>
           <div className="h-[1px] w-8 bg-gray-200" />
