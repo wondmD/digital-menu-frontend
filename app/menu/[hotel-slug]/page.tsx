@@ -2,10 +2,13 @@ import { Metadata, ResolvingMetadata } from "next"
 import { fetchPublicRestaurantBySlugOrId } from "@/lib/public-restaurant"
 import HotelMenuClient from "@/components/hotel-menu-client"
 import { getImageUrl } from "@/lib/utils"
+import { getSiteUrl } from "@/lib/site-url"
 
 interface Props {
   params: Promise<{ "hotel-slug": string }>
 }
+
+const siteUrl = getSiteUrl()
 
 export async function generateMetadata(
   { params }: Props,
@@ -34,7 +37,7 @@ export async function generateMetadata(
     )
 
     // Dynamic OG Image from our internal API
-    const ogImageUrl = new URL("https://digital-menu-frontend-nine.vercel.app/api/og")
+    const ogImageUrl = new URL("/api/og", siteUrl)
     ogImageUrl.searchParams.set("name", hotel.name)
     if (hotel.description) ogImageUrl.searchParams.set("description", hotel.description)
     if (hotel.logo_url || hotel.logo_image_url) {
@@ -104,7 +107,7 @@ export default async function HotelMenuLandingPage({ params }: Props) {
                 streetAddress: initialData.address,
               },
               telephone: initialData.phone,
-              url: `https://digital-menu-frontend-nine.vercel.app/${hotelSlug}`,
+              url: `${siteUrl}/${hotelSlug}`,
             }),
           }}
         />

@@ -1,10 +1,19 @@
 import { ImageResponse } from 'next/og';
 import { getImageUrl } from '@/lib/utils';
+import { getSiteUrl } from '@/lib/site-url';
 
 export const runtime = 'edge';
 
 export async function GET(request: Request) {
   try {
+    const siteHost = (() => {
+      try {
+        return new URL(getSiteUrl()).host.replace(/^www\./, "")
+      } catch {
+        return "agelgil.com"
+      }
+    })()
+
     const { searchParams } = new URL(request.url);
 
     const name = searchParams.get('name') || 'Agelgil';
@@ -138,7 +147,7 @@ export async function GET(request: Request) {
                   letterSpacing: '3px',
                 }}
               >
-                agelgil.com
+                {siteHost}
               </div>
             </div>
           </div>

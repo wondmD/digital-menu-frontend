@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "9de4ef35-9976-48f3-bca8-f19ccf870a07",
     "name": "MenuVista API Complete - Structured Role Collection",
-    "description": "MenuVista API collection organized by role and domain relationship.\n\nPublish-ready notes added from handler/model/migration constraints.\nDoc snapshot date: 2026-03-02.\n\nGlobal Response Envelope:\n- Success: { success: true, status_code, data, meta? }\n- Error: { success: false, status_code, error, code }\n\nCanonical enum/value references:\n- role: admin, owner, staff, partner\n- billing_cycle: monthly, annual\n- provider: profile-driven (currently implemented verifiers: cbe, telebirr)\n- payment_status: pending, succeeded, failed, refunded, completed\n- discount_type: percentage, fixed_amount\n- discount_applicable_to: all_items, specific_categories, specific_items\n- verification_mode: manual, auto, both\n\nDate/timestamp formats used across endpoints:\n- Analytics start_date/end_date: YYYY-MM-DD\n- Event start_date/end_date payload fields: YYYY-MM-DD\n- Payment filter created_from/created_to: RFC3339",
+    "description": "MenuVista API collection organized by role and domain relationship.\n\nPublish-ready notes added from handler/model/migration constraints.\nDoc snapshot date: 2026-03-02.\n\nGlobal Response Envelope:\n- Success: { success: true, status_code, data, meta? }\n- Error: { success: false, status_code, error, code }\n\nCanonical enum/value references:\n- role: admin, owner, staff, partner\n- billing_cycle: monthly, annual\n- provider: profile-driven (currently implemented verifiers: cbe, telebirr)\n- payment_status: pending, succeeded, failed, refunded, completed\n- discount_type: percentage, fixed_amount\n- discount_applicable_to: all_items, specific_categories, specific_items\n- verification_mode: manual, auto, both\n\nDate/timestamp formats used across endpoints:\n- Analytics start_date/end_date: YYYY-MM-DD\n- Event start_date/end_date payload fields: YYYY-MM-DD\n- Payment filter created_from/created_to: RFC3339\n\nUpdated snapshot date: 2026-04-27. Includes media upload/checksum lookup, URL/media-ID image references, event detail routes, and append-vs-overwrite upload semantics.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -545,6 +545,21 @@
       "description": "Partner/marketer login password."
     },
     {
+      "key": "partner_invitation_token",
+      "value": "",
+      "description": "Partner invitation token captured from invite email link."
+    },
+    {
+      "key": "partner_access_token",
+      "value": "",
+      "description": "Access token returned after partner invitation acceptance/login."
+    },
+    {
+      "key": "partner_refresh_token",
+      "value": "",
+      "description": "Refresh token returned after partner invitation acceptance/login."
+    },
+    {
       "key": "marketer_referral_code",
       "value": "",
       "description": "Optional marketer referral code used during owner registration attribution."
@@ -553,6 +568,61 @@
       "key": "campaign",
       "value": "",
       "description": "Optional campaign label sent with owner registration for attribution analytics."
+    },
+    {
+      "key": "media_checksum",
+      "value": "",
+      "description": "SHA-256 checksum returned by media upload and used for dedupe lookup."
+    },
+    {
+      "key": "upload_key_prefix",
+      "value": "restaurants/{{restaurant_id}}/logo",
+      "description": "Optional object storage key prefix for media uploads."
+    },
+    {
+      "key": "icon_url",
+      "value": "",
+      "description": "Direct URL reference for category icons."
+    },
+    {
+      "key": "icon_media_id",
+      "value": "",
+      "description": "Media UUID reference for category icons."
+    },
+    {
+      "key": "gallery_image_urls",
+      "value": "",
+      "description": "JSON array or repeated list of gallery image URLs depending on the request body."
+    },
+    {
+      "key": "gallery_media_ids",
+      "value": "",
+      "description": "JSON array or repeated list of media UUIDs for gallery images."
+    },
+    {
+      "key": "item_image_urls",
+      "value": "",
+      "description": "JSON array or repeated list of item image URLs."
+    },
+    {
+      "key": "item_image_media_ids",
+      "value": "",
+      "description": "JSON array or repeated list of item image media UUIDs."
+    },
+    {
+      "key": "event_image_url",
+      "value": "https://cdn.example.com/media/events/event-1.jpg",
+      "description": "Primary event image URL."
+    },
+    {
+      "key": "logo_media_id",
+      "value": "",
+      "description": "Media UUID reference for restaurant logo."
+    },
+    {
+      "key": "cover_media_id",
+      "value": "",
+      "description": "Media UUID reference for restaurant cover image."
     }
   ],
   "item": [
@@ -1484,6 +1554,252 @@
                   ],
                   "cookie": [],
                   "body": "{\n  \"success\": false,\n  \"status_code\": 400,\n  \"error\": \"Validation failed. One or more request fields are invalid.\",\n  \"code\": \"INVALID_INPUT\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Verify Partner Invitation",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "description": "Validates partner invitation token before accept flow.\nAuth: Public endpoint. No authentication required unless stated otherwise.\nRequest Body Fields:\n- token: Partner invitation token from email link.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"{{partner_invitation_token}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{api_base}}/auth/partner-invitations/verify",
+                  "host": [
+                    "{{api_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "partner-invitations",
+                    "verify"
+                  ]
+                }
+              },
+              "response": [
+                {
+                  "name": "Example 200 OK",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "description": "Validates partner invitation token before accept flow.\nAuth: Public endpoint. No authentication required unless stated otherwise.\nRequest Body Fields:\n- token: Partner invitation token from email link.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"token\": \"{{partner_invitation_token}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{api_base}}/auth/partner-invitations/verify",
+                      "host": [
+                        "{{api_base}}"
+                      ],
+                      "path": [
+                        "auth",
+                        "partner-invitations",
+                        "verify"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"status_code\": 200,\n  \"data\": {\n    \"email\": \"{{partner_email}}\",\n    \"full_name\": \"Marketer Partner\",\n    \"role\": \"partner\",\n    \"referral_code\": \"{{partner_referral_code}}\",\n    \"level\": \"{{partner_level}}\",\n    \"payout_account\": \"CBE-1234567890\",\n    \"expires_in\": 172800\n  }\n}"
+                },
+                {
+                  "name": "Example 400 Bad Request",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "description": "Validates partner invitation token before accept flow.\nAuth: Public endpoint. No authentication required unless stated otherwise.\nRequest Body Fields:\n- token: Partner invitation token from email link.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"token\": \"{{partner_invitation_token}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{api_base}}/auth/partner-invitations/verify",
+                      "host": [
+                        "{{api_base}}"
+                      ],
+                      "path": [
+                        "auth",
+                        "partner-invitations",
+                        "verify"
+                      ]
+                    }
+                  },
+                  "status": "Bad Request",
+                  "code": 400,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"status_code\": 400,\n  \"error\": \"invalid or expired invitation token\",\n  \"code\": \"INVALID_TOKEN\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Accept Partner Invitation",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "description": "Accepts partner invitation and creates partner account with initial credentials.\nAuth: Public endpoint. No authentication required unless stated otherwise.\nRequest Body Fields:\n- token: Partner invitation token from email link.\n- password: Plain-text password. Registration/reset requires min length 8.\n- full_name: Full display name.\n- phone: Optional phone number string (E.164 recommended).\n- payout_account: Optional payout destination hint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"token\": \"{{partner_invitation_token}}\",\n  \"password\": \"{{partner_password}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{api_base}}/auth/partner-invitations/accept",
+                  "host": [
+                    "{{api_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "partner-invitations",
+                    "accept"
+                  ]
+                }
+              },
+              "response": [
+                {
+                  "name": "Example 200 OK",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "description": "Accepts partner invitation and creates partner account with initial credentials.\nAuth: Public endpoint. No authentication required unless stated otherwise.\nRequest Body Fields:\n- token: Partner invitation token from email link.\n- password: Plain-text password. Registration/reset requires min length 8.\n- full_name: Full display name.\n- phone: Optional phone number string (E.164 recommended).\n- payout_account: Optional payout destination hint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"token\": \"{{partner_invitation_token}}\",\n  \"password\": \"{{partner_password}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{api_base}}/auth/partner-invitations/accept",
+                      "host": [
+                        "{{api_base}}"
+                      ],
+                      "path": [
+                        "auth",
+                        "partner-invitations",
+                        "accept"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"status_code\": 200,\n  \"data\": {\n    \"user\": {\n      \"id\": \"{{partner_id}}\",\n      \"email\": \"{{partner_email}}\",\n      \"full_name\": \"Marketer Partner\",\n      \"role\": \"partner\"\n    },\n    \"token\": \"{{partner_access_token}}\",\n    \"refresh_token\": \"{{partner_refresh_token}}\"\n  }\n}"
+                },
+                {
+                  "name": "Example 400 Bad Request",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "description": "Accepts partner invitation and creates partner account with initial credentials.\nAuth: Public endpoint. No authentication required unless stated otherwise.\nRequest Body Fields:\n- token: Partner invitation token from email link.\n- password: Plain-text password. Registration/reset requires min length 8.\n- full_name: Full display name.\n- phone: Optional phone number string (E.164 recommended).\n- payout_account: Optional payout destination hint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"token\": \"{{partner_invitation_token}}\",\n  \"password\": \"{{partner_password}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{api_base}}/auth/partner-invitations/accept",
+                      "host": [
+                        "{{api_base}}"
+                      ],
+                      "path": [
+                        "auth",
+                        "partner-invitations",
+                        "accept"
+                      ]
+                    }
+                  },
+                  "status": "Bad Request",
+                  "code": 400,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"status_code\": 400,\n  \"error\": \"invalid or expired invitation token\",\n  \"code\": \"INVITATION_ACCEPT_FAILED\"\n}"
                 }
               ]
             },
@@ -3299,6 +3615,57 @@
               ]
             },
             {
+              "name": "Get Event By ID",
+              "request": {
+                "method": "GET",
+                "description": "Public event detail lookup.\nAuth: Public Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- event_id: UUID/path identifier required by this route.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error",
+                "url": {
+                  "raw": "{{api_base}}/restaurants/{{restaurant_id}}/events/{{event_id}}",
+                  "host": [
+                    "{{api_base}}"
+                  ],
+                  "path": [
+                    "restaurants",
+                    "{{restaurant_id}}",
+                    "events",
+                    "{{event_id}}"
+                  ]
+                }
+              },
+              "response": [
+                {
+                  "name": "Example 200 OK",
+                  "originalRequest": {
+                    "method": "GET",
+                    "description": "Public event detail lookup.\nAuth: Public Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- event_id: UUID/path identifier required by this route.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error",
+                    "url": {
+                      "raw": "{{api_base}}/restaurants/{{restaurant_id}}/events/{{event_id}}",
+                      "host": [
+                        "{{api_base}}"
+                      ],
+                      "path": [
+                        "restaurants",
+                        "{{restaurant_id}}",
+                        "events",
+                        "{{event_id}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"status_code\": 200,\n  \"data\": {\n    \"endpoint\": \"/restaurants/:restaurant_id/events/:event_id\",\n    \"method\": \"GET\",\n    \"path_params\": [\n      \"restaurant_id\",\n      \"event_id\"\n    ],\n    \"id\": \"22222222-3333-4444-5555-666666666666\",\n    \"title\": \"Live Music Night\",\n    \"image_urls\": [\n      \"https://cdn.example.com/media/events/event-1.jpg\"\n    ]\n  }\n}"
+                }
+              ]
+            },
+            {
               "name": "Track Analytics Event",
               "request": {
                 "method": "POST",
@@ -3659,6 +4026,84 @@
                   ],
                   "cookie": [],
                   "body": "{\n  \"success\": false,\n  \"status_code\": 404,\n  \"error\": \"Requested media record was not found.\",\n  \"code\": \"NOT_FOUND\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Get Media By Checksum",
+              "request": {
+                "method": "GET",
+                "description": "Resolves a media asset by checksum for deduped uploads and reference lookup.\nAuth: Public endpoint. No authentication required unless stated otherwise.\nPath Parameters:\n- media_checksum: SHA-256 checksum returned by the upload endpoint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 404 Not Found, 500 Internal Server Error",
+                "url": {
+                  "raw": "{{api_base}}/media/checksum/{{media_checksum}}",
+                  "host": [
+                    "{{api_base}}"
+                  ],
+                  "path": [
+                    "media",
+                    "checksum",
+                    "{{media_checksum}}"
+                  ]
+                }
+              },
+              "response": [
+                {
+                  "name": "Example 200 OK",
+                  "originalRequest": {
+                    "method": "GET",
+                    "description": "Resolves a media asset by checksum for deduped uploads and reference lookup.\nAuth: Public endpoint. No authentication required unless stated otherwise.\nPath Parameters:\n- media_checksum: SHA-256 checksum returned by the upload endpoint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 404 Not Found, 500 Internal Server Error",
+                    "url": {
+                      "raw": "{{api_base}}/media/checksum/{{media_checksum}}",
+                      "host": [
+                        "{{api_base}}"
+                      ],
+                      "path": [
+                        "media",
+                        "checksum",
+                        "{{media_checksum}}"
+                      ]
+                    }
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"status_code\": 200,\n  \"data\": {\n    \"id\": \"11111111-2222-3333-4444-555555555555\",\n    \"checksum\": \"{{media_checksum}}\",\n    \"storage_key\": \"media/restaurants/logo-example.png\",\n    \"content_type\": \"image/png\",\n    \"size_bytes\": 12345,\n    \"url\": \"https://cdn.example.com/media/restaurants/logo-example.png\",\n    \"created_at\": \"2026-04-27T12:00:00Z\"\n  }\n}"
+                },
+                {
+                  "name": "Example 400 Bad Request",
+                  "originalRequest": {
+                    "method": "GET",
+                    "description": "Resolves a media asset by checksum for deduped uploads and reference lookup.\nAuth: Public endpoint. No authentication required unless stated otherwise.\nPath Parameters:\n- media_checksum: SHA-256 checksum returned by the upload endpoint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 404 Not Found, 500 Internal Server Error",
+                    "url": {
+                      "raw": "{{api_base}}/media/checksum/{{media_checksum}}",
+                      "host": [
+                        "{{api_base}}"
+                      ],
+                      "path": [
+                        "media",
+                        "checksum",
+                        "{{media_checksum}}"
+                      ]
+                    }
+                  },
+                  "status": "Bad Request",
+                  "code": 400,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": false,\n  \"status_code\": 400,\n  \"error\": \"Checksum is required.\",\n  \"code\": \"INVALID_CHECKSUM\"\n}"
                 }
               ]
             }
@@ -6406,6 +6851,60 @@
                           "value": "{}",
                           "type": "text",
                           "description": "JSON object/string for storefront theme configuration."
+                        },
+                        {
+                          "key": "logo",
+                          "type": "file",
+                          "src": "",
+                          "description": "Optional file upload for the restaurant logo."
+                        },
+                        {
+                          "key": "logo_url",
+                          "value": "",
+                          "type": "text",
+                          "description": "Direct URL reference for logo (preferred when pre-uploaded)."
+                        },
+                        {
+                          "key": "logo_media_id",
+                          "value": "{{logo_media_id}}",
+                          "type": "text",
+                          "description": "Media UUID reference for logo."
+                        },
+                        {
+                          "key": "cover",
+                          "type": "file",
+                          "src": "",
+                          "description": "Optional file upload for the cover image."
+                        },
+                        {
+                          "key": "cover_image_url",
+                          "value": "",
+                          "type": "text",
+                          "description": "Direct URL reference for cover image (preferred when pre-uploaded)."
+                        },
+                        {
+                          "key": "cover_media_id",
+                          "value": "{{cover_media_id}}",
+                          "type": "text",
+                          "description": "Media UUID reference for cover image."
+                        },
+                        {
+                          "key": "gallery_images",
+                          "type": "file",
+                          "src": "",
+                          "description": "Optional legacy file upload for gallery items."
+                        },
+                        {
+                          "key": "gallery_image_urls",
+                          "value": "{{gallery_image_urls}}",
+                          "type": "text",
+                          "description": "Append-only direct gallery image URLs."
+                        },
+                        {
+                          "key": "gallery_media_ids",
+                          "value": "{{gallery_media_ids}}",
+                          "type": "text",
+                          "description": "Append-only direct gallery media UUIDs."
                         }
                       ]
                     },
@@ -6418,7 +6917,7 @@
                         "my-restaurants"
                       ]
                     },
-                    "description": "Owner-only creation of restaurant with optional media uploads.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\n- cuisine_type: Cuisine descriptor for restaurant.\n- phone: Phone number string (E.164 recommended).\n- email: Valid email address.\n- website: Public website URL.\n- address: Street or locality address.\n- city: Form field for endpoint input.\n- country: Country string (e.g., Ethiopia).\n- template_number: Numeric storefront template selector.\n- theme_settings: JSON object/string for storefront theme configuration.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Owner-only creation of restaurant with optional media uploads.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\n- cuisine_type: Cuisine descriptor for restaurant.\n- phone: Phone number string (E.164 recommended).\n- email: Valid email address.\n- website: Public website URL.\n- address: Street or locality address.\n- city: Form field for endpoint input.\n- country: Country string (e.g., Ethiopia).\n- template_number: Numeric storefront template selector.\n- theme_settings: JSON object/string for storefront theme configuration.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nSingle-image fields overwrite; gallery images append and dedupe by checksum or normalized URL."
                   },
                   "response": [
                     {
@@ -7270,6 +7769,42 @@
                           "value": "Updated description",
                           "type": "text",
                           "description": "Free-text description."
+                        },
+                        {
+                          "key": "logo",
+                          "type": "file",
+                          "src": "",
+                          "description": "Optional file upload for the restaurant logo."
+                        },
+                        {
+                          "key": "logo_url",
+                          "value": "",
+                          "type": "text",
+                          "description": "Direct URL reference for logo (preferred when pre-uploaded)."
+                        },
+                        {
+                          "key": "logo_media_id",
+                          "value": "{{logo_media_id}}",
+                          "type": "text",
+                          "description": "Media UUID reference for logo."
+                        },
+                        {
+                          "key": "cover",
+                          "type": "file",
+                          "src": "",
+                          "description": "Optional file upload for the cover image."
+                        },
+                        {
+                          "key": "cover_image_url",
+                          "value": "",
+                          "type": "text",
+                          "description": "Direct URL reference for cover image (preferred when pre-uploaded)."
+                        },
+                        {
+                          "key": "cover_media_id",
+                          "value": "{{cover_media_id}}",
+                          "type": "text",
+                          "description": "Media UUID reference for cover image."
                         }
                       ]
                     },
@@ -7283,7 +7818,7 @@
                         "{{restaurant_id}}"
                       ]
                     },
-                    "description": "Owner-only restaurant update endpoint.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Owner-only restaurant update endpoint.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nSingle-image fields overwrite; use upload first and reference the returned URL or media ID when possible."
                   },
                   "response": [
                     {
@@ -7776,6 +8311,18 @@
                           "type": "file",
                           "src": "",
                           "description": "File upload field."
+                        },
+                        {
+                          "key": "gallery_image_urls",
+                          "value": "{{gallery_image_urls}}",
+                          "type": "text",
+                          "description": "Additional gallery URLs to append."
+                        },
+                        {
+                          "key": "gallery_media_ids",
+                          "value": "{{gallery_media_ids}}",
+                          "type": "text",
+                          "description": "Additional gallery media UUIDs to append."
                         }
                       ]
                     },
@@ -7790,7 +8337,7 @@
                         "gallery"
                       ]
                     },
-                    "description": "Appends gallery images to restaurant gallery.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- gallery_images: File upload field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Appends gallery images to restaurant gallery.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- gallery_images: File upload field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nAppend mode dedupes repeated URLs/media IDs and keeps existing gallery images intact."
                   },
                   "response": [
                     {
@@ -8060,6 +8607,18 @@
                           "type": "file",
                           "src": "",
                           "description": "File upload field."
+                        },
+                        {
+                          "key": "gallery_image_urls",
+                          "value": "{{gallery_image_urls}}",
+                          "type": "text",
+                          "description": "Replacement gallery URLs."
+                        },
+                        {
+                          "key": "gallery_media_ids",
+                          "value": "{{gallery_media_ids}}",
+                          "type": "text",
+                          "description": "Replacement gallery media UUIDs."
                         }
                       ]
                     },
@@ -8074,7 +8633,7 @@
                         "gallery"
                       ]
                     },
-                    "description": "Replaces entire restaurant gallery image list.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- gallery_images: File upload field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Replaces entire restaurant gallery image list.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- gallery_images: File upload field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nReplace mode overwrites the gallery list with the supplied files and references."
                   },
                   "response": [
                     {
@@ -8954,7 +9513,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"name\": \"Main Dishes\",\n  \"description\": \"Category description\",\n  \"display_order\": 1,\n  \"is_active\": true\n}",
+                      "raw": "{\n  \"name\": \"Main Dishes\",\n  \"description\": \"Category description\",\n  \"display_order\": 1,\n  \"is_active\": true,\n  \"icon_url\": \"{{icon_url}}\",\n  \"icon_media_id\": \"{{icon_media_id}}\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -8972,7 +9531,7 @@
                         "categories"
                       ]
                     },
-                    "description": "Creates category under owner restaurant.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\n- display_order: Ordering index (integer).\n- is_active: Boolean activation/status field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Creates category under owner restaurant.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\n- display_order: Ordering index (integer).\n- is_active: Boolean activation/status field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nCategory icons can be uploaded separately and referenced by URL or media ID."
                   },
                   "response": [
                     {
@@ -9593,7 +10152,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"name\": \"Updated Category\",\n  \"description\": \"Updated\",\n  \"display_order\": 2\n}",
+                      "raw": "{\n  \"name\": \"Updated Category\",\n  \"description\": \"Updated\",\n  \"display_order\": 2,\n  \"icon_url\": \"{{icon_url}}\",\n  \"icon_media_id\": \"{{icon_media_id}}\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -9612,7 +10171,7 @@
                         "{{category_id}}"
                       ]
                     },
-                    "description": "Updates category fields.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- category_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\n- display_order: Ordering index (integer).\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Updates category fields.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- category_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\n- display_order: Ordering index (integer).\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nCategory icons can be replaced by URL or media ID without reuploading the same blob."
                   },
                   "response": [
                     {
@@ -10142,6 +10701,60 @@
                           "value": "true",
                           "type": "text",
                           "description": "Boolean availability flag."
+                        },
+                        {
+                          "key": "category_id",
+                          "value": "{{category_id}}",
+                          "type": "text",
+                          "description": "Parent category UUID."
+                        },
+                        {
+                          "key": "spice_level",
+                          "value": "3",
+                          "type": "text",
+                          "description": "Spice rating from 1 to 5."
+                        },
+                        {
+                          "key": "calories",
+                          "value": "550",
+                          "type": "text",
+                          "description": "Primary calorie value."
+                        },
+                        {
+                          "key": "calogy",
+                          "value": "550",
+                          "type": "text",
+                          "description": "Legacy calorie alias accepted by the backend."
+                        },
+                        {
+                          "key": "allergens",
+                          "value": "[\"gluten\",\"dairy\"]",
+                          "type": "text",
+                          "description": "JSON array of allergens."
+                        },
+                        {
+                          "key": "dietary_tags",
+                          "value": "[\"halal\",\"spicy\"]",
+                          "type": "text",
+                          "description": "JSON array of dietary tags."
+                        },
+                        {
+                          "key": "image",
+                          "type": "file",
+                          "src": "",
+                          "description": "Optional file upload for item image."
+                        },
+                        {
+                          "key": "image_urls",
+                          "value": "{{item_image_urls}}",
+                          "type": "text",
+                          "description": "Direct image URL list for append/update."
+                        },
+                        {
+                          "key": "image_media_ids",
+                          "value": "{{item_image_media_ids}}",
+                          "type": "text",
+                          "description": "Direct media UUID list for append/update."
                         }
                       ]
                     },
@@ -10158,7 +10771,7 @@
                         "items"
                       ]
                     },
-                    "description": "Creates menu item under category.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- category_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\n- price: Positive price value.\n- currency: Currency code (ETB commonly used).\n- is_available: Boolean availability flag.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Creates menu item under category.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- category_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- description: Free-text description.\n- price: Positive price value.\n- currency: Currency code (ETB commonly used).\n- is_available: Boolean availability flag.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nSupports direct image URLs and media IDs; file uploads are deduped server-side by checksum."
                   },
                   "response": [
                     {
@@ -11184,6 +11797,48 @@
                           "value": "true",
                           "type": "text",
                           "description": "Boolean availability flag."
+                        },
+                        {
+                          "key": "calories",
+                          "value": "550",
+                          "type": "text",
+                          "description": "Primary calorie value."
+                        },
+                        {
+                          "key": "calogy",
+                          "value": "550",
+                          "type": "text",
+                          "description": "Legacy calorie alias accepted by the backend."
+                        },
+                        {
+                          "key": "allergens",
+                          "value": "[\"gluten\",\"dairy\"]",
+                          "type": "text",
+                          "description": "JSON array of allergens."
+                        },
+                        {
+                          "key": "dietary_tags",
+                          "value": "[\"halal\",\"spicy\"]",
+                          "type": "text",
+                          "description": "JSON array of dietary tags."
+                        },
+                        {
+                          "key": "image",
+                          "type": "file",
+                          "src": "",
+                          "description": "Optional file upload for item image."
+                        },
+                        {
+                          "key": "image_urls",
+                          "value": "{{item_image_urls}}",
+                          "type": "text",
+                          "description": "Direct image URL list for append/update."
+                        },
+                        {
+                          "key": "image_media_ids",
+                          "value": "{{item_image_media_ids}}",
+                          "type": "text",
+                          "description": "Direct media UUID list for append/update."
                         }
                       ]
                     },
@@ -11201,7 +11856,7 @@
                         "{{item_id}}"
                       ]
                     },
-                    "description": "Updates item fields/media.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- category_id: UUID/path identifier required by this route.\n- item_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- price: Positive price value.\n- is_available: Boolean availability flag.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Updates item fields/media.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- category_id: UUID/path identifier required by this route.\n- item_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- name: Resource display name.\n- price: Positive price value.\n- is_available: Boolean availability flag.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nAppending image URLs or media IDs adds to the gallery; replacing single-image references is handled by the backend rules."
                   },
                   "response": [
                     {
@@ -13029,7 +13684,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"title\": \"Live Music Night\",\n  \"description\": \"Every Friday\",\n  \"start_date\": \"2026-06-01\",\n  \"end_date\": \"2026-06-01\",\n  \"start_time\": \"18:00:00\",\n  \"end_time\": \"22:00:00\",\n  \"timezone\": \"Africa/Addis_Ababa\",\n  \"location\": \"Main Hall\",\n  \"is_active\": true\n}",
+                      "raw": "{\n  \"title\": \"Live Music Night\",\n  \"description\": \"Every Friday\",\n  \"start_date\": \"2026-06-01\",\n  \"end_date\": \"2026-06-01\",\n  \"start_time\": \"18:00:00\",\n  \"end_time\": \"22:00:00\",\n  \"timezone\": \"Africa/Addis_Ababa\",\n  \"location\": \"Main Hall\",\n  \"image_url\": \"{{event_image_url}}\",\n  \"image_urls\": [\n    \"{{event_image_url}}\"\n  ],\n  \"is_active\": true\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -13047,7 +13702,7 @@
                         "events"
                       ]
                     },
-                    "description": "Creates event.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- title: Event title.\n- description: Free-text description.\n- start_date: Date/time boundary. Event endpoints require YYYY-MM-DD for date fields.\n- end_date: Date/time boundary. Must be later than start_date for discount schema.\n- start_time: Time string (HH:MM:SS expected by event flow).\n- end_time: Time string (HH:MM:SS expected by event flow).\n- timezone: IANA timezone recommended (e.g., Africa/Addis_Ababa).\n- location: Event location text.\n- is_active: Boolean activation/status field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Creates event.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- title: Event title.\n- description: Free-text description.\n- start_date: Date/time boundary. Event endpoints require YYYY-MM-DD for date fields.\n- end_date: Date/time boundary. Must be later than start_date for discount schema.\n- start_time: Time string (HH:MM:SS expected by event flow).\n- end_time: Time string (HH:MM:SS expected by event flow).\n- timezone: IANA timezone recommended (e.g., Africa/Addis_Ababa).\n- location: Event location text.\n- is_active: Boolean activation/status field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nEvent images can be supplied as a single URL and/or an appendable image list."
                   },
                   "response": [
                     {
@@ -13611,6 +14266,57 @@
                   ]
                 },
                 {
+                  "name": "Get Event By ID",
+                  "request": {
+                    "method": "GET",
+                    "description": "Owner event detail lookup.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- event_id: UUID/path identifier required by this route.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error",
+                    "url": {
+                      "raw": "{{api_base}}/my-restaurants/{{restaurant_id}}/events/{{event_id}}",
+                      "host": [
+                        "{{api_base}}"
+                      ],
+                      "path": [
+                        "my-restaurants",
+                        "{{restaurant_id}}",
+                        "events",
+                        "{{event_id}}"
+                      ]
+                    }
+                  },
+                  "response": [
+                    {
+                      "name": "Example 200 OK",
+                      "originalRequest": {
+                        "method": "GET",
+                        "description": "Owner event detail lookup.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- event_id: UUID/path identifier required by this route.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error",
+                        "url": {
+                          "raw": "{{api_base}}/my-restaurants/{{restaurant_id}}/events/{{event_id}}",
+                          "host": [
+                            "{{api_base}}"
+                          ],
+                          "path": [
+                            "my-restaurants",
+                            "{{restaurant_id}}",
+                            "events",
+                            "{{event_id}}"
+                          ]
+                        }
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"success\": true,\n  \"status_code\": 200,\n  \"data\": {\n    \"endpoint\": \"/my-restaurants/:restaurant_id/events/:event_id\",\n    \"method\": \"GET\",\n    \"path_params\": [\n      \"restaurant_id\",\n      \"event_id\"\n    ],\n    \"id\": \"22222222-3333-4444-5555-666666666666\",\n    \"title\": \"Live Music Night\",\n    \"image_urls\": [\n      \"https://cdn.example.com/media/events/event-1.jpg\"\n    ]\n  }\n}"
+                    }
+                  ]
+                },
+                {
                   "name": "Update Event",
                   "request": {
                     "method": "PATCH",
@@ -13622,7 +14328,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"title\": \"Live Music Night Updated\",\n  \"is_active\": true\n}",
+                      "raw": "{\n  \"title\": \"Live Music Night Updated\",\n  \"description\": \"Every Friday\",\n  \"image_url\": \"{{event_image_url}}\",\n  \"image_urls\": [\n    \"{{event_image_url}}\"\n  ],\n  \"is_active\": true\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -13641,7 +14347,7 @@
                         "{{event_id}}"
                       ]
                     },
-                    "description": "Updates event fields.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- event_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- title: Event title.\n- is_active: Boolean activation/status field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Updates event fields.\nAuth: Owner Bearer token required (except explicit noauth login/refresh requests).\nPath Parameters:\n- restaurant_id: UUID/path identifier required by this route.\n- event_id: UUID/path identifier required by this route.\nRequest Body Fields:\n- title: Event title.\n- is_active: Boolean activation/status field.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Entity, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]\nEvent image lists append and dedupe; the legacy image_url field remains for the primary image."
                   },
                   "response": [
                     {
@@ -16362,6 +17068,105 @@
                       "body": "{\n  \"success\": false,\n  \"status_code\": 404,\n  \"error\": \"Requested restaurant was not found.\",\n  \"code\": \"NOT_FOUND\"\n}"
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Media",
+          "description": "Authenticated media upload and lookup requests for owner workflows.",
+          "item": [
+            {
+              "name": "Upload Media Blob",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "multipart/form-data"
+                  }
+                ],
+                "description": "Uploads a blob to object storage and reuses an existing asset when the checksum already exists.\nAuth: Owner Bearer token required.\nBody Fields:\n- file: Binary file to upload.\n- key_prefix: Optional storage prefix such as restaurants/<id>/logo or events/<id>.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 500 Internal Server Error",
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "file",
+                      "type": "file",
+                      "src": "",
+                      "description": "Binary file to upload."
+                    },
+                    {
+                      "key": "key_prefix",
+                      "value": "restaurants/{{restaurant_id}}/logo",
+                      "type": "text",
+                      "description": "Optional storage prefix."
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{api_base}}/media/upload",
+                  "host": [
+                    "{{api_base}}"
+                  ],
+                  "path": [
+                    "media",
+                    "upload"
+                  ]
+                }
+              },
+              "response": [
+                {
+                  "name": "Example 201 Created",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "multipart/form-data"
+                      }
+                    ],
+                    "description": "Uploads a blob to object storage and reuses an existing asset when the checksum already exists.\nAuth: Owner Bearer token required.\nBody Fields:\n- file: Binary file to upload.\n- key_prefix: Optional storage prefix such as restaurants/<id>/logo or events/<id>.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 500 Internal Server Error",
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "file",
+                          "type": "file",
+                          "src": "",
+                          "description": "Binary file to upload."
+                        },
+                        {
+                          "key": "key_prefix",
+                          "value": "restaurants/{{restaurant_id}}/logo",
+                          "type": "text",
+                          "description": "Optional storage prefix."
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{api_base}}/media/upload",
+                      "host": [
+                        "{{api_base}}"
+                      ],
+                      "path": [
+                        "media",
+                        "upload"
+                      ]
+                    }
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"success\": true,\n  \"status_code\": 201,\n  \"data\": {\n    \"id\": \"11111111-2222-3333-4444-555555555555\",\n    \"checksum\": \"5d41402abc4b2a76b9719d911017c592\",\n    \"storage_key\": \"restaurants/123/logo.png\",\n    \"content_type\": \"image/png\",\n    \"size_bytes\": 12345,\n    \"url\": \"https://cdn.example.com/restaurants/123/logo.png\",\n    \"created_at\": \"2026-04-27T12:00:00Z\",\n    \"reused\": false\n  }\n}"
                 }
               ]
             }
@@ -23258,14 +24063,14 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"password\": \"{{partner_password}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
+                  "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
                     }
                   }
                 },
-                "description": "Admin creates partner (marketer) user account and partner profile.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- password: Plain-text password. Registration/reset requires min length 8.\n- full_name: Full display name.\n- phone: Phone number string (E.164 recommended).\n- referral_code: Field used by endpoint-specific validation/business rules.\n- level: Field used by endpoint-specific validation/business rules.\n- payout_account: Field used by endpoint-specific validation/business rules.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                "description": "Admin invites a partner (marketer) by email. Account is created only after invitation acceptance.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- full_name: Optional display name shown in invitation context.\n- phone: Optional phone number string (E.164 recommended).\n- referral_code: Optional unique code; auto-generated when omitted.\n- level: Optional partner tier label.\n- payout_account: Optional payout destination hint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
               },
               "response": [
                 {
@@ -23285,14 +24090,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"password\": \"{{partner_password}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
+                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin creates partner (marketer) user account and partner profile.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- password: Plain-text password. Registration/reset requires min length 8.\n- full_name: Full display name.\n- phone: Phone number string (E.164 recommended).\n- referral_code: Field used by endpoint-specific validation/business rules.\n- level: Field used by endpoint-specific validation/business rules.\n- payout_account: Field used by endpoint-specific validation/business rules.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin invites a partner (marketer) by email. Account is created only after invitation acceptance.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- full_name: Optional display name shown in invitation context.\n- phone: Optional phone number string (E.164 recommended).\n- referral_code: Optional unique code; auto-generated when omitted.\n- level: Optional partner tier label.\n- payout_account: Optional payout destination hint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Created",
                   "code": 201,
@@ -23304,7 +24109,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"status_code\": 201,\n  \"data\": {\n    \"endpoint\": \"/admin/partners\",\n    \"method\": \"POST\",\n    \"path_params\": [],\n    \"id\": \"88888888-8888-8888-8888-888888888888\",\n    \"message\": \"Operation completed successfully.\"\n  }\n}"
+                  "body": "{\n  \"success\": true,\n  \"status_code\": 201,\n  \"data\": {\n    \"invited_email\": \"{{partner_email}}\",\n    \"role\": \"partner\",\n    \"referral_code\": \"{{partner_referral_code}}\",\n    \"level\": \"{{partner_level}}\",\n    \"expires_in\": 172800,\n    \"message\": \"Invitation sent successfully\"\n  }\n}"
                 },
                 {
                   "name": "Example 400 Bad Request",
@@ -23323,14 +24128,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"password\": \"{{partner_password}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
+                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin creates partner (marketer) user account and partner profile.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- password: Plain-text password. Registration/reset requires min length 8.\n- full_name: Full display name.\n- phone: Phone number string (E.164 recommended).\n- referral_code: Field used by endpoint-specific validation/business rules.\n- level: Field used by endpoint-specific validation/business rules.\n- payout_account: Field used by endpoint-specific validation/business rules.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin invites a partner (marketer) by email. Account is created only after invitation acceptance.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- full_name: Optional display name shown in invitation context.\n- phone: Optional phone number string (E.164 recommended).\n- referral_code: Optional unique code; auto-generated when omitted.\n- level: Optional partner tier label.\n- payout_account: Optional payout destination hint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Bad Request",
                   "code": 400,
@@ -23361,14 +24166,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"password\": \"{{partner_password}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
+                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin creates partner (marketer) user account and partner profile.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- password: Plain-text password. Registration/reset requires min length 8.\n- full_name: Full display name.\n- phone: Phone number string (E.164 recommended).\n- referral_code: Field used by endpoint-specific validation/business rules.\n- level: Field used by endpoint-specific validation/business rules.\n- payout_account: Field used by endpoint-specific validation/business rules.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin invites a partner (marketer) by email. Account is created only after invitation acceptance.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- full_name: Optional display name shown in invitation context.\n- phone: Optional phone number string (E.164 recommended).\n- referral_code: Optional unique code; auto-generated when omitted.\n- level: Optional partner tier label.\n- payout_account: Optional payout destination hint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Conflict",
                   "code": 409,
@@ -23399,14 +24204,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"password\": \"{{partner_password}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
+                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin creates partner (marketer) user account and partner profile.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- password: Plain-text password. Registration/reset requires min length 8.\n- full_name: Full display name.\n- phone: Phone number string (E.164 recommended).\n- referral_code: Field used by endpoint-specific validation/business rules.\n- level: Field used by endpoint-specific validation/business rules.\n- payout_account: Field used by endpoint-specific validation/business rules.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin invites a partner (marketer) by email. Account is created only after invitation acceptance.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- full_name: Optional display name shown in invitation context.\n- phone: Optional phone number string (E.164 recommended).\n- referral_code: Optional unique code; auto-generated when omitted.\n- level: Optional partner tier label.\n- payout_account: Optional payout destination hint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Unauthorized",
                   "code": 401,
@@ -23437,14 +24242,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"password\": \"{{partner_password}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
+                      "raw": "{\n  \"email\": \"{{partner_email}}\",\n  \"full_name\": \"Marketer Partner\",\n  \"phone\": \"+251900009999\",\n  \"referral_code\": \"{{partner_referral_code}}\",\n  \"level\": \"{{partner_level}}\",\n  \"payout_account\": \"CBE-1234567890\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin creates partner (marketer) user account and partner profile.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- password: Plain-text password. Registration/reset requires min length 8.\n- full_name: Full display name.\n- phone: Phone number string (E.164 recommended).\n- referral_code: Field used by endpoint-specific validation/business rules.\n- level: Field used by endpoint-specific validation/business rules.\n- payout_account: Field used by endpoint-specific validation/business rules.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin invites a partner (marketer) by email. Account is created only after invitation acceptance.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- email: Valid email address.\n- full_name: Optional display name shown in invitation context.\n- phone: Optional phone number string (E.164 recommended).\n- referral_code: Optional unique code; auto-generated when omitted.\n- level: Optional partner tier label.\n- payout_account: Optional payout destination hint.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Forbidden",
                   "code": 403,
@@ -24349,14 +25154,14 @@
                 },
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"restaurant_id\": \"{{restaurant_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
+                  "raw": "{\n  \"owner_id\": \"{{owner_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
                     }
                   }
                 },
-                "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- restaurant_id: Field used by endpoint-specific validation/business rules.\n- subscription_id: Field used by endpoint-specific validation/business rules.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Analytics event type (examples: view_restaurant, view_item, page_view).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- owner_id: Optional owner identifier for owner-attributed commissions.\n- restaurant_id: Optional restaurant identifier. Provide owner_id or restaurant_id (owner_id is preferred).\n- subscription_id: Subscription identifier tied to the commission event.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Commission event type (for example: subscription_activated, subscription_renewed).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
               },
               "response": [
                 {
@@ -24376,14 +25181,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"restaurant_id\": \"{{restaurant_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
+                      "raw": "{\n  \"owner_id\": \"{{owner_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- restaurant_id: Field used by endpoint-specific validation/business rules.\n- subscription_id: Field used by endpoint-specific validation/business rules.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Analytics event type (examples: view_restaurant, view_item, page_view).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- owner_id: Optional owner identifier for owner-attributed commissions.\n- restaurant_id: Optional restaurant identifier. Provide owner_id or restaurant_id (owner_id is preferred).\n- subscription_id: Subscription identifier tied to the commission event.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Commission event type (for example: subscription_activated, subscription_renewed).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Created",
                   "code": 201,
@@ -24414,14 +25219,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"restaurant_id\": \"{{restaurant_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
+                      "raw": "{\n  \"owner_id\": \"{{owner_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- restaurant_id: Field used by endpoint-specific validation/business rules.\n- subscription_id: Field used by endpoint-specific validation/business rules.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Analytics event type (examples: view_restaurant, view_item, page_view).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- owner_id: Optional owner identifier for owner-attributed commissions.\n- restaurant_id: Optional restaurant identifier. Provide owner_id or restaurant_id (owner_id is preferred).\n- subscription_id: Subscription identifier tied to the commission event.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Commission event type (for example: subscription_activated, subscription_renewed).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Bad Request",
                   "code": 400,
@@ -24452,14 +25257,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"restaurant_id\": \"{{restaurant_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
+                      "raw": "{\n  \"owner_id\": \"{{owner_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- restaurant_id: Field used by endpoint-specific validation/business rules.\n- subscription_id: Field used by endpoint-specific validation/business rules.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Analytics event type (examples: view_restaurant, view_item, page_view).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- owner_id: Optional owner identifier for owner-attributed commissions.\n- restaurant_id: Optional restaurant identifier. Provide owner_id or restaurant_id (owner_id is preferred).\n- subscription_id: Subscription identifier tied to the commission event.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Commission event type (for example: subscription_activated, subscription_renewed).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Conflict",
                   "code": 409,
@@ -24490,14 +25295,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"restaurant_id\": \"{{restaurant_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
+                      "raw": "{\n  \"owner_id\": \"{{owner_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- restaurant_id: Field used by endpoint-specific validation/business rules.\n- subscription_id: Field used by endpoint-specific validation/business rules.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Analytics event type (examples: view_restaurant, view_item, page_view).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- owner_id: Optional owner identifier for owner-attributed commissions.\n- restaurant_id: Optional restaurant identifier. Provide owner_id or restaurant_id (owner_id is preferred).\n- subscription_id: Subscription identifier tied to the commission event.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Commission event type (for example: subscription_activated, subscription_renewed).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Unauthorized",
                   "code": 401,
@@ -24528,14 +25333,14 @@
                     },
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"restaurant_id\": \"{{restaurant_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
+                      "raw": "{\n  \"owner_id\": \"{{owner_id}}\",\n  \"subscription_id\": \"{{subscription_id}}\",\n  \"plan_type\": \"{{partner_plan_type}}\",\n  \"event_type\": \"{{partner_event_type}}\",\n  \"entry_type\": \"{{partner_entry_type}}\",\n  \"gross_amount\": 1000,\n  \"currency\": \"ETB\",\n  \"idempotency_key\": \"{{partner_idempotency_key}}\",\n  \"note\": \"Postman commission event\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
                         }
                       }
                     },
-                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- restaurant_id: Field used by endpoint-specific validation/business rules.\n- subscription_id: Field used by endpoint-specific validation/business rules.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Analytics event type (examples: view_restaurant, view_item, page_view).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
+                    "description": "Admin records commission event and writes commission ledger entry.\nAuth: Admin Bearer token required.\nRequest Body Fields:\n- owner_id: Optional owner identifier for owner-attributed commissions.\n- restaurant_id: Optional restaurant identifier. Provide owner_id or restaurant_id (owner_id is preferred).\n- subscription_id: Subscription identifier tied to the commission event.\n- plan_type: Field used by endpoint-specific validation/business rules.\n- event_type: Commission event type (for example: subscription_activated, subscription_renewed).\n- entry_type: Field used by endpoint-specific validation/business rules.\n- gross_amount: Field used by endpoint-specific validation/business rules.\n- currency: Currency code (ETB commonly used).\n- idempotency_key: Field used by endpoint-specific validation/business rules.\n- note: Human-readable note for manual verification.\nResponse Contract:\n- Success envelope: { success: true, status_code, data, meta? }\n- Error envelope: { success: false, status_code, error, code }\n- Common HTTP statuses: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error\nEnums: role=[admin, owner, staff, partner]; billing_cycle=[monthly, annual]; provider=[profile-driven (currently implemented verifiers: cbe, telebirr)]; discount_type=[percentage, fixed_amount]; applicable_to=[all_items, specific_categories, specific_items]; verification_mode=[manual, auto, both]"
                   },
                   "status": "Forbidden",
                   "code": 403,

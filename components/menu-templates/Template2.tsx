@@ -153,10 +153,22 @@ export default function Template2({
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-black/10 transition-opacity group-hover:opacity-0" />
-                    <div className="absolute top-4 left-4 sm:top-5 sm:left-5">
-                       <Badge className="bg-white/90 backdrop-blur-md text-black hover:bg-white border-none font-bold py-1.5 px-4 rounded-xl shadow-lg">
+                    <div className="absolute top-4 left-4 sm:top-5 sm:left-5 flex flex-col gap-2">
+                      {typeof item.discounted_price === "number" && item.discounted_price < item.price ? (
+                        <>
+                          <Badge className="bg-white/90 backdrop-blur-md text-black hover:bg-white border-none font-bold py-1.5 px-4 rounded-xl shadow-lg">
+                            {item.currency} {item.discounted_price.toFixed(2)}
+                          </Badge>
+                          <Badge className="bg-black/70 backdrop-blur-md text-white hover:bg-black border-none font-semibold py-1 px-3 rounded-xl shadow-lg text-[10px]">
+                            <span className="line-through opacity-80 mr-2">{item.currency} {item.price.toFixed(2)}</span>
+                            {item.discount?.label || "Offer"}
+                          </Badge>
+                        </>
+                      ) : (
+                        <Badge className="bg-white/90 backdrop-blur-md text-black hover:bg-white border-none font-bold py-1.5 px-4 rounded-xl shadow-lg">
                           {item.currency} {item.price.toFixed(2)}
-                       </Badge>
+                        </Badge>
+                      )}
                     </div>
                     {(item.is_available === false || item.available === false) && (
                       <div className="absolute bottom-4 left-4 sm:bottom-5 sm:left-5">

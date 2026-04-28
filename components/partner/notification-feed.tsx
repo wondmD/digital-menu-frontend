@@ -1,6 +1,6 @@
 import { Bell } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PartnerNotification } from "@/lib/mock-data"
+import { PartnerNotification } from "@/lib/partner-api"
 
 type NotificationFeedProps = {
   notifications: PartnerNotification[]

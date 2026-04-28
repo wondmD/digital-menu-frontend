@@ -94,56 +94,71 @@ export default function QRPage() {
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false)
   const [printMode, setPrintMode] = useState<'qr' | 'card'>('qr')
 
-  const mockRestaurant = {
-    name: "The Golden Leaf",
-    slug: "golden-leaf",
-    description: "Artisanal coffee and gourmet pastries.",
-  }
+  // Removed demo/mock preview data; real preview data is loaded on demand.
 
-  const mockCategories = [
-    {
-      id: "c1",
-      name: "Signature Creations",
-      description: "Our chef's favorite seasonal dishes.",
-      items: [
-        {
-          id: "m1",
-          name: "Organic Avocado Toast",
-          description: "Sourdough bread, mashed avocado, radish, and microgreens.",
-          price: 14.0,
-          currency: "$",
-          category_id: "c1",
-          image_url: "/avocado-toast.png"
-        },
-        {
-          id: "m2",
-          name: "Classic Latte",
-          description: "Double shot of espresso with silky steamed milk.",
-          price: 5.5,
-          currency: "$",
-          category_id: "c1",
-          image_url: "/latte-art.png"
-        }
-      ]
-    },
-    {
-       id: "c2",
-       name: "Sweet Delights",
-       items: [
-         {
-           id: "m3",
-           name: "Golden Croissant",
-           description: "Buttery, flaky pastry baked fresh every morning.",
-           price: 4.5,
-           currency: "$",
-           category_id: "c2",
-           image_url: "/golden-croissant.png"
-         }
-       ]
-    }
-  ]
+  // Preview data loaded from backend when user opens the template preview dialog.
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewHotel, setPreviewHotel] = useState<any | null>(null)
+  const [previewCategories, setPreviewCategories] = useState<any[] | null>(null)
 
   const ready = status === "authenticated" && !!token
+
+  const selected = useMemo(
+    () => restaurants.find((r) => r.id === selectedId) || restaurants[0],
+    [restaurants, selectedId],
+  )
+
+  useEffect(() => {
+    if (previewTemplate === null) {
+      setPreviewHotel(null)
+      setPreviewCategories(null)
+      setPreviewLoading(false)
+      return
+    }
+    if (!selected?.id || !token) return
+
+    let cancelled = false
+    const loadPreview = async () => {
+      try {
+        setPreviewLoading(true)
+        const hotelRes = await apiFetch<any>(`/restaurants/${selected.id}`, { token })
+        const hotel = hotelRes?.data || hotelRes || null
+
+        const catsRes = await apiFetch<any>(`/restaurants/${selected.id}/categories`, { token })
+        const cats = extractList(catsRes)
+
+        const enriched = await Promise.all(
+          cats.map(async (c: any) => {
+            try {
+              const itemsRes = await apiFetch<any>(`/restaurants/${selected.id}/categories/${c.id}/items`, { token })
+              const items = extractList(itemsRes).slice(0, 8)
+              return { ...c, items }
+            } catch {
+              return { ...c, items: [] }
+            }
+          })
+        )
+
+        if (!cancelled) {
+          setPreviewHotel(hotel)
+          setPreviewCategories(enriched)
+        }
+      } catch (err: any) {
+        toast({ title: "Could not load preview data", description: err?.message || "", variant: "destructive" })
+        if (!cancelled) {
+          setPreviewHotel(null)
+          setPreviewCategories(null)
+        }
+      } finally {
+        if (!cancelled) setPreviewLoading(false)
+      }
+    }
+
+    loadPreview()
+    return () => {
+      cancelled = true
+    }
+  }, [previewTemplate, selected?.id, token, toast])
 
   useEffect(() => {
     if (!ready) return
@@ -164,11 +179,6 @@ export default function QRPage() {
     }
     load()
   }, [ready, token, selectedId, toast])
-
-  const selected = useMemo(
-    () => restaurants.find((r) => r.id === selectedId) || restaurants[0],
-    [restaurants, selectedId],
-  )
 
   const origin = typeof window !== "undefined" ? window.location.origin : ""
   const identifier = selected?.slug
@@ -463,8 +473,8 @@ export default function QRPage() {
                   disabled={updatingTemplate}
                   className={cn(
                     "relative group text-left p-1 rounded-2xl md:rounded-3xl transition-all overflow-hidden flex-1",
-                    currentTemplate === 1 
-                      ? "bg-primary shadow-xl scale-[1.02]" 
+                    currentTemplate === 1
+                      ? "bg-primary shadow-xl scale-[1.02]"
                       : "bg-card/40 hover:bg-card/60 grayscale-[0.8] hover:grayscale-0"
                   )}
                 >
@@ -477,7 +487,7 @@ export default function QRPage() {
                     </div>
                     <div className="space-y-2 flex-1">
                         <h4 className="text-lg font-black uppercase tracking-tighter text-foreground">Classic Elegant</h4>
-                        <p className="text-muted-foreground text-[10px] md:text-xs leading-relaxed font-medium">Fine-dining focus with luxury establishments.</p>
+                        <p className="text-muted-foreground text-[10px] md:text-xs leading-relaxed font-medium">Refined layout for polished hospitality brands.</p>
                     </div>
                     {currentTemplate === 1 && (
                       <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-primary animate-pulse">
@@ -487,18 +497,6 @@ export default function QRPage() {
                     )}
                   </div>
                 </button>
-                <Button 
-                   variant="ghost" 
-                   size="sm"
-                   onClick={() => setPreviewTemplate(1)}
-                   className="rounded-full font-black text-[9px] uppercase tracking-widest text-muted-foreground hover:text-primary gap-2"
-                >
-                   <Eye className="h-3.5 w-3.5" /> Preview
-                </Button>
-             </div>
-
-             {/* Template 2: Modern */}
-             <div className="flex flex-col gap-4">
                 <button 
                   onClick={() => handleTemplateChange(2)}
                   disabled={updatingTemplate}
@@ -615,41 +613,47 @@ export default function QRPage() {
              </div>
 
              <div className="relative">
-                {previewTemplate === 1 && (
-                   <Template1 
-                      hotel={mockRestaurant} 
-                      categories={mockCategories} 
-                      activeCategory="c1" 
-                      onCategoryChange={() => {}} 
-                      onItemClick={() => {}} 
-                      searchQuery="" 
-                      onSearchChange={() => {}} 
-                      itemsLoading={false} 
-                   />
-                )}
-                {previewTemplate === 2 && (
-                   <Template2 
-                      hotel={mockRestaurant} 
-                      categories={mockCategories} 
-                      activeCategory="c1" 
-                      onCategoryChange={() => {}} 
-                      onItemClick={() => {}} 
-                      searchQuery="" 
-                      onSearchChange={() => {}} 
-                      itemsLoading={false} 
-                   />
-                )}
-                {previewTemplate === 3 && (
-                   <Template3 
-                      hotel={mockRestaurant} 
-                      categories={mockCategories} 
-                      activeCategory="c1" 
-                      onCategoryChange={() => {}} 
-                      onItemClick={() => {}} 
-                      searchQuery="" 
-                      onSearchChange={() => {}} 
-                      itemsLoading={false} 
-                   />
+                {previewLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : previewHotel && previewCategories ? (
+                  previewTemplate === 1 ? (
+                    <Template1
+                      hotel={previewHotel}
+                      categories={previewCategories}
+                      activeCategory={previewCategories[0]?.id}
+                      onCategoryChange={() => {}}
+                      onItemClick={() => {}}
+                      searchQuery={""}
+                      onSearchChange={() => {}}
+                      itemsLoading={false}
+                    />
+                  ) : previewTemplate === 2 ? (
+                    <Template2
+                      hotel={previewHotel}
+                      categories={previewCategories}
+                      activeCategory={previewCategories[0]?.id}
+                      onCategoryChange={() => {}}
+                      onItemClick={() => {}}
+                      searchQuery={""}
+                      onSearchChange={() => {}}
+                      itemsLoading={false}
+                    />
+                  ) : (
+                    <Template3
+                      hotel={previewHotel}
+                      categories={previewCategories}
+                      activeCategory={previewCategories[0]?.id}
+                      onCategoryChange={() => {}}
+                      onItemClick={() => {}}
+                      searchQuery={""}
+                      onSearchChange={() => {}}
+                      itemsLoading={false}
+                    />
+                  )
+                ) : (
+                  <div className="p-8 text-center text-muted-foreground">No preview data available for this restaurant.</div>
                 )}
              </div>
           </div>

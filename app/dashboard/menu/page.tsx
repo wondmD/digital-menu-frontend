@@ -85,6 +85,18 @@ type MenuItem = {
   category_id: string
 }
 
+type DiscountRule = {
+  id: string
+  name?: string
+  discount_type?: "percentage" | "fixed_amount" | string
+  discount_value?: number
+  applicable_to?: "all_items" | "specific_categories" | "specific_items" | string
+  entity_ids?: Array<string | number>
+  start_date?: string
+  end_date?: string
+  is_active?: boolean
+}
+
 function extractImageIds(input: any): number[] {
   if (!input) return []
 
@@ -179,6 +191,68 @@ function normalizeItem(raw: any): MenuItem {
   }
 }
 
+function normalizeApplicableTo(value: unknown): "all_items" | "specific_categories" | "specific_items" {
+  const raw = String(value || "all_items").toLowerCase().replace(/-/g, "_")
+  if (raw === "all" || raw === "all_items") return "all_items"
+  if (raw === "specific_categories" || raw === "categories") return "specific_categories"
+  if (raw === "specific_items" || raw === "items") return "specific_items"
+  return "all_items"
+}
+
+function normalizeDiscountType(value: unknown): "percentage" | "fixed_amount" {
+  const raw = String(value || "").toLowerCase().replace(/-/g, "_")
+  if (raw === "fixed_amount" || raw === "fixed") return "fixed_amount"
+  return "percentage"
+}
+
+function normalizeDiscountRule(raw: any): DiscountRule {
+  return {
+    id: String(raw?.id || raw?.uuid || ""),
+    name: raw?.name,
+    discount_type: normalizeDiscountType(raw?.discount_type),
+    discount_value: Number(raw?.discount_value || 0),
+    applicable_to: normalizeApplicableTo(raw?.applicable_to),
+    entity_ids: Array.isArray(raw?.entity_ids)
+      ? raw.entity_ids
+      : Array.isArray(raw?.entityIds)
+      ? raw.entityIds
+      : [],
+    start_date: raw?.start_date,
+    end_date: raw?.end_date,
+    is_active: raw?.is_active,
+  }
+}
+
+function computeDiscountedPrice(price: number, discount?: DiscountRule): number {
+  if (!discount) return price
+  const value = Number(discount.discount_value || 0)
+  if (!Number.isFinite(value) || value <= 0) return price
+
+  const reduced =
+    normalizeDiscountType(discount.discount_type) === "percentage"
+      ? price - (price * value) / 100
+      : price - value
+
+  return Math.max(0, Number(reduced.toFixed(2)))
+}
+
+function toIsoStartOfDay(dateInput: string): string {
+  return `${dateInput}T00:00:00Z`
+}
+
+function toIsoEndOfDay(dateInput: string): string {
+  return `${dateInput}T23:59:59Z`
+}
+
+function buildDiscountCode(name: string): string {
+  const base = name
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "")
+    .slice(0, 10)
+  const suffix = Date.now().toString(36).toUpperCase().slice(-4)
+  return `${base || "DISC"}${suffix}`
+}
+
 function MenuManagementContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
@@ -197,6 +271,7 @@ function MenuManagementContent() {
   const [categories, setCategories] = useState<Category[]>([])
   const [categoryId, setCategoryId] = useState<string>("")
   const [items, setItems] = useState<MenuItem[]>([])
+  const [discounts, setDiscounts] = useState<DiscountRule[]>([])
   
   const [loading, setLoading] = useState(true)
   const [itemsLoading, setItemsLoading] = useState(false)
@@ -253,7 +328,14 @@ function MenuManagementContent() {
     name: "", description: "", price: "", currency: "ETB",
     category_id: "",
     existing_image_ids: [] as number[],
-    is_available: true, images: [] as (File | string)[]
+    is_available: true,
+    images: [] as (File | string)[],
+    discount_enabled: false,
+    discount_type: "percentage" as "percentage" | "fixed_amount",
+    discount_value: "",
+    discount_name: "",
+    discount_start_date: "",
+    discount_end_date: "",
   })
 
   const isCreatingItem = savingItem && !activeItem
@@ -273,6 +355,15 @@ function MenuManagementContent() {
     if (allowed.length === 0) return
 
     setItemDraft((prev) => ({ ...prev, images: [...prev.images, ...allowed] }))
+  }
+
+  const getItemSpecificDiscount = (itemId: string): DiscountRule | undefined => {
+    return discounts.find((discount) => {
+      if (discount.is_active === false) return false
+      if (normalizeApplicableTo(discount.applicable_to) !== "specific_items") return false
+      const targets = (discount.entity_ids || []).map((entry) => String(entry))
+      return targets.includes(String(itemId))
+    })
   }
 
   const requireCategoryBeforeAddingItem = (): boolean => {
@@ -295,6 +386,7 @@ function MenuManagementContent() {
       const isAvailable = item.available ?? item.is_available ?? true
       const rawImages = item.image_urls || item.images || item.image || item.image_url
       const existingImageIds = extractImageIds(item.images || item.image)
+      const linkedDiscount = getItemSpecificDiscount(item.id)
       setItemDraft({
         name: item.name || "",
         description: item.description || "",
@@ -304,6 +396,12 @@ function MenuManagementContent() {
         existing_image_ids: existingImageIds,
         is_available: isAvailable,
         images: getImageUrls(rawImages),
+        discount_enabled: Boolean(linkedDiscount),
+        discount_type: normalizeDiscountType(linkedDiscount?.discount_type),
+        discount_value: linkedDiscount?.discount_value ? String(linkedDiscount.discount_value) : "",
+        discount_name: linkedDiscount?.name || "",
+        discount_start_date: linkedDiscount?.start_date ? String(linkedDiscount.start_date).slice(0, 10) : "",
+        discount_end_date: linkedDiscount?.end_date ? String(linkedDiscount.end_date).slice(0, 10) : "",
       })
     } else {
       setItemDraft({
@@ -315,6 +413,12 @@ function MenuManagementContent() {
         existing_image_ids: [],
         is_available: true,
         images: [],
+        discount_enabled: false,
+        discount_type: "percentage",
+        discount_value: "",
+        discount_name: "",
+        discount_start_date: "",
+        discount_end_date: "",
       })
     }
 
@@ -358,6 +462,21 @@ function MenuManagementContent() {
     const res = await apiFetch<any>(`/my-restaurants/${targetRestaurantId}/categories/${targetCategoryId}/items`, { token })
     const itemsList = extractList(res)
     setItems(itemsList.map(normalizeItem))
+  }
+
+  const refreshDiscounts = async (targetRestaurantId: string) => {
+    if (!token || !targetRestaurantId) {
+      setDiscounts([])
+      return
+    }
+
+    try {
+      const discountRes = await apiFetch<any>(`/my-restaurants/${targetRestaurantId}/discounts`, { token })
+      const discountList = extractList(discountRes).map(normalizeDiscountRule)
+      setDiscounts(discountList)
+    } catch {
+      setDiscounts([])
+    }
   }
 
   // Initial Load: Restaurants
@@ -433,6 +552,15 @@ function MenuManagementContent() {
     }
     loadCategories()
   }, [ready, restaurantId, token, initialCategoryId])
+
+  useEffect(() => {
+    if (!ready || !restaurantId) {
+      setDiscounts([])
+      return
+    }
+
+    refreshDiscounts(restaurantId)
+  }, [ready, restaurantId, token])
 
   // Load Items when category changes
   useEffect(() => {
@@ -540,6 +668,47 @@ function MenuManagementContent() {
       if (!Number.isFinite(numericPrice) || numericPrice <= 0) {
         toast({ title: "Invalid price", description: "Please enter a valid price greater than 0.", variant: "destructive" })
         return
+      }
+
+      const numericDiscountValue = Number(itemDraft.discount_value || 0)
+      if (itemDraft.discount_enabled) {
+        if (!Number.isFinite(numericDiscountValue) || numericDiscountValue <= 0) {
+          toast({
+            title: "Invalid discount",
+            description: "Discount value must be greater than 0.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        if (itemDraft.discount_type === "percentage" && numericDiscountValue >= 100) {
+          toast({
+            title: "Invalid percentage",
+            description: "Percentage discount must be less than 100.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        const hasStart = Boolean(itemDraft.discount_start_date)
+        const hasEnd = Boolean(itemDraft.discount_end_date)
+        if (hasStart !== hasEnd) {
+          toast({
+            title: "Invalid discount period",
+            description: "Please provide both start and end dates, or leave both empty.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        if (hasStart && hasEnd && itemDraft.discount_end_date < itemDraft.discount_start_date) {
+          toast({
+            title: "Invalid discount period",
+            description: "End date must be on or after the start date.",
+            variant: "destructive",
+          })
+          return
+        }
       }
 
       const method = activeItem ? "PATCH" : "POST"
@@ -746,6 +915,69 @@ function MenuManagementContent() {
         }
       }
 
+      const syncItemDiscount = async (itemId: string) => {
+        const existingItemDiscount = getItemSpecificDiscount(itemId)
+
+        if (!itemDraft.discount_enabled) {
+          if (existingItemDiscount?.id) {
+            const currentTargets = (existingItemDiscount.entity_ids || []).map((entry) => String(entry))
+            const remainingTargets = currentTargets.filter((entry) => entry !== String(itemId))
+
+            if (remainingTargets.length > 0) {
+              await apiFetch(`/my-restaurants/${restaurantId}/discounts/${existingItemDiscount.id}`, {
+                method: "PATCH",
+                token,
+                body: {
+                  entity_ids: remainingTargets,
+                  applicable_to: "specific_items",
+                },
+              })
+            } else {
+              await apiFetch(`/my-restaurants/${restaurantId}/discounts/${existingItemDiscount.id}`, {
+                method: "DELETE",
+                token,
+              })
+            }
+          }
+          return
+        }
+
+        const payload: Record<string, any> = {
+          name: itemDraft.discount_name.trim() || `${itemDraft.name.trim()} Discount`,
+          code: buildDiscountCode(itemDraft.discount_name.trim() || itemDraft.name.trim()),
+          description: `Item-level discount for ${itemDraft.name.trim()}`,
+          discount_type: itemDraft.discount_type,
+          discount_value: numericDiscountValue,
+          applicable_to: "specific_items",
+          entity_ids: [String(itemId)],
+          minimum_order_amount: 0,
+          max_uses: 0,
+          stackable: false,
+          is_active: true,
+        }
+
+        if (itemDraft.discount_start_date && itemDraft.discount_end_date) {
+          payload.start_date = toIsoStartOfDay(itemDraft.discount_start_date)
+          payload.end_date = toIsoEndOfDay(itemDraft.discount_end_date)
+        }
+
+        if (existingItemDiscount?.id) {
+          await apiFetch(`/my-restaurants/${restaurantId}/discounts/${existingItemDiscount.id}`, {
+            method: "PATCH",
+            token,
+            body: payload,
+          })
+        } else {
+          await apiFetch(`/my-restaurants/${restaurantId}/discounts`, {
+            method: "POST",
+            token,
+            body: payload,
+          })
+        }
+      }
+
+      let savedItemId: string | null = activeItem ? String(activeItem.id) : null
+
       setUploadProgress(0)
       try {
         const primaryResponse = await apiFetchWithProgress<any>(url, {
@@ -755,8 +987,13 @@ function MenuManagementContent() {
           onProgress: (pct) => setUploadProgress(pct),
         })
 
+        if (!activeItem) {
+          savedItemId = getCreatedItemId(primaryResponse) || savedItemId
+        }
+
         if (!activeItem && hasNewImageFiles && !responseIncludesImages(primaryResponse)) {
           const createdItemId = getCreatedItemId(primaryResponse)
+          savedItemId = createdItemId || savedItemId
           if (createdItemId) {
             await appendNewImagesToCreatedItem(createdItemId)
           } else {
@@ -780,6 +1017,8 @@ function MenuManagementContent() {
             onProgress: (pct) => setUploadProgress(pct),
           })
 
+          savedItemId = getCreatedItemId(created) || savedItemId
+
           if (hasNewImageFiles) {
             const createdItemId = getCreatedItemId(created)
             if (!createdItemId) {
@@ -797,6 +1036,7 @@ function MenuManagementContent() {
           })
 
           const createdItemId = getCreatedItemId(created)
+          savedItemId = createdItemId || savedItemId
           if (!createdItemId) {
             throw new Error("Item created but image upload could not continue because item ID was missing in response.")
           }
@@ -816,6 +1056,18 @@ function MenuManagementContent() {
 
       await verifyAndRecoverEditImages()
 
+      if (savedItemId) {
+        try {
+          await syncItemDiscount(savedItemId)
+        } catch (discountErr: any) {
+          toast({
+            title: "Item saved, discount failed",
+            description: String(discountErr?.message || "Could not save discount for this item."),
+            variant: "destructive",
+          })
+        }
+      }
+
       toast({ title: activeItem ? "Item updated" : "Item created" })
       setUploadProgress(0)
       setItemDialogOpen(false)
@@ -823,6 +1075,7 @@ function MenuManagementContent() {
       setActiveItem(null)
       setCategoryId(targetCategoryId)
       await refreshItems(restaurantId, targetCategoryId)
+      await refreshDiscounts(restaurantId)
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" })
     } finally {
@@ -1034,6 +1287,9 @@ function MenuManagementContent() {
             ) : filteredItems.length > 0 ? (
               filteredItems.map((item) => {
                 const isAvailable = item.available ?? item.is_available ?? true
+                const linkedDiscount = getItemSpecificDiscount(item.id)
+                const discountedPrice = computeDiscountedPrice(Number(item.price || 0), linkedDiscount)
+                const hasDiscount = Boolean(linkedDiscount) && discountedPrice < Number(item.price || 0)
                 // Robust category lookup
                 const category = categories.find((c) => String(c.id) === String(item.category_id))
                 const categoryName = category?.name || "Uncategorized"
@@ -1068,6 +1324,15 @@ function MenuManagementContent() {
                                <span className="text-[7px] font-black text-muted-foreground tracking-widest uppercase">Off</span>
                              </div>
                            )}
+                          {hasDiscount && (
+                            <div className="flex items-center gap-1.5 px-2 h-5 bg-primary/90 backdrop-blur-md rounded-md border border-primary/60">
+                              <span className="text-[7px] font-black text-white tracking-widest uppercase">
+                                {normalizeDiscountType(linkedDiscount?.discount_type) === "percentage"
+                                  ? `${Number(linkedDiscount?.discount_value || 0)}% OFF`
+                                  : `ETB ${Number(linkedDiscount?.discount_value || 0)} OFF`}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="absolute top-4 right-4 opacity-0 transition-all duration-300 group-hover:opacity-100">
                           <Button variant="secondary" size="icon" className="h-9 w-9 rounded-xl shadow-xl bg-background border border-border/60 hover:bg-primary hover:text-white transition-all" onClick={() => openItemDialog(item, 1)}>
@@ -1081,9 +1346,22 @@ function MenuManagementContent() {
                             {item.name}
                           </CardTitle>
                           <span className="shrink-0 whitespace-nowrap text-lg font-black font-serif italic text-foreground">
-                            {item.price !== undefined && item.price !== null
-                              ? `${item.currency === "EUR" ? "€" : "ETB "}${parseFloat(item.price.toString()).toLocaleString()}`
-                              : "N/A"}
+                            {item.price !== undefined && item.price !== null ? (
+                              hasDiscount ? (
+                                <span className="inline-flex flex-col items-end leading-tight">
+                                  <span>
+                                    {item.currency === "EUR" ? "€" : "ETB "}
+                                    {discountedPrice.toLocaleString()}
+                                  </span>
+                                  <span className="text-[11px] font-bold text-muted-foreground line-through not-italic">
+                                    {item.currency === "EUR" ? "€" : "ETB "}
+                                    {parseFloat(item.price.toString()).toLocaleString()}
+                                  </span>
+                                </span>
+                              ) : (
+                                `${item.currency === "EUR" ? "€" : "ETB "}${parseFloat(item.price.toString()).toLocaleString()}`
+                              )
+                            ) : "N/A"}
                           </span>
                         </div>
                         <CardDescription className="mt-2 line-clamp-2 min-h-[2.5rem] text-xs font-medium leading-relaxed text-muted-foreground/90 transition-colors group-hover:text-foreground">
@@ -1106,7 +1384,7 @@ function MenuManagementContent() {
                               {categoryName}
                             </span>
                         </div>
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 min-w-0">
+                        <div className="mt-3 grid grid-cols-2 md:grid-cols-2 gap-2 min-w-0">
                             <Button
                               variant="outline"
                               size="sm"
@@ -1124,6 +1402,15 @@ function MenuManagementContent() {
                             >
                               <Edit2 className="mr-1.5 h-3 w-3 shrink-0" />
                               <span className="truncate">Edit</span>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-full min-w-0 rounded-md border-primary/40 text-primary px-2 text-[9px] font-black uppercase tracking-[0.12em] hover:bg-primary/10"
+                              onClick={() => openItemDialog(item, 1)}
+                            >
+                              <TrendingUp className="mr-1.5 h-3 w-3 shrink-0" />
+                              <span className="truncate">Discount</span>
                             </Button>
                             <Button
                               variant="destructive"
@@ -1334,6 +1621,86 @@ function MenuManagementContent() {
                     checked={itemDraft.is_available}
                     onCheckedChange={checked => setItemDraft(p => ({ ...p, is_available: checked }))}
                   />
+                </div>
+
+                <div className="space-y-4 rounded-xl border border-border/50 bg-muted/30 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Item Discount</span>
+                      <p className="text-xs text-muted-foreground">Apply a discount rule only to this item.</p>
+                    </div>
+                    <Switch
+                      checked={itemDraft.discount_enabled}
+                      onCheckedChange={(checked) =>
+                        setItemDraft((p) => ({ ...p, discount_enabled: checked }))
+                      }
+                    />
+                  </div>
+
+                  {itemDraft.discount_enabled && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Discount name</Label>
+                        <Input
+                          className="bg-muted border-border/50 h-11 rounded-xl"
+                          placeholder="e.g. Weekend Offer"
+                          value={itemDraft.discount_name}
+                          onChange={(e) => setItemDraft((p) => ({ ...p, discount_name: e.target.value }))}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Type</Label>
+                          <select
+                            className="h-11 w-full rounded-xl border border-border/50 bg-muted px-4 text-sm font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                            value={itemDraft.discount_type}
+                            onChange={(e) =>
+                              setItemDraft((p) => ({ ...p, discount_type: normalizeDiscountType(e.target.value) }))
+                            }
+                          >
+                            <option value="percentage">Percentage</option>
+                            <option value="fixed_amount">Fixed amount</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            Value {itemDraft.discount_type === "percentage" ? "(%)" : `(${itemDraft.currency || "ETB"})`}
+                          </Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="bg-muted border-border/50 h-11 rounded-xl"
+                            value={itemDraft.discount_value}
+                            onChange={(e) => setItemDraft((p) => ({ ...p, discount_value: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Start date</Label>
+                          <Input
+                            type="date"
+                            className="bg-muted border-border/50 h-11 rounded-xl"
+                            value={itemDraft.discount_start_date}
+                            onChange={(e) => setItemDraft((p) => ({ ...p, discount_start_date: e.target.value }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">End date</Label>
+                          <Input
+                            type="date"
+                            className="bg-muted border-border/50 h-11 rounded-xl"
+                            value={itemDraft.discount_end_date}
+                            onChange={(e) => setItemDraft((p) => ({ ...p, discount_end_date: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ) : (

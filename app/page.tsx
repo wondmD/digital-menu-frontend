@@ -1,5 +1,8 @@
 import { Metadata } from "next"
 import LandingClient from "@/components/landing-client"
+import { getSiteUrl } from "@/lib/site-url"
+
+const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
   title: "Agelgil | Elegant Digital Menus for Modern Hospitality",
@@ -10,7 +13,7 @@ export const metadata: Metadata = {
     "Agelgil menu", "modern dining experience"
   ],
   alternates: {
-    canonical: "https://digital-menu-frontend-nine.vercel.app/",
+    canonical: `${siteUrl}/`,
   },
   openGraph: {
     title: "Agelgil | The Future of Digital Menus",

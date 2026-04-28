@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getImageUrl } from "@/lib/utils"
 import { SocialLinks } from "@/components/restaurant/SocialLinks"
-import { Clock, MapPin, Phone, Mail, Utensils, Sparkles } from "lucide-react"
+import { Clock, MapPin, Phone, Mail, Utensils, QrCode, ArrowRight } from "lucide-react"
 
 type Restaurant = {
   id: string
@@ -57,8 +57,7 @@ export function HeroSection({
   )
 
   return (
-    <section className="relative w-full overflow-hidden min-h-screen flex items-center">
-      {/* Background Image with Enhanced Overlay */}
+    <section className="relative flex min-h-screen w-full items-center overflow-hidden">
       <div className="absolute inset-0">
         {heroImage ? (
           <Image
@@ -69,53 +68,33 @@ export function HeroSection({
             priority
           />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900" />
+          <div className="h-full w-full bg-linear-to-br from-neutral-900 via-neutral-800 to-neutral-900" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/70" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-linear-to-r from-black/70 via-black/50 to-black/70" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-black/40" />
       </div>
 
-      {/* Floating Decorative Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          animate={{ 
-            x: [0, 30, 0],
-            y: [0, -20, 0],
-            rotate: [0, 5, 0]
-          }}
-          transition={{ 
-            duration: 20, 
-            repeat: Infinity, 
-            ease: "linear" 
-          }}
-          className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full blur-xl"
+          animate={{ x: [0, 30, 0], y: [0, -20, 0], rotate: [0, 5, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute top-20 left-10 h-20 w-20 rounded-full bg-linear-to-br from-primary/20 to-primary/10 blur-xl"
         />
         <motion.div
-          animate={{ 
-            x: [0, -20, 0],
-            y: [0, 30, 0],
-            rotate: [0, -5, 0]
-          }}
-          transition={{ 
-            duration: 25, 
-            repeat: Infinity, 
-            ease: "linear" 
-          }}
-          className="absolute bottom-20 right-10 w-32 h-32 bg-gradient-to-br from-amber-500/20 to-orange-500/10 rounded-full blur-xl"
+          animate={{ x: [0, -20, 0], y: [0, 30, 0], rotate: [0, -5, 0] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="absolute bottom-20 right-10 h-32 w-32 rounded-full bg-linear-to-br from-amber-500/20 to-orange-500/10 blur-xl"
         />
       </div>
 
-      {/* Main Content */}
       <div className="relative z-10 container mx-auto px-6 py-20 md:py-32">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center min-h-[80vh]">
-          {/* Left Column - Restaurant Info */}
-          <motion.div 
+        <div className="grid min-h-[80vh] items-center gap-10 lg:grid-cols-2 lg:gap-12">
+          <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
             className="space-y-8 text-center lg:text-left"
           >
-            {/* Cuisine Badge */}
             {hotel.cuisine_type && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -123,90 +102,92 @@ export function HeroSection({
                 transition={{ duration: 0.8, delay: 0.2 }}
                 className="inline-flex"
               >
-                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 px-6 py-2 text-sm font-semibold rounded-full">
+                <Badge className="rounded-full border-0 bg-linear-to-r from-amber-500 to-orange-500 px-6 py-2 text-sm font-semibold text-white">
                   <Utensils className="mr-2 h-4 w-4" />
                   {hotel.cuisine_type}
                 </Badge>
               </motion.div>
             )}
 
-            {/* Restaurant Name */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
-              <h1 className="text-4xl sm:text-5xl md:text-7xl font-serif font-bold text-white leading-tight mb-4">
+              <h1 className="mb-4 text-4xl font-serif font-bold leading-tight text-white sm:text-5xl md:text-7xl">
                 {hotel.name}
               </h1>
             </motion.div>
 
-            {/* Tagline */}
             {(hotel.tagline || hotel.description) && (
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
-                className="text-lg sm:text-xl md:text-2xl text-white/90 font-serif leading-relaxed"
+                className="text-lg leading-relaxed text-white/90 sm:text-xl md:text-2xl font-serif"
               >
                 {hotel.tagline || hotel.description}
               </motion.p>
             )}
 
-            {/* Status Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/90 backdrop-blur-sm">
+                Scan Now
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/90 backdrop-blur-sm">
+                Fresh Food Photos
+              </div>
+            </div>
+
             {hotel.opening_hours && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.5 }}
-                className="flex flex-wrap items-center justify-center lg:justify-start gap-4"
+                className="flex flex-wrap items-center justify-center gap-4 lg:justify-start"
               >
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-5 py-3 border border-white/20">
+                <div className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-3 backdrop-blur-sm">
                   <Clock className="h-4 w-4 text-white" />
-                  <span className="text-white font-medium">{hotel.opening_hours}</span>
+                  <span className="font-medium text-white">{hotel.opening_hours}</span>
                 </div>
               </motion.div>
             )}
 
-            {/* CTA Buttons */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-4"
+              className="flex flex-wrap items-center justify-center gap-4 lg:justify-start"
             >
-              <Button 
-                size="lg" 
-                className="w-full sm:w-auto rounded-xl px-8 h-14 text-base font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-2xl shadow-black/30 hover:shadow-black/40 transition-all duration-300 hover:scale-105 border-0" 
+              <Button
+                size="lg"
+                className="w-full border-0 bg-linear-to-r from-primary to-primary/80 px-8 h-14 text-base font-semibold text-white shadow-2xl shadow-black/30 transition-all duration-300 hover:scale-105 hover:from-primary/90 hover:to-primary/70 sm:w-auto"
                 asChild
               >
                 <Link href={menuLink}>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  View Menu
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Explore Menu
                 </Link>
               </Button>
-              
-              {mapLink && (
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="w-full sm:w-auto rounded-xl px-8 h-14 text-base font-semibold bg-white/95 text-slate-900 border border-white/40 hover:bg-white dark:bg-white/15 dark:text-white dark:border-white/30 dark:hover:bg-white/20 backdrop-blur-sm transition-all duration-300" 
-                  asChild
-                >
-                  <a href={mapLink} target="_blank" rel="noreferrer">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    Directions
-                  </a>
-                </Button>
-              )}
+
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full rounded-xl border border-white/40 bg-white/95 px-8 h-14 text-base font-semibold text-slate-900 backdrop-blur-sm transition-all duration-300 hover:bg-white dark:border-white/30 dark:bg-white/15 dark:text-white dark:hover:bg-white/20 sm:w-auto"
+                asChild
+              >
+                <a href={mapLink} target="_blank" rel="noreferrer">
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Directions
+                </a>
+              </Button>
             </motion.div>
 
-            {/* Contact Info */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.7 }}
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-white/90"
+              className="flex flex-wrap items-center justify-center gap-6 text-white/90 lg:justify-start"
             >
               {hotel.address && (
                 <div className="flex items-center gap-2">
@@ -229,14 +210,12 @@ export function HeroSection({
             </motion.div>
           </motion.div>
 
-          {/* Right Column - Logo & Social */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
             className="flex flex-col items-center justify-center space-y-6 md:space-y-8"
           >
-            {/* Restaurant Logo */}
             {logo && (
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
@@ -244,25 +223,34 @@ export function HeroSection({
                 transition={{ duration: 0.8, delay: 0.5 }}
                 className="relative"
               >
-                <div className="relative w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 rounded-3xl overflow-hidden border border-white/30 bg-white/10 backdrop-blur-md p-4">
-                  <Image 
-                    src={logo} 
-                    alt={hotel.name} 
-                    fill 
-                    className="object-contain p-2 drop-shadow-2xl" 
+                <div className="relative h-40 w-40 overflow-hidden rounded-3xl border border-white/30 bg-white/10 p-4 shadow-2xl shadow-black/30 backdrop-blur-md sm:h-48 sm:w-48 md:h-64 md:w-64">
+                  <Image
+                    src={logo}
+                    alt={hotel.name}
+                    fill
+                    className="object-contain p-2 drop-shadow-2xl"
                   />
                 </div>
-                <div className="absolute inset-0 rounded-[2rem] border border-white/10 pointer-events-none" />
+                <div className="pointer-events-none absolute inset-0 rounded-4xl border border-white/10" />
+                {(hotel.tagline || hotel.description) && (
+                  <div className="mt-4 text-center">
+                    {hotel.tagline && (
+                      <p className="mx-auto max-w-[14rem] text-sm italic text-white/90">“{hotel.tagline}”</p>
+                    )}
+                    {hotel.description && (
+                      <p className="mt-2 text-xs uppercase tracking-wider text-white/70">{hotel.description}</p>
+                    )}
+                  </div>
+                )}
               </motion.div>
             )}
 
-            {/* Social Media Links */}
             {hasSocialLinks && (
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.7 }}
-                className="text-center space-y-6 w-full"
+                className="w-full space-y-6 text-center"
               >
                 <div className="px-2">
                   <SocialLinks
@@ -270,7 +258,7 @@ export function HeroSection({
                     variant="light"
                     size="responsive"
                     transparent
-                    className="justify-center flex-wrap"
+                    className="flex-wrap justify-center"
                   />
                 </div>
               </motion.div>
@@ -279,7 +267,6 @@ export function HeroSection({
         </div>
       </div>
 
-      {/* Scroll Indicator */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -289,9 +276,9 @@ export function HeroSection({
         <motion.div
           animate={{ y: [0, 10, 0] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-          className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center"
+          className="flex h-10 w-6 justify-center rounded-full border-2 border-white/30"
         >
-          <div className="w-1 h-3 bg-white/60 rounded-full mt-2" />
+          <div className="mt-2 h-3 w-1 rounded-full bg-white/60" />
         </motion.div>
       </motion.div>
     </section>

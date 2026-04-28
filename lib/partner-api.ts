@@ -1,22 +1,60 @@
 import { apiFetch } from "@/lib/api-client"
-import {
-  MOCK_PARTNER_ANALYTICS,
-  MOCK_PARTNER_CHECKLIST,
-  MOCK_PARTNER_COMMISSIONS,
-  MOCK_PARTNER_NOTIFICATIONS,
-  MOCK_PARTNER_PROFILE,
-  MOCK_PARTNER_REFERRALS,
-  MOCK_PARTNER_TOOLKIT,
-  PartnerAnalyticsPoint,
-  PartnerChecklistItem,
-  PartnerCommission,
-  PartnerLevel,
-  PartnerNotification,
-  PartnerProfile,
-  PartnerReferral,
-  ToolkitAsset,
-} from "@/lib/mock-data"
 import { getPartnerSession, savePartnerSession } from "@/lib/partner-auth"
+
+export type PartnerLevel = "Starter" | "Pro" | "Elite"
+
+export type PartnerProfile = {
+  id: string
+  fullName: string
+  email: string
+  company?: string
+  joinedAt: string
+}
+
+export type PartnerReferral = {
+  id: string
+  restaurantName: string
+  status: "pending" | "active" | "churned"
+  joinedAt: string
+  subscriptionStatus: "trial" | "active" | "past_due" | "canceled"
+}
+
+export type PartnerCommission = {
+  id: string
+  restaurantName: string
+  firstPaymentCommission: number
+  recurringCommission: number
+  status: "paid" | "pending"
+  paidAt?: string
+}
+
+export type PartnerAnalyticsPoint = {
+  month: string
+  signups: number
+  conversions: number
+}
+
+export type PartnerNotification = {
+  id: string
+  title: string
+  description: string
+  createdAt: string
+  kind: "signup" | "commission" | "system"
+}
+
+export type PartnerChecklistItem = {
+  id: string
+  title: string
+  completed: boolean
+}
+
+export type ToolkitAsset = {
+  id: string
+  title: string
+  type: "pdf" | "video" | "text"
+  url: string
+  description: string
+}
 
 function getPartnerLevel(totalReferrals: number): PartnerLevel {
   if (totalReferrals >= 20) return "Elite"
@@ -132,15 +170,23 @@ export async function fetchPartnerProfile(partnerId: string): Promise<PartnerPro
     const profile = await fetchPartnerEndpoint<any>("/partners/me/profile")
     patchSessionFromProfile(profile)
 
+    const session = getPartnerSession()
+
     return {
-      id: String(profile?.id || partnerId || MOCK_PARTNER_PROFILE.id),
-      fullName: String(profile?.full_name || profile?.name || MOCK_PARTNER_PROFILE.fullName),
-      email: String(profile?.email || MOCK_PARTNER_PROFILE.email),
+      id: String(profile?.id || partnerId || session?.partnerId || ""),
+      fullName: String(profile?.full_name || profile?.name || session?.username || "Partner"),
+      email: String(profile?.email || session?.email || ""),
       company: profile?.company || profile?.organization || undefined,
-      joinedAt: String(profile?.created_at || profile?.joined_at || MOCK_PARTNER_PROFILE.joinedAt),
+      joinedAt: String(profile?.created_at || profile?.joined_at || new Date().toISOString()),
     }
   } catch {
-    return { ...MOCK_PARTNER_PROFILE, id: partnerId || MOCK_PARTNER_PROFILE.id }
+    const session = getPartnerSession()
+    return {
+      id: String(partnerId || session?.partnerId || ""),
+      fullName: String(session?.username || "Partner"),
+      email: String(session?.email || ""),
+      joinedAt: new Date().toISOString(),
+    }
   }
 }
 
@@ -168,7 +214,7 @@ export async function fetchPartnerReferrals(_: string): Promise<PartnerReferral[
       ),
     }))
   } catch {
-    return MOCK_PARTNER_REFERRALS
+    return []
   }
 }
 
@@ -230,7 +276,7 @@ export async function fetchPartnerCommissions(_: string): Promise<PartnerCommiss
       }
     })
   } catch {
-    return MOCK_PARTNER_COMMISSIONS
+    return []
   }
 }
 
@@ -254,15 +300,16 @@ export async function fetchPartnerAnalytics(_: string): Promise<PartnerAnalytics
       conversions: value.conversions,
     }))
 
-    return points.length ? points : MOCK_PARTNER_ANALYTICS
+    return points
   } catch {
-    return MOCK_PARTNER_ANALYTICS
+    return []
   }
 }
 
 export async function fetchPartnerNotifications(_: string): Promise<PartnerNotification[]> {
   try {
     const referrals = await fetchPartnerReferrals("")
+    if (!referrals.length) return []
     return referrals.slice(0, 5).map((row, index) => ({
       id: `notif_ref_${row.id}_${index}`,
       title: "Referral update",
@@ -271,7 +318,7 @@ export async function fetchPartnerNotifications(_: string): Promise<PartnerNotif
       kind: "signup",
     }))
   } catch {
-    return MOCK_PARTNER_NOTIFICATIONS
+    return []
   }
 }
 
@@ -290,14 +337,30 @@ export async function fetchPartnerChecklist(_: string): Promise<PartnerChecklist
       { id: "chk_5", title: "Track commission performance", completed: true },
     ]
   } catch {
-    return MOCK_PARTNER_CHECKLIST
+    return [
+      { id: "chk_1", title: "Complete partner profile", completed: false },
+      { id: "chk_2", title: "Copy and share referral link", completed: true },
+      { id: "chk_3", title: "Refer your first restaurant", completed: false },
+      { id: "chk_4", title: "Convert at least one referral", completed: false },
+      { id: "chk_5", title: "Track commission performance", completed: false },
+    ]
   }
 }
 
 export async function fetchPartnerToolkit(_: string): Promise<ToolkitAsset[]> {
-  // No dedicated partner toolkit endpoint exists in the current API contract.
-  // Keep curated static assets until backend provides toolkit content.
-  return MOCK_PARTNER_TOOLKIT
+  // No stable toolkit endpoint is documented yet; return backend data if available, otherwise empty.
+  try {
+    const rows = extractList(await fetchPartnerEndpoint<any>("/partners/me/toolkit"))
+    return rows.map((row: any, index: number) => ({
+      id: String(row?.id || `asset_${index}`),
+      title: String(row?.title || row?.name || "Untitled Asset"),
+      type: String(row?.type || "text") as ToolkitAsset["type"],
+      url: String(row?.url || row?.file_url || ""),
+      description: String(row?.description || ""),
+    }))
+  } catch {
+    return []
+  }
 }
 
 export async function fetchPartnerOverview(partnerId: string): Promise<PartnerOverview> {

@@ -1,7 +1,8 @@
 import { MetadataRoute } from 'next'
+import { getSiteUrl } from '@/lib/site-url'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://agelgil.com'
+  const baseUrl = getSiteUrl()
   
   // Static routes
   const staticRoutes = [
