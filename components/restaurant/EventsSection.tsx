@@ -1,10 +1,18 @@
 "use client"
 
 import Image from "next/image"
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Calendar, Clock, ArrowRight } from "lucide-react"
 import { getImageUrl } from "@/lib/utils"
 
@@ -12,20 +20,27 @@ type EventItem = {
   id?: string
   title: string
   date: string
+  end_date?: string
   description?: string
   image_url?: string
   href?: string
   time?: string
+  end_time?: string
   price?: string
   location?: string
+  timezone?: string
+  is_active?: boolean
 }
 
 interface EventsSectionProps {
   events: EventItem[]
+  coverImage?: string
 }
 
-export function EventsSection({ events }: EventsSectionProps) {
+export function EventsSection({ events, coverImage }: EventsSectionProps) {
   if (!events || events.length === 0) return null
+  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null)
+  const fallbackImage = coverImage || "/hotel.webp"
 
   const formatDate = (dateString: string) => {
     try {
@@ -38,6 +53,11 @@ export function EventsSection({ events }: EventsSectionProps) {
     } catch {
       return dateString
     }
+  }
+
+  const formatDateRange = (startDate: string, endDate?: string) => {
+    if (!endDate || startDate === endDate) return formatDate(startDate)
+    return `${formatDate(startDate)} - ${formatDate(endDate)}`
   }
 
   const formatTime = (timeString?: string) => {
@@ -54,10 +74,11 @@ export function EventsSection({ events }: EventsSectionProps) {
   }
 
   return (
-    <section id="events" className="relative py-20 md:py-32 bg-muted/20">
+    <section id="events" className="relative py-20 md:py-32 bg-slate-950 text-white">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-0 left-10 h-72 w-72 rounded-full bg-primary/10 blur-[140px]" />
-        <div className="absolute bottom-0 right-10 h-64 w-64 rounded-full bg-amber-500/10 blur-[120px]" />
+        <div className="absolute top-0 left-10 h-72 w-72 rounded-full bg-primary/20 blur-[140px]" />
+        <div className="absolute bottom-0 right-10 h-64 w-64 rounded-full bg-amber-500/15 blur-[120px]" />
+        <div className="absolute inset-0 bg-linear-to-b from-white/4 via-transparent to-white/2" />
       </div>
       <div className="container mx-auto px-6">
         <motion.div
@@ -67,13 +88,13 @@ export function EventsSection({ events }: EventsSectionProps) {
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 text-white text-[10px] font-black uppercase tracking-[0.3em] mb-6 backdrop-blur-sm">
             Moments & Events
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-serif font-bold mb-6">
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-serif font-bold mb-6 text-white">
             Upcoming Events
           </h2>
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto font-serif">
+          <p className="text-base sm:text-lg md:text-xl text-white/75 max-w-2xl mx-auto font-serif">
             Join us for special occasions, themed dinners, and memorable experiences
           </p>
         </motion.div>
@@ -87,30 +108,38 @@ export function EventsSection({ events }: EventsSectionProps) {
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: index * 0.1 }}
             >
-              <Card className="group rounded-2xl overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02]">
+                <Card className="group rounded-3xl overflow-hidden border border-slate-200/80 bg-white/92 shadow-lg shadow-black/20 backdrop-blur-xl transition-all duration-500 hover:scale-[1.02] hover:border-amber-400/25 hover:shadow-2xl hover:shadow-black/35">
                 {/* Event Image */}
-                {getImageUrl(event.image_url) ? (
+                {(getImageUrl(event.image_url) || fallbackImage) ? (
                   <div className="relative h-48 md:h-56 overflow-hidden">
                     <Image
-                      src={getImageUrl(event.image_url) || ""}
+                      src={getImageUrl(event.image_url) || fallbackImage}
                       alt={event.title}
                       fill
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
 
                     {/* Date Badge */}
                     <div className="absolute top-4 left-4">
-                      <Badge className="bg-white/90 text-black hover:bg-white transition-colors">
+                      <Badge className="border-0 bg-linear-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-black/30 transition-colors backdrop-blur-sm">
                         <Calendar className="mr-2 h-3 w-3" />
-                        {formatDate(event.date)}
+                        {formatDateRange(event.date, event.end_date)}
                       </Badge>
                     </div>
+
+                    {event.is_active && (
+                      <div className="absolute bottom-4 right-4">
+                        <Badge className="bg-emerald-400/90 text-slate-950 hover:bg-emerald-400">
+                          Active
+                        </Badge>
+                      </div>
+                    )}
 
                     {/* Price Badge */}
                     {event.price && (
                       <div className="absolute top-4 right-4">
-                        <Badge className="bg-primary/90 text-white hover:bg-primary transition-colors">
+                        <Badge className="bg-black/55 text-white border border-white/15 hover:bg-black/70 transition-colors backdrop-blur-sm">
                           {event.price}
                         </Badge>
                       </div>
@@ -120,13 +149,18 @@ export function EventsSection({ events }: EventsSectionProps) {
 
                 {!getImageUrl(event.image_url) && (
                   <div className="px-6 pt-6">
-                    <Badge className="bg-primary/10 text-primary hover:bg-primary/10">
+                    <Badge className="border border-slate-200 bg-slate-900/5 text-slate-900 hover:bg-slate-900/10 backdrop-blur-sm">
                       <Calendar className="mr-2 h-3 w-3" />
-                      {formatDate(event.date)}
+                      {formatDateRange(event.date, event.end_date)}
                     </Badge>
                     {event.price && (
-                      <Badge className="ml-2 bg-primary/90 text-white hover:bg-primary">
+                      <Badge className="ml-2 bg-slate-900 text-white border border-slate-900/10 hover:bg-slate-800 backdrop-blur-sm">
                         {event.price}
+                      </Badge>
+                    )}
+                    {event.is_active && (
+                      <Badge className="ml-2 bg-emerald-500 text-white hover:bg-emerald-400">
+                        Active
                       </Badge>
                     )}
                   </div>
@@ -135,16 +169,20 @@ export function EventsSection({ events }: EventsSectionProps) {
                 {/* Event Content */}
                 <CardContent className="p-6 space-y-4">
                   <div className="space-y-2">
-                    <h3 className="text-xl font-bold line-clamp-2 group-hover:text-primary transition-colors">
+                    <h3 className="text-xl font-serif font-bold line-clamp-2 text-slate-950 group-hover:text-amber-700 transition-colors">
                       {event.title}
                     </h3>
                     
                     {/* Time and Location */}
-                    <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap gap-3 text-sm text-slate-600">
                       {event.time && (
                         <div className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
-                          <span>{formatTime(event.time)}</span>
+                          <span>
+                            {event.end_time
+                              ? `${formatTime(event.time)} - ${formatTime(event.end_time)}`
+                              : formatTime(event.time)}
+                          </span>
                         </div>
                       )}
                       {event.location && (
@@ -153,65 +191,126 @@ export function EventsSection({ events }: EventsSectionProps) {
                           <span>{event.location}</span>
                         </div>
                       )}
+                      {event.timezone && (
+                        <div className="flex items-center gap-1">
+                          <span>•</span>
+                          <span>{event.timezone}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
                   {/* Description */}
                   {event.description && (
-                    <p className="text-muted-foreground line-clamp-3 leading-relaxed">
+                    <p className="text-slate-700 line-clamp-3 leading-relaxed font-serif">
                       {event.description}
                     </p>
                   )}
 
                   {/* Call to Action */}
                   <div className="pt-2">
-                    {event.href ? (
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="w-full rounded-xl group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300"
-                      >
-                        <a href={event.href} target="_blank" rel="noopener noreferrer">
-                          Learn More
-                          <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                        </a>
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        className="w-full rounded-xl group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300"
-                      >
-                        Learn More
-                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      className="w-full rounded-full border-slate-900 bg-slate-950 text-white shadow-lg shadow-black/25 hover:scale-[1.01] hover:bg-slate-800 hover:text-white transition-all duration-300"
+                      onClick={() => setSelectedEvent(event)}
+                    >
+                      View Event Details
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
-
-        {/* View All Events CTA */}
-        {events.length >= 3 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-center mt-12"
-          >
-            <Button
-              variant="outline"
-              size="lg"
-              className="rounded-xl px-8 group"
-            >
-              View All Events
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </motion.div>
-        )}
       </div>
+
+      <Dialog open={Boolean(selectedEvent)} onOpenChange={(open) => !open && setSelectedEvent(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-0 shadow-2xl sm:max-w-3xl">
+          {selectedEvent && (
+            <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
+              <div className="relative min-h-64 md:min-h-full">
+                <Image
+                  src={getImageUrl(selectedEvent.image_url) || fallbackImage}
+                  alt={selectedEvent.title}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute left-5 top-5 flex flex-wrap gap-2">
+                  <Badge className="border-0 bg-linear-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-black/20">
+                    <Calendar className="mr-2 h-3 w-3" />
+                    {formatDateRange(selectedEvent.date, selectedEvent.end_date)}
+                  </Badge>
+                  {selectedEvent.is_active && (
+                    <Badge className="bg-emerald-500 text-white">Active</Badge>
+                  )}
+                </div>
+                {selectedEvent.price && (
+                  <div className="absolute bottom-5 left-5">
+                    <Badge className="bg-white/90 text-slate-950">{selectedEvent.price}</Badge>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-5 p-6 md:p-8">
+                <DialogHeader className="text-left">
+                  <DialogTitle className="font-serif text-3xl font-bold text-slate-950">
+                    {selectedEvent.title}
+                  </DialogTitle>
+                  <DialogDescription className="text-base text-slate-600">
+                    {selectedEvent.location || selectedEvent.timezone
+                      ? [selectedEvent.location, selectedEvent.timezone].filter(Boolean).join(" • ")
+                      : "Event details"}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 text-sm text-slate-600">
+                  <div className="flex flex-wrap gap-3">
+                    {selectedEvent.time && (
+                      <div className="flex items-center gap-1 rounded-full bg-slate-100 px-4 py-2">
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          {selectedEvent.end_time
+                            ? `${formatTime(selectedEvent.time)} - ${formatTime(selectedEvent.end_time)}`
+                            : formatTime(selectedEvent.time)}
+                        </span>
+                      </div>
+                    )}
+                    {selectedEvent.location && (
+                      <div className="rounded-full bg-slate-100 px-4 py-2">{selectedEvent.location}</div>
+                    )}
+                  </div>
+
+                  {selectedEvent.description && (
+                    <p className="max-h-40 overflow-y-auto pr-2 leading-relaxed text-slate-700 font-serif">
+                      {selectedEvent.description}
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-auto flex flex-col gap-3 pt-2">
+                  {selectedEvent.href ? (
+                    <Button asChild className="rounded-full bg-slate-950 text-white hover:bg-slate-800">
+                      <a href={selectedEvent.href} target="_blank" rel="noopener noreferrer">
+                        Learn More
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </a>
+                    </Button>
+                  ) : null}
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-slate-200 text-slate-950 hover:bg-slate-100"
+                    onClick={() => setSelectedEvent(null)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

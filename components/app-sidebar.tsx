@@ -13,6 +13,7 @@ import {
   Utensils,
   ListTree,
   QrCode,
+  CalendarDays,
   Settings,
   Hotel,
   CreditCard,
@@ -62,6 +63,11 @@ const NAV_ITEMS = [
     title: "Menus",
     url: "/dashboard/menu",
     icon: Utensils,
+  },
+  {
+    title: "Events",
+    url: "/dashboard/events",
+    icon: CalendarDays,
   },
   {
     title: "QR Codes",

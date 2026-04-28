@@ -24,6 +24,17 @@ function RegisterForm() {
   const [passError, setPassError] = useState<string | null>(null)
   const [confirmPassError, setConfirmPassError] = useState<string | null>(null)
   const [step2SubmitAttempted, setStep2SubmitAttempted] = useState(false)
+  const [serverErrors, setServerErrors] = useState<{
+    email: string | null
+    phone: string | null
+    password: string | null
+    general: string | null
+  }>({
+    email: null,
+    phone: null,
+    password: null,
+    general: null,
+  })
   const [touched, setTouched] = useState({
     email: false,
     phone: false,
@@ -55,6 +66,19 @@ function RegisterForm() {
     }))
   }, [searchParams])
 
+  useEffect(() => {
+    if (step !== 2) return
+
+    setPassError(null)
+    setConfirmPassError(null)
+    setStep2SubmitAttempted(false)
+    setTouched((prev) => ({ ...prev, password: false, confirm_password: false }))
+  }, [step])
+
+  const clearServerError = (field: "email" | "phone" | "password" | "general") => {
+    setServerErrors((prev) => ({ ...prev, [field]: null }))
+  }
+
   const triggerShake = () => {
     setErrorShake(true)
     setTimeout(() => setErrorShake(false), 500)
@@ -78,14 +102,22 @@ function RegisterForm() {
 
     if (name === "phone") {
       const cleaned = value.replace(/\D/g, "")
+      clearServerError("phone")
+      clearServerError("general")
       setFormData((prev) => ({ ...prev, phone: cleaned }))
       return
+    }
+
+    if (name === "email") {
+      clearServerError("email")
+      clearServerError("general")
     }
 
     setFormData(prev => ({ ...prev, [name]: value }))
     
     if (name === "password") {
-      setTouched((prev) => ({ ...prev, password: true }))
+      clearServerError("password")
+      clearServerError("general")
       const { message } = validatePassword(value)
       setPassError(message)
       const confirmValidation = validatePasswordConfirmation(value, formData.confirm_password)
@@ -93,7 +125,6 @@ function RegisterForm() {
     }
 
     if (name === "confirm_password") {
-      setTouched((prev) => ({ ...prev, confirm_password: true }))
       const confirmValidation = validatePasswordConfirmation(formData.password, value)
       setConfirmPassError(confirmValidation.message)
     }
@@ -123,8 +154,6 @@ function RegisterForm() {
       triggerShake()
       return false
     }
-
-    setFormData((prev) => ({ ...prev, phone: normalizedPhone }))
 
     return true
   }
@@ -161,17 +190,32 @@ function RegisterForm() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
+    setServerErrors({ email: null, phone: null, password: null, general: null })
     
     // If user hits Enter on Step 1, move to Step 2
     if (step === 1) {
       if (validateStep1()) {
         setPassError(null)
+        setConfirmPassError(null)
+        setStep2SubmitAttempted(false)
+        setTouched((prev) => ({ ...prev, password: false, confirm_password: false }))
         setStep(2)
       }
       return
     }
 
     // Final validation for Step 2
+    if (!formData.password.trim() || !formData.confirm_password.trim()) {
+      toast({
+        title: "Password Required",
+        description: "Please enter and confirm your password before submitting.",
+        variant: "destructive",
+      })
+      triggerShake()
+      return
+    }
+
     setStep2SubmitAttempted(true)
     const { message, isValid } = validatePassword(formData.password)
     if (!isValid) {
@@ -189,6 +233,18 @@ function RegisterForm() {
 
     setLoading(true)
     try {
+      const normalizedPhone = normalizeEthiopianPhone(formData.phone)
+      if (!normalizedPhone) {
+        setStep(1)
+        toast({
+          title: "Invalid Phone Number",
+          description: "Please enter a valid Ethiopian number (e.g. +251912345678 or 0912345678).",
+          variant: "destructive",
+        })
+        triggerShake()
+        return
+      }
+
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
@@ -199,7 +255,7 @@ function RegisterForm() {
           password: formData.password,
           full_name: formData.full_name.trim(),
           role: "owner",
-          phone: formData.phone,
+          phone: normalizedPhone,
           ...(formData.marketer_referral_code.trim()
             ? { marketer_referral_code: formData.marketer_referral_code.trim() }
             : {}),
@@ -209,7 +265,54 @@ function RegisterForm() {
       if (!res.ok) {
         triggerShake()
         const data = await res.json().catch(() => null)
-        const message = data?.error || data?.message || "Could not register with those details."
+        const message = String(data?.error || data?.message || "Could not register with those details.")
+        const lower = message.toLowerCase()
+
+        if (lower.includes("phone") && (lower.includes("exist") || lower.includes("already") || lower.includes("duplicate") || lower.includes("unique"))) {
+          setStep(1)
+          setTouched((prev) => ({ ...prev, phone: true }))
+          setServerErrors((prev) => ({
+            ...prev,
+            phone: "This phone number is already registered. Use another number or sign in.",
+          }))
+          toast({
+            title: "Phone Already Registered",
+            description: "This phone number is already in use.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        if (lower.includes("email") && (lower.includes("exist") || lower.includes("already") || lower.includes("duplicate") || lower.includes("unique"))) {
+          setStep(1)
+          setTouched((prev) => ({ ...prev, email: true }))
+          setServerErrors((prev) => ({
+            ...prev,
+            email: "This email is already registered. Use another email or sign in.",
+          }))
+          toast({
+            title: "Email Already Registered",
+            description: "This email address is already in use.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        if (lower.includes("password")) {
+          setStep(2)
+          setStep2SubmitAttempted(true)
+          setTouched((prev) => ({ ...prev, password: true }))
+          setPassError(message)
+          setServerErrors((prev) => ({ ...prev, password: message }))
+          toast({
+            title: "Password Issue",
+            description: message,
+            variant: "destructive",
+          })
+          return
+        }
+
+        setServerErrors((prev) => ({ ...prev, general: message }))
         throw new Error(message)
       }
 
@@ -234,6 +337,11 @@ function RegisterForm() {
 
   const emailValidation = validateEmail(formData.email)
   const phoneIsValid = !!normalizeEthiopianPhone(formData.phone)
+  const showPasswordFeedback = step2SubmitAttempted || touched.password
+  const showConfirmPasswordFeedback = step2SubmitAttempted || touched.confirm_password
+  const canSubmitStep2 = !!formData.password.trim() && !!formData.confirm_password.trim() && !loading
+  const showEmailServerError = !!serverErrors.email
+  const showPhoneServerError = !!serverErrors.phone
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4 font-sans relative overflow-hidden selection:bg-primary/30">
@@ -319,13 +427,16 @@ function RegisterForm() {
                             required 
                             className={cn(
                               "h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-14 text-lg transition-all",
+                              showEmailServerError && "border-red-500/50 bg-red-500/5",
                               touched.email && !emailValidation.isValid && "border-red-500/50 bg-red-500/5",
                               touched.email && emailValidation.isValid && "border-emerald-500/50 bg-emerald-500/5"
                             )}
                           />
                           <Mail className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
                         </div>
-                        {touched.email && (
+                        {showEmailServerError ? (
+                          <p className="text-xs mt-2 ml-2 font-medium text-red-600 dark:text-red-400">{serverErrors.email}</p>
+                        ) : touched.email && (
                           <p
                             className={cn(
                               "text-xs mt-2 ml-2 font-medium",
@@ -356,13 +467,16 @@ function RegisterForm() {
                             maxLength={10}
                             className={cn(
                               "h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground pl-36 text-lg transition-all",
+                              showPhoneServerError && "border-red-500/50 bg-red-500/5",
                               touched.phone && !phoneIsValid && "border-red-500/50 bg-red-500/5",
                               touched.phone && phoneIsValid && "border-emerald-500/50 bg-emerald-500/5"
                             )}
                           />
                           <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/30" />
                         </div>
-                        {touched.phone && (
+                        {showPhoneServerError ? (
+                          <p className="text-xs mt-2 ml-2 font-medium text-red-600 dark:text-red-400">{serverErrors.phone}</p>
+                        ) : touched.phone && (
                           <p
                             className={cn(
                               "text-xs mt-2 ml-2 font-medium",
@@ -402,23 +516,23 @@ function RegisterForm() {
                           onBlur={() => setTouched((prev) => ({ ...prev, password: true }))}
                           className={cn(
                             "h-20 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground px-8 text-2xl tracking-[0.3em] transition-all",
-                            (step2SubmitAttempted || touched.password) && passError && !passError.includes("Perfectly") && "border-red-500/50 bg-red-500/5",
-                            (step2SubmitAttempted || touched.password) && passError?.includes("Perfectly") && "border-emerald-500/50 bg-emerald-500/5 focus:border-emerald-500/50"
+                            showPasswordFeedback && passError && !passError.includes("Perfectly") && "border-red-500/50 bg-red-500/5",
+                            showPasswordFeedback && passError?.includes("Perfectly") && "border-emerald-500/50 bg-emerald-500/5 focus:border-emerald-500/50"
                           )}
                         />
                         <AnimatePresence mode="wait">
-                          {(step2SubmitAttempted || touched.password) && passError && (
+                          {showPasswordFeedback && (serverErrors.password || passError) && (
                             <motion.p
-                              key={passError}
+                              key={serverErrors.password || passError}
                               initial={{ opacity: 0, y: -10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: 10 }}
                               className={cn(
                                 "text-xs mt-3 ml-2 font-medium italic flex items-center gap-2",
-                                passError.includes("Perfectly") ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                                (serverErrors.password || passError)?.includes("Perfectly") ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                               )}
                             >
-                              {passError.includes("Perfectly") ? "✨" : "⚠️"} {passError}
+                              {(serverErrors.password || passError)?.includes("Perfectly") ? "✨" : "⚠️"} {serverErrors.password || passError}
                             </motion.p>
                           )}
                         </AnimatePresence>
@@ -434,12 +548,12 @@ function RegisterForm() {
                           onBlur={() => setTouched((prev) => ({ ...prev, confirm_password: true }))}
                           className={cn(
                             "h-16 rounded-2xl bg-muted/50 border-border focus:border-primary/50 text-foreground px-8 text-xl tracking-[0.2em] transition-all",
-                            (step2SubmitAttempted || touched.confirm_password) && confirmPassError && !confirmPassError.includes("match.") && "border-red-500/50 bg-red-500/5",
-                            (step2SubmitAttempted || touched.confirm_password) && confirmPassError?.includes("match.") && "border-emerald-500/50 bg-emerald-500/5 focus:border-emerald-500/50"
+                            showConfirmPasswordFeedback && confirmPassError && !confirmPassError.includes("match.") && "border-red-500/50 bg-red-500/5",
+                            showConfirmPasswordFeedback && confirmPassError?.includes("match.") && "border-emerald-500/50 bg-emerald-500/5 focus:border-emerald-500/50"
                           )}
                         />
                         <AnimatePresence mode="wait">
-                          {(step2SubmitAttempted || touched.confirm_password) && confirmPassError && (
+                          {showConfirmPasswordFeedback && confirmPassError && (
                             <motion.p
                               key={confirmPassError}
                               initial={{ opacity: 0, y: -10 }}
@@ -529,7 +643,7 @@ function RegisterForm() {
               ) : (
                 <Button
                   type="submit"
-                  disabled={loading}
+                  disabled={!canSubmitStep2}
                   className="w-full flex-1 h-14 sm:h-16 rounded-2xl bg-primary text-base sm:text-xl font-bold text-white shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all border-none relative overflow-hidden group touch-manipulation"
                 >
                   <AnimatePresence mode="wait">

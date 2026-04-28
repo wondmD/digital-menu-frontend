@@ -26,32 +26,31 @@ export async function fetchPublicRestaurantBySlugOrId(identifier: string): Promi
   if (!normalizedIdentifier) return null
 
   try {
-    const listRes = await apiFetch<any>("/restaurants")
+    const directRes = await apiFetch<any>(`/restaurants/${encodeURIComponent(normalizedIdentifier)}`)
+    const direct = directRes?.data || directRes
+    if (isRecord(direct) && direct?.id) return direct
+  } catch {
+    // Ignore and try the public catalog search fallback below.
+  }
+
+  try {
+    const listRes = await apiFetch<any>(`/restaurants?page=1&page_size=100&search=${encodeURIComponent(normalizedIdentifier)}`)
     const rows = extractList(listRes)
 
     const matched = rows.find((row) => {
       const rowSlug = extractRestaurantSlug(row)
       const rowId = String(row?.id || "").trim().toLowerCase()
-      return rowSlug === normalizedIdentifier || rowId === normalizedIdentifier
+      const rowName = normalizeSlug(row?.name)
+      return rowSlug === normalizedIdentifier || rowId === normalizedIdentifier || rowName === normalizedIdentifier
     })
 
-    if (!matched) return null
-
-    const matchedId = String(matched?.id || "").trim()
-    if (!matchedId) return null
-
-    if (matchedId) {
-      try {
-        const byIdRes = await apiFetch<any>(`/restaurants/${encodeURIComponent(matchedId)}`)
-        const byId = byIdRes?.data || byIdRes
-        if (isRecord(byId) && byId?.id) return byId
-      } catch {
-        // Fallback to list row shape only when detail lookup by id fails.
-      }
+    if (matched && isRecord(matched)) {
+      return matched
     }
-
-    return matched
   } catch {
-    return null
+    // If the catalog endpoint is unavailable, fall through to null so the UI can
+    // render its existing not-found state.
   }
+
+  return null
 }

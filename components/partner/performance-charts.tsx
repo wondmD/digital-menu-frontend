@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PartnerAnalyticsPoint } from "@/lib/mock-data"
+import { PartnerAnalyticsPoint } from "@/lib/partner-api"
 import {
   CartesianGrid,
   Legend,

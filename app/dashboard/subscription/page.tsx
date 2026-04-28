@@ -189,6 +189,18 @@ export default function DashboardSubscriptionPage() {
   const statusText = String(subscription?.status || "unknown")
   const hasActivePlan = !!(subscription?.plan_slug || subscription?.plan_id || currentPlan)
 
+  const isExpiredSubscription = useMemo(() => {
+    const statusLower = statusText.toLowerCase()
+    if (statusLower === "expired") return true
+    const expiryRaw = subscription?.expires_at || subscription?.end_date
+    if (!expiryRaw) return false
+    const expiry = new Date(expiryRaw)
+    if (Number.isNaN(expiry.getTime())) return false
+    return expiry.getTime() <= Date.now()
+  }, [statusText, subscription?.expires_at, subscription?.end_date])
+
+  const treatAsNoSubscription = !hasActivePlan || isExpiredSubscription
+
   const currentTierScore = currentPlan?.tierScore ?? getTierScore(planSlug, String(subscription?.plan_name || ""), Number(subscription?.price_monthly || 0))
   const upgradeRequestState = useMemo(() => getUpgradeRequestState(subscription), [subscription])
   const isUpgradeBlockedByPending = upgradeRequestState.hasPendingUpgrade
@@ -197,12 +209,17 @@ export default function DashboardSubscriptionPage() {
     return plans
       .filter((p) => {
         const key = `${p.slug} ${p.name}`.toLowerCase()
-        return p.tierScore > currentTierScore && !key.includes("starter") && !key.includes("free") && !key.includes("trial")
+        const isFreeOrTrial = key.includes("free") || key.includes("trial")
+        if (isFreeOrTrial) return false
+
+        if (treatAsNoSubscription) return true
+
+        return p.tierScore > currentTierScore && !key.includes("starter")
       })
       .sort((a, b) => a.tierScore - b.tierScore)
-  }, [plans, currentTierScore])
+  }, [plans, currentTierScore, treatAsNoSubscription])
 
-  const isOnTopPlan = hasActivePlan && upgradeCandidates.length === 0
+  const isOnTopPlan = hasActivePlan && !treatAsNoSubscription && upgradeCandidates.length === 0
 
   const expiresAt = subscription?.expires_at || subscription?.end_date
   const startsAt = subscription?.start_date || subscription?.starts_at || subscription?.created_at
@@ -290,7 +307,9 @@ export default function DashboardSubscriptionPage() {
           </Badge>
           <h1 className="text-3xl md:text-5xl font-black tracking-tight">Subscription Details</h1>
           <p className="text-muted-foreground max-w-2xl">
-            See your current plan health, days left, and available upgrade paths.
+            {treatAsNoSubscription
+              ? "Your previous subscription is expired. Choose any package to continue."
+              : "See your current plan health, days left, and available upgrade paths."}
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -305,7 +324,7 @@ export default function DashboardSubscriptionPage() {
             ) : (
               <Button asChild>
                 <Link href="/packages">
-                  Upgrade Plan <ArrowRight className="h-4 w-4" />
+                  {treatAsNoSubscription ? "Choose Package" : "Upgrade Plan"} <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             ))}
@@ -497,9 +516,11 @@ export default function DashboardSubscriptionPage() {
             <TrendingUp className="h-5 w-5 text-primary" /> Possible Upgrades
           </CardTitle>
           <CardDescription>
-            {isOnTopPlan
-              ? "You are already on the highest package."
-              : "Plans above your current tier that you can move to."}
+            {treatAsNoSubscription
+              ? "Expired subscription detected. You can buy any package, including lower tiers."
+              : isOnTopPlan
+                ? "You are already on the highest package."
+                : "Plans above your current tier that you can move to."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -540,7 +561,7 @@ export default function DashboardSubscriptionPage() {
                     ) : (
                       <Button className="w-full" asChild>
                         <Link href={`/payment?plan=${encodeURIComponent(plan.slug.replace(/-(monthly|annual)$/i, ""))}&billing_cycle=${encodeURIComponent(billingCycle)}`}>
-                          Upgrade Plan <ArrowRight className="h-4 w-4" />
+                          {treatAsNoSubscription ? "Buy Package" : "Upgrade Plan"} <ArrowRight className="h-4 w-4" />
                         </Link>
                       </Button>
                     )}
@@ -565,7 +586,7 @@ export default function DashboardSubscriptionPage() {
               </Button>
             ) : (
               <Button className="w-full" asChild>
-                <Link href="/packages">Upgrade Plan</Link>
+                <Link href="/packages">{treatAsNoSubscription ? "Buy Package" : "Upgrade Plan"}</Link>
               </Button>
             )}
           </CardContent>

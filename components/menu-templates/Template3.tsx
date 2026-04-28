@@ -146,9 +146,21 @@ export default function Template3({
                       <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{item.description}</p>
                     </div>
                     <div className="text-right">
-                       <p className="font-black text-primary whitespace-nowrap">
+                      {typeof item.discounted_price === "number" && item.discounted_price < item.price ? (
+                        <div className="space-y-0.5">
+                          <p className="font-black text-primary whitespace-nowrap">
+                            {item.currency} {item.discounted_price.toFixed(item.discounted_price % 1 === 0 ? 0 : 2)}
+                          </p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            <span className="line-through mr-1">{item.currency} {item.price.toFixed(item.price % 1 === 0 ? 0 : 2)}</span>
+                            {item.discount?.label || "Offer"}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="font-black text-primary whitespace-nowrap">
                           {item.currency} {item.price.toFixed(item.price % 1 === 0 ? 0 : 2)}
-                       </p>
+                        </p>
+                      )}
                         {(item.is_available === false || item.available === false) && (
                          <p className="text-[10px] font-bold uppercase tracking-wide text-rose-500 mt-1">Sold Out</p>
                         )}

@@ -38,12 +38,17 @@ type EventItem = {
   name?: string
   date?: string
   start_date?: string
+  end_date?: string
   time?: string
   start_time?: string
+  end_time?: string
   description?: string
   image_url?: string
   poster_url?: string
   cover_url?: string
+  timezone?: string
+  location?: string
+  is_active?: boolean
 }
 
 interface RestaurantShowcaseProps {
@@ -126,6 +131,34 @@ function extractList(payload: any): any[] {
   if (Array.isArray(payload?.data)) return payload.data
   if (Array.isArray(payload?.data?.items)) return payload.data.items
   if (Array.isArray(payload?.items)) return payload.items
+  return []
+}
+
+function isActiveEvent(event: EventItem): boolean {
+  // Treat missing flag as active so older payloads still render.
+  if (typeof event?.is_active === "boolean") return event.is_active
+  return true
+}
+
+async function fetchRestaurantEvents(restaurantIdentifier: string): Promise<EventItem[]> {
+  const candidatePaths = [
+    `/my-restaurants/${restaurantIdentifier}/events?is_active=true`,
+    `/restaurants/${restaurantIdentifier}/events?is_active=true`,
+    `/restaurants/${restaurantIdentifier}/events`,
+  ]
+
+  for (const path of candidatePaths) {
+    try {
+      const res = (await apiFetch(path)) as any
+      const rows = extractList(res) as EventItem[]
+      if (rows.length > 0) {
+        return rows.filter(isActiveEvent)
+      }
+    } catch {
+      continue
+    }
+  }
+
   return []
 }
 
@@ -215,8 +248,8 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
       }
 
       try {
-        const eventsRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/events")) as any
-        setEvents(extractList(eventsRes))
+        const eventsList = await fetchRestaurantEvents(restaurantIdentifier)
+        setEvents(eventsList)
       } catch {
         setEvents([])
       }
@@ -276,9 +309,14 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
       id: event.id || "event-" + index,
       title: event.title || event.name || "Special Event",
       date: event.date || event.start_date || new Date().toISOString(),
+      end_date: event.end_date,
       time: event.time || event.start_time,
+      end_time: event.end_time,
       description: event.description || "Join us for an exclusive dining event.",
       image_url: getImageUrl(event.image_url || event.poster_url || event.cover_url) || undefined,
+      timezone: event.timezone,
+      location: event.location,
+      is_active: isActiveEvent(event),
     }))
   }, [events])
 
@@ -430,7 +468,12 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
       <StorySection hotel={heroRestaurant as any} coverImage={getImageUrl(restaurant.cover_image_url || restaurant.cover_url) || undefined} />
       {galleryImages.length > 0 ? <GallerySection images={galleryImages} /> : null}
       {testimonialItems.length > 0 ? <TestimonialsSection testimonials={testimonialItems as any} /> : null}
-      {eventCards.length > 0 ? <EventsSection events={eventCards as any} /> : null}
+      {eventCards.length > 0 ? (
+        <EventsSection
+          events={eventCards as any}
+          coverImage={getImageUrl(restaurant.cover_image_url || restaurant.cover_url) || undefined}
+        />
+      ) : null}
       <LocationSection hotel={heroRestaurant as any} mapSrc={mapSrc} mapLink={mapLink} />
       <FooterSection hotel={heroRestaurant as any} />
       <FloatingSocialCTA hotel={heroRestaurant as any} />

@@ -158,9 +158,23 @@ export default function Template1({
                         <h3 className="min-w-0 text-lg sm:text-2xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA] group-hover:text-primary transition-colors wrap-break-word">
                         {item.name}
                       </h3>
-                        <span className="text-base sm:text-xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA]">
-                        {item.currency} {item.price.toFixed(2)}
-                      </span>
+                        {typeof item.discounted_price === "number" && item.discounted_price < item.price ? (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-base sm:text-xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA]">
+                              {item.currency} {item.discounted_price.toFixed(2)}
+                            </span>
+                            <span className="text-xs sm:text-sm font-sans line-through text-[#706C61] dark:text-[#A09D95]">
+                              {item.currency} {item.price.toFixed(2)}
+                            </span>
+                            <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300">
+                              {item.discount?.label || "Offer"}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-base sm:text-xl font-serif text-[#1A1A1A] dark:text-[#EAEAEA]">
+                            {item.currency} {item.price.toFixed(2)}
+                          </span>
+                        )}
                     </div>
                     <p className="text-sm sm:text-base text-[#706C61] dark:text-[#A09D95] font-sans leading-relaxed max-w-2xl wrap-break-word">
                       {item.description}

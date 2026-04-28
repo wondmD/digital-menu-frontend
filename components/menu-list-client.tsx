@@ -25,6 +25,20 @@ import Template1 from "./menu-templates/Template1"
 import Template2 from "./menu-templates/Template2"
 import Template3 from "./menu-templates/Template3"
 
+type DiscountRule = {
+  id: string
+  name?: string
+  code?: string
+  description?: string
+  discount_type?: "percentage" | "fixed_amount" | string
+  discount_value?: number
+  applicable_to?: "all_items" | "specific_categories" | "specific_items" | string
+  entity_ids?: Array<string | number>
+  start_date?: string
+  end_date?: string
+  is_active?: boolean
+}
+
 interface MenuListClientProps {
     hotelSlug: string
     initialHotel?: Restaurant | null
@@ -80,6 +94,144 @@ function normalizeMenuItem(item: any, fallbackCategoryId: string): MenuItem {
     image_urls: Array.isArray(item?.image_urls) ? item.image_urls : undefined,
     rating: Number(item?.rating || 0),
     rating_count: Number(item?.rating_count || 0),
+    discounted_price: Number(item?.discounted_price || item?.final_price || item?.price_after_discount || 0) || undefined,
+    original_price: Number(item?.original_price || 0) || undefined,
+    discount: item?.discount,
+  }
+}
+
+function normalizeApplicableTo(value: unknown): "all_items" | "specific_categories" | "specific_items" {
+  const raw = String(value || "all_items").toLowerCase().replace(/-/g, "_")
+  if (raw === "all" || raw === "all_items") return "all_items"
+  if (raw === "specific_categories" || raw === "categories") return "specific_categories"
+  if (raw === "specific_items" || raw === "items") return "specific_items"
+  return "all_items"
+}
+
+function normalizeDiscountRule(raw: any): DiscountRule {
+  return {
+    id: String(raw?.id || raw?.uuid || ""),
+    name: raw?.name,
+    code: raw?.code,
+    description: raw?.description,
+    discount_type: String(raw?.discount_type || "").toLowerCase(),
+    discount_value: Number(raw?.discount_value || 0),
+    applicable_to: normalizeApplicableTo(raw?.applicable_to),
+    entity_ids: Array.isArray(raw?.entity_ids)
+      ? raw.entity_ids
+      : Array.isArray(raw?.entityIds)
+      ? raw.entityIds
+      : [],
+    start_date: raw?.start_date,
+    end_date: raw?.end_date,
+    is_active: raw?.is_active,
+  }
+}
+
+function isRuleWithinDateRange(rule: DiscountRule): boolean {
+  const now = new Date()
+  if (rule.start_date) {
+    const start = new Date(rule.start_date)
+    if (!Number.isNaN(start.getTime()) && now < start) return false
+  }
+  if (rule.end_date) {
+    const end = new Date(rule.end_date)
+    if (!Number.isNaN(end.getTime()) && now > end) return false
+  }
+  return true
+}
+
+function computeDiscountedPrice(price: number, rule: DiscountRule): number {
+  const rawValue = Number(rule.discount_value || 0)
+  if (!Number.isFinite(rawValue) || rawValue <= 0) return price
+
+  let reduced = price
+  if (String(rule.discount_type).toLowerCase() === "percentage") {
+    reduced = price - (price * rawValue) / 100
+  } else {
+    reduced = price - rawValue
+  }
+
+  return Math.max(0, Number(reduced.toFixed(2)))
+}
+
+function findBestDiscountForItem(item: MenuItem, rules: DiscountRule[]): DiscountRule | null {
+  const itemId = String(item.id)
+  const categoryId = String(item.category_id)
+
+  const candidates = rules.filter((rule) => {
+    if (rule.is_active === false) return false
+    if (!isRuleWithinDateRange(rule)) return false
+
+    const scope = normalizeApplicableTo(rule.applicable_to)
+    if (scope === "all_items") return true
+
+    const targets = (rule.entity_ids || []).map((entry) => String(entry))
+    if (scope === "specific_items") {
+      return targets.includes(itemId)
+    }
+    if (scope === "specific_categories") {
+      return targets.includes(categoryId)
+    }
+    return false
+  })
+
+  if (candidates.length === 0) return null
+
+  let best: DiscountRule | null = null
+  let bestSavings = 0
+  for (const candidate of candidates) {
+    const discounted = computeDiscountedPrice(item.price, candidate)
+    const savings = item.price - discounted
+    if (savings > bestSavings) {
+      bestSavings = savings
+      best = candidate
+    }
+  }
+
+  return best
+}
+
+function applyDiscountToItem(item: MenuItem, rules: DiscountRule[]): MenuItem {
+  const bestRule = findBestDiscountForItem(item, rules)
+  if (!bestRule) {
+    return {
+      ...item,
+      discounted_price: undefined,
+      original_price: undefined,
+      discount: undefined,
+    }
+  }
+
+  const discountedPrice = computeDiscountedPrice(item.price, bestRule)
+  if (discountedPrice >= item.price) {
+    return {
+      ...item,
+      discounted_price: undefined,
+      original_price: undefined,
+      discount: undefined,
+    }
+  }
+
+  const savingsAmount = Number((item.price - discountedPrice).toFixed(2))
+  const discountLabel =
+    String(bestRule.discount_type).toLowerCase() === "percentage"
+      ? `${Number(bestRule.discount_value || 0)}% OFF`
+      : `${item.currency} ${Number(bestRule.discount_value || 0).toFixed(2)} OFF`
+
+  return {
+    ...item,
+    discounted_price: discountedPrice,
+    original_price: item.price,
+    discount: {
+      id: bestRule.id,
+      name: bestRule.name,
+      code: bestRule.code,
+      discount_type: bestRule.discount_type,
+      discount_value: bestRule.discount_value,
+      label: discountLabel,
+      savings_amount: savingsAmount,
+    },
   }
 }
 
@@ -155,6 +307,16 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
           const cRes = await apiFetch<any>("/restaurants/" + restaurantIdForMenu + "/categories")
           const categoryRows = extractList(cRes)
 
+          let activeDiscounts: DiscountRule[] = []
+          try {
+            const discountsRes = await apiFetch<any>(
+              "/restaurants/" + restaurantIdForMenu + "/discounts?is_active=true"
+            )
+            activeDiscounts = extractList(discountsRes).map(normalizeDiscountRule)
+          } catch {
+            activeDiscounts = []
+          }
+
           const categoriesWithItems = await Promise.all(
             categoryRows.map(async (cat: any) => {
               try {
@@ -165,7 +327,9 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                   id: String(cat?.id || ""),
                   name: String(cat?.name || "Category"),
                   description: cat?.description || "",
-                  items: itData.map((it: any) => normalizeMenuItem(it, String(cat?.id || ""))),
+                  items: itData
+                    .map((it: any) => normalizeMenuItem(it, String(cat?.id || "")))
+                    .map((normalizedItem) => applyDiscountToItem(normalizedItem, activeDiscounts)),
                 }
               } catch {
                 return {
@@ -276,10 +440,12 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                         />
                         <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/5 to-transparent" />
                         <div className="absolute inset-x-0 bottom-0 p-5 md:p-7">
-                          <div className="inline-flex items-center gap-2 rounded-full bg-black/50 text-white backdrop-blur-md px-3 py-1.5 border border-white/15">
-                            <Sparkles className="h-3.5 w-3.5" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Chef Pick</span>
-                          </div>
+                          {(selectedItem.is_featured || (selectedItem as any).chef_pick || (selectedItem as any).is_chef_pick) && (
+                            <div className="inline-flex items-center gap-2 rounded-full bg-black/50 text-white backdrop-blur-md px-3 py-1.5 border border-white/15">
+                              <Sparkles className="h-3.5 w-3.5" />
+                              <span className="text-[10px] font-black uppercase tracking-[0.2em]">Chef Pick</span>
+                            </div>
+                          )}
                         </div>
                         
                         {validImages.length > 1 && (
@@ -341,7 +507,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                 </div>
 
                  <div className="px-5 py-8 md:px-12 md:py-12 flex flex-col gap-8 md:gap-10">
-                   <div className="space-y-5">
+                      <div className="space-y-5">
                       <div className="flex items-center gap-3 flex-wrap">
                         <span className="bg-primary/5 text-primary px-3 py-1 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase border border-primary/10">
                            {categories.find(c => String(c.id) === String(selectedItem.category_id))?.name || "Selection"}
@@ -352,8 +518,22 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                           </span>
                         )}
                         <div className="flex-1 md:hidden" />
-                        <div className="text-2xl font-black text-primary md:hidden">
-                           {formatPrice(selectedItem.price, selectedItem.currency)}
+                        <div className="md:hidden text-right">
+                          {typeof selectedItem.discounted_price === "number" && selectedItem.discounted_price < selectedItem.price ? (
+                            <>
+                              <div className="text-2xl font-black text-primary">
+                                {formatPrice(selectedItem.discounted_price, selectedItem.currency)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                <span className="line-through mr-1">{formatPrice(selectedItem.price, selectedItem.currency)}</span>
+                                {selectedItem.discount?.label || "Offer"}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-2xl font-black text-primary">
+                              {formatPrice(selectedItem.price, selectedItem.currency)}
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -363,29 +543,52 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
 
                       <div className="hidden md:flex items-center gap-4">
                         <div className="h-px w-12 bg-primary/20" />
-                        <div className="text-4xl font-serif text-primary">
-                          <span className="text-xl font-sans font-bold vertical-super mr-1 opacity-80">{selectedItem.currency}</span>
-                          {Number.isFinite(selectedItem.price) ? selectedItem.price.toFixed(2) : "0.00"}
-                        </div>
+                        {typeof selectedItem.discounted_price === "number" && selectedItem.discounted_price < selectedItem.price ? (
+                          <div className="flex items-end gap-3">
+                            <div className="text-4xl font-serif text-primary">
+                              <span className="text-xl font-sans font-bold vertical-super mr-1 opacity-80">{selectedItem.currency}</span>
+                              {selectedItem.discounted_price.toFixed(2)}
+                            </div>
+                            <div className="pb-1 text-sm text-muted-foreground">
+                              <span className="line-through mr-2">{formatPrice(selectedItem.price, selectedItem.currency)}</span>
+                              {selectedItem.discount?.label || "Offer"}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-4xl font-serif text-primary">
+                            <span className="text-xl font-sans font-bold vertical-super mr-1 opacity-80">{selectedItem.currency}</span>
+                            {Number.isFinite(selectedItem.price) ? selectedItem.price.toFixed(2) : "0.00"}
+                          </div>
+                        )}
                       </div>
 
-                      <DrawerDescription className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium max-w-2xl">
-                        {selectedItem.description || "Indulge in a masterpiece of flavor, meticulously prepared by our chefs."}
-                      </DrawerDescription>
+                      {selectedItem.description ? (
+                        <DrawerDescription className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium max-w-2xl">
+                          {selectedItem.description}
+                        </DrawerDescription>
+                      ) : null}
 
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-                          <Star className="h-3.5 w-3.5 text-amber-500" />
-                          {(selectedItem.rating || 0).toFixed(1)} rating
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-                          <Clock className="h-3.5 w-3.5 text-sky-500" />
-                          Avg prep 15-20 min
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-                          <Flame className="h-3.5 w-3.5 text-orange-500" />
-                          Freshly made
-                        </span>
+                        {Number(selectedItem.rating) > 0 && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                            <Star className="h-3.5 w-3.5 text-amber-500" />
+                            {Number(selectedItem.rating).toFixed(1)} rating
+                          </span>
+                        )}
+
+                        {((selectedItem as any).prep_time || (selectedItem as any).estimated_prep_time || (selectedItem as any).prep_minutes) && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5 text-sky-500" />
+                            {((selectedItem as any).prep_time && String((selectedItem as any).prep_time)) || ((selectedItem as any).estimated_prep_time && String((selectedItem as any).estimated_prep_time)) || (((selectedItem as any).prep_minutes && `${(selectedItem as any).prep_minutes} min`) || "")}
+                          </span>
+                        )}
+
+                        {((selectedItem as any).freshness || (selectedItem as any).freshly_made || (selectedItem as any).is_fresh) && (
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                            <Flame className="h-3.5 w-3.5 text-orange-500" />
+                            {(selectedItem as any).freshness || (selectedItem as any).freshly_made || "Freshly made"}
+                          </span>
+                        )}
                       </div>
                    </div>
 
@@ -411,12 +614,14 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                       </div>
                    </div>
 
-                   <div className="rounded-3xl border border-border/70 bg-linear-to-br from-card to-secondary/10 p-5 md:p-7">
-                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Chef Notes</p>
-                     <p className="mt-2 text-sm md:text-base text-foreground/90 leading-relaxed">
-                       Prepared in small batches to preserve flavor and texture. Ask the team for pairing suggestions and daily specials.
-                     </p>
-                   </div>
+                   {((selectedItem as any).chef_notes || (selectedItem as any).notes || (selectedItem as any).kitchen_notes) && (
+                     <div className="rounded-3xl border border-border/70 bg-linear-to-br from-card to-secondary/10 p-5 md:p-7">
+                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Chef Notes</p>
+                       <p className="mt-2 text-sm md:text-base text-foreground/90 leading-relaxed">
+                         {(selectedItem as any).chef_notes || (selectedItem as any).notes || (selectedItem as any).kitchen_notes}
+                       </p>
+                     </div>
+                   )}
 
                    <div className="mt-2 md:hidden sticky bottom-0 bg-linear-to-t from-background via-background to-transparent pt-4 pb-2">
                       <Button className="w-full h-14 rounded-2xl text-base font-bold shadow-2xl shadow-primary/20" onClick={() => setSelectedItem(null)}>

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, ZoomIn, ChevronLeft, ChevronRight, Camera, Heart, Share2 } from "lucide-react"
+import { X, ZoomIn, ChevronLeft, ChevronRight, Camera, Share2 } from "lucide-react"
 import { cn, getImageUrl } from "@/lib/utils"
 import { useIsMounted } from "@/hooks/useIsMounted"
 
@@ -22,7 +22,6 @@ interface GallerySectionProps {
 export function GallerySection({ images, className }: GallerySectionProps) {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [likedImages, setLikedImages] = useState<Set<string>>(new Set())
   const isMounted = useIsMounted()
 
   if (!images || images.length === 0) return null
@@ -48,18 +47,7 @@ export function GallerySection({ images, className }: GallerySectionProps) {
     }
   }
 
-  const toggleLike = (imageId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setLikedImages(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(imageId)) {
-        newSet.delete(imageId)
-      } else {
-        newSet.add(imageId)
-      }
-      return newSet
-    })
-  }
+  // Likes removed — gallery images are for display only.
 
   return (
     <>
@@ -124,17 +112,11 @@ export function GallerySection({ images, className }: GallerySectionProps) {
                   
                   {/* Action Buttons */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-lg">
-                        <ZoomIn className="h-6 w-6 text-foreground" />
+                      <div className="flex items-center gap-4">
+                        <div className="bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-lg">
+                          <ZoomIn className="h-6 w-6 text-foreground" />
+                        </div>
                       </div>
-                      <div
-                        onClick={(e) => toggleLike(image.id, e)}
-                        className="bg-white/90 backdrop-blur-sm rounded-full p-4 shadow-lg"
-                      >
-                        <Heart className={`h-6 w-6 ${likedImages.has(image.id) ? 'fill-red-500 text-red-500' : 'text-foreground'}`} />
-                      </div>
-                    </div>
                   </div>
 
                   {/* Image Caption */}
@@ -165,10 +147,7 @@ export function GallerySection({ images, className }: GallerySectionProps) {
                 <span className="font-semibold">{images.length} Photos</span>
               </div>
               <div className="w-px h-6 bg-border" />
-              <div className="flex items-center gap-2">
-                <Heart className="h-5 w-5 text-red-500" />
-                <span className="font-semibold">{likedImages.size} Liked</span>
-              </div>
+              {/* Likes removed — no like counts shown */}
             </div>
           </div>
         </div>
@@ -243,12 +222,7 @@ export function GallerySection({ images, className }: GallerySectionProps) {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={(e) => toggleLike(selectedImage.id, e)}
-                      className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors border border-white/20"
-                    >
-                      <Heart className={`h-6 w-6 ${likedImages.has(selectedImage.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                    </button>
+                    {/* Like button removed from lightbox */}
                     <button className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors border border-white/20">
                       <Share2 className="h-6 w-6" />
                     </button>

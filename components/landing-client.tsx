@@ -621,23 +621,16 @@ export default function LandingClient() {
                        viewport={{ once: true }}
                        className="relative z-10 rounded-3xl md:rounded-[4rem] overflow-hidden border border-border shadow-3xl bg-card group"
                     >
-                       <Image 
-                         src="/hotel.webp" 
-                         alt="Architecture" 
-                         width={800} 
-                         height={1000} 
-                         className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000" 
-                       />
-                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                          <motion.div 
-                            animate={{ scale: [1, 1.1, 1] }} 
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="h-16 w-16 md:h-24 md:w-24 rounded-full bg-primary flex items-center justify-center text-white shadow-3xl shadow-primary/50 cursor-pointer"
-                          >
-                             <Play className="h-6 w-6 md:h-10 md:w-10 fill-white ml-1 md:ml-2" />
-                          </motion.div>
-                       </div>
+                       <video
+                         className="aspect-video w-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000"
+                       src="/howto.mp4"
+                       autoPlay
+                       muted
+                       loop
+                       playsInline
+                       controls
+                      />
+                       <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
                     </motion.div>
                     
                     {/* Decorative Elements */}

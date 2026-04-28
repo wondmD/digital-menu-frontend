@@ -1,7 +1,7 @@
 import { CheckCircle2, Circle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { PartnerChecklistItem } from "@/lib/mock-data"
+import { PartnerChecklistItem } from "@/lib/partner-api"
 
 type OnboardingChecklistProps = {
   items: PartnerChecklistItem[]

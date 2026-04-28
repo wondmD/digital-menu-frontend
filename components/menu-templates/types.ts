@@ -11,6 +11,19 @@ export type MenuItem = {
   category_id: string;
   is_available?: boolean;
   available?: boolean;
+  discounted_price?: number;
+  original_price?: number;
+  discount?: {
+    id?: string;
+    name?: string;
+    code?: string;
+    discount_type?: string;
+    discount_value?: number;
+    label?: string;
+    savings_amount?: number;
+  };
+  rating?: number;
+  rating_count?: number;
 };
 
 export type Category = {

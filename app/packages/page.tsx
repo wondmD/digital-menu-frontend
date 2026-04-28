@@ -13,54 +13,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { getUpgradeRequestState } from "@/lib/subscription-upgrade"
 import { cn } from "@/lib/utils"
 
-const DEFAULT_PLANS = [
-  {
-    id: "free-trial",
-    name: "Free Trial",
-    price: "0",
-    currency: "ETB",
-    cadence: "1 month",
-    description: "Try Agelgil for one month with core features, no card required.",
-    features: ["1 restaurant", "20 items", "5 categories", "Basic analytics"],
-    limits: { restaurants: 1, items: 20, staff: 0 },
-    icon: Zap
-  },
-  {
-    id: "bronze-monthly",
-    name: "Bronze",
-    price: "500",
-    currency: "ETB",
-    cadence: "per month",
-    description: "Ideal for boutique cafes and small bistros.",
-    features: ["Up to 2 restaurants", "50 menu items", "10 categories", "1 staff account", "Basic analytics"],
-    limits: { restaurants: 2, items: 50, staff: 1 },
-    icon: Star
-  },
-  {
-    id: "silver-monthly",
-    name: "Silver",
-    price: "1,500",
-    currency: "ETB",
-    cadence: "per month",
-    description: "Built for scaling restaurant groups and busy venues.",
-    features: ["Up to 3 restaurants", "200 menu items", "Unlimited categories", "5 staff accounts", "Advanced analytics"],
-    highlighted: true,
-    limits: { restaurants: 3, items: 200, staff: 5 },
-    icon: Gem
-  },
-  {
-    id: "gold-monthly",
-    name: "Gold",
-    price: "3,000",
-    currency: "ETB",
-    cadence: "per month",
-    description: "Complete control and unlimited scale for enterprise chains.",
-    features: ["Unlimited restaurants", "Unlimited menu items", "Unlimited categories", "10 staff accounts", "Custom branding", "Full analytics"],
-    limits: { restaurants: -1, items: -1, staff: 10 },
-    icon: Crown
-  },
-]
-
 function getPlanTierScore(plan: any): number {
   const slug = String(plan?.slug || plan?.id || "").toLowerCase()
   const name = String(plan?.name || "").toLowerCase()
@@ -78,8 +30,8 @@ function getPlanTierScore(plan: any): number {
 }
 
 export default function PackageSelectionPage() {
-  const [plans, setPlans] = useState(DEFAULT_PLANS)
-  const [selectedPlan, setSelectedPlan] = useState<string>("silver-monthly")
+  const [plans, setPlans] = useState<any[]>([])
+  const [selectedPlan, setSelectedPlan] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [usage, setUsage] = useState({ restaurants: 0, items: 0, staff: 0 })
@@ -121,15 +73,27 @@ export default function PackageSelectionPage() {
     return paidPlans.find((p) => p.id === currentPlanId || p.slug === currentPlanSlug) || null
   }, [hasActivePaidPlan, paidPlans, currentPlanId, currentPlanSlug])
 
+  const isExpiredSubscription = useMemo(() => {
+    const rawStatus = String(subscriptionSnapshot?.status || "").toLowerCase()
+    if (rawStatus === "expired") return true
+    const expiryRaw = subscriptionSnapshot?.expires_at || subscriptionSnapshot?.end_date
+    if (!expiryRaw) return false
+    const expiry = new Date(expiryRaw)
+    if (Number.isNaN(expiry.getTime())) return false
+    return expiry.getTime() <= Date.now()
+  }, [subscriptionSnapshot])
+
+  const hasEffectiveActivePaidPlan = hasActivePaidPlan && !isExpiredSubscription
+
   const currentTierScore = useMemo(() => {
     if (!currentPaidPlan) return -1
     return getPlanTierScore(currentPaidPlan)
   }, [currentPaidPlan])
 
   const hasUpgradeOptions = useMemo(() => {
-    if (!hasActivePaidPlan) return true
+    if (!hasEffectiveActivePaidPlan) return true
     return paidPlans.some((p) => getPlanTierScore(p) > currentTierScore)
-  }, [hasActivePaidPlan, paidPlans, currentTierScore])
+  }, [hasEffectiveActivePaidPlan, paidPlans, currentTierScore])
 
   const token = (session?.user as any)?.accessToken
   const upgradeRequestState = useMemo(() => getUpgradeRequestState(subscriptionSnapshot), [subscriptionSnapshot])
@@ -229,8 +193,10 @@ export default function PackageSelectionPage() {
             return !slug.includes("trial") && !name.includes("trial") && !slug.includes("free") && !name.includes("free")
           })
 
-          const activeCurrent = filteredForSelection.find((p: any) => p.id === (subRes?.data || subRes)?.plan_id || p.slug === (subRes?.data || subRes)?.plan_slug)
-          const activeTier = activeCurrent ? getPlanTierScore(activeCurrent) : -1
+          const subData = subRes?.data || subRes
+          const isExpired = String(subData?.status || "").toLowerCase() === "expired"
+          const activeCurrent = filteredForSelection.find((p: any) => p.id === subData?.plan_id || p.slug === subData?.plan_slug)
+          const activeTier = activeCurrent && !isExpired ? getPlanTierScore(activeCurrent) : -1
           const upgradeOnly = activeTier >= 0
             ? filteredForSelection.filter((p: any) => getPlanTierScore(p) > activeTier)
             : filteredForSelection
@@ -380,53 +346,56 @@ export default function PackageSelectionPage() {
           </p>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            "max-w-3xl mx-auto mb-16 p-1 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 rounded-[2.5rem]",
-            (hasUsedTrial || hasActivePaidPlan) && !isCurrentlyTrialling && "opacity-65"
-          )}
-        >
-          <div className="p-8 rounded-[2.4rem] bg-card/60 backdrop-blur-3xl flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-500">
-            <div className="flex items-center gap-6 text-left w-full">
-              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner border border-primary/20 shrink-0">
-                <Zap className={cn("h-8 w-8", !(hasUsedTrial || hasActivePaidPlan) && "animate-pulse")} />
+        {trialPlan && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              "max-w-3xl mx-auto mb-16 p-1 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 rounded-[2.5rem]",
+              (hasUsedTrial || hasActivePaidPlan) && !isCurrentlyTrialling && "opacity-65"
+            )}
+          >
+            <div className="p-8 rounded-[2.4rem] bg-card/60 backdrop-blur-3xl flex flex-col md:flex-row items-center justify-between gap-8 transition-all duration-500">
+              <div className="flex items-center gap-6 text-left w-full">
+                <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner border border-primary/20 shrink-0">
+                  <Zap className={cn("h-8 w-8", !(hasUsedTrial || hasActivePaidPlan) && "animate-pulse")} />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-2xl font-serif font-bold text-foreground">{trialPlan.name}</h3>
+                  <p className="mt-1 text-sm font-medium text-muted-foreground">{trialPlan.description}</p>
+                  {(hasUsedTrial || hasActivePaidPlan) && !isCurrentlyTrialling && (
+                    <p className="mt-2 text-xs font-bold uppercase tracking-wider text-destructive">
+                      Free trial is unavailable for this account.
+                    </p>
+                  )}
+                </div>
               </div>
-              <div className="text-left">
-                <h3 className="text-2xl font-serif font-bold text-foreground">Free Trial</h3>
-                {(hasUsedTrial || hasActivePaidPlan) && !isCurrentlyTrialling && (
-                  <p className="mt-2 text-xs font-bold uppercase tracking-wider text-destructive">
-                    Free trial is unavailable for this account.
-                  </p>
+              <Button
+                onClick={() => {
+                  if (isCurrentlyTrialling) {
+                    router.push("/dashboard")
+                    return
+                  }
+                  handleContinue(String(trialPlan.slug || trialPlan.id || "free-trial"))
+                }}
+                disabled={processing || (hasUsedTrial && !isCurrentlyTrialling) || hasActivePaidPlan}
+                size="lg"
+                className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
+              >
+                {processing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    Continue with {trialPlan.name}
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
                 )}
-              </div>
+              </Button>
             </div>
-            <Button
-              onClick={() => {
-                if (isCurrentlyTrialling) {
-                  router.push("/dashboard")
-                  return
-                }
-                handleContinue("free-trial")
-              }}
-              disabled={processing || (hasUsedTrial && !isCurrentlyTrialling) || hasActivePaidPlan}
-              size="lg"
-              className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] whitespace-nowrap"
-            >
-              {processing ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  Continue with Free Trial for One Month
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </>
-              )}
-            </Button>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
-        {hasActivePaidPlan && !hasUpgradeOptions && (
+        {hasEffectiveActivePaidPlan && !hasUpgradeOptions && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -451,13 +420,21 @@ export default function PackageSelectionPage() {
         )}
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 items-stretch mb-16">
+          {paidPlans.length === 0 ? (
+            <div className="col-span-full rounded-2xl border border-border/60 bg-card/40 p-8 text-center">
+              <p className="text-lg font-bold text-foreground">No plans available right now</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                We could not load subscription packages from the backend. Please try again in a moment.
+              </p>
+            </div>
+          ) : (
           <AnimatePresence>
             {paidPlans.map((plan, idx) => {
               const isMatchesCurrent = currentPlanId === plan.id || currentPlanId === plan.slug
               const isTrialUnavailable = false
 
-              const isUpgradeForActivePlan = !hasActivePaidPlan || getPlanTierScore(plan) > currentTierScore
-              const blockedByDowngradeRule = hasActivePaidPlan && !isMatchesCurrent && !isUpgradeForActivePlan
+              const isUpgradeForActivePlan = !hasEffectiveActivePaidPlan || getPlanTierScore(plan) > currentTierScore
+              const blockedByDowngradeRule = hasEffectiveActivePaidPlan && !isMatchesCurrent && !isUpgradeForActivePlan
 
               const blockedByPendingUpgrade = isUpgradeBlockedByPending && !isMatchesCurrent
               const possible = isDowngradePossible(plan.slug) && !isTrialUnavailable && !blockedByDowngradeRule && !blockedByPendingUpgrade
@@ -582,6 +559,7 @@ export default function PackageSelectionPage() {
               )
             })}
           </AnimatePresence>
+          )}
         </div>
 
         {/* FOOTER DISCLOSURES */}
