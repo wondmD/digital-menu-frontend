@@ -286,14 +286,6 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
               setHotel(currentHotel)
             } else {
               throw new Error("No restaurant data found")
-          <div className="fixed top-4 left-4 z-50">
-            <Button asChild variant="secondary" className="h-11 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-md shadow-lg">
-              <Link href={`/${hotelSlug}`} className="inline-flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                <span className="text-xs font-semibold uppercase tracking-[0.2em]">Back to public page</span>
-              </Link>
-            </Button>
-          </div>
             }
           } catch (err) {
             setError("Restaurant details could not be loaded.")

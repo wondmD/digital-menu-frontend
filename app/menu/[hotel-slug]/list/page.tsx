@@ -10,6 +10,9 @@ interface Props {
 
 const siteUrl = getSiteUrl()
 
+// Use ISR to avoid blocking requests on slow external API; revalidate every 60s
+export const revalidate = 60
+
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
