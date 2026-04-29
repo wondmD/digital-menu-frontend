@@ -97,72 +97,6 @@ type DiscountRule = {
   is_active?: boolean
 }
 
-function extractImageIds(input: any): number[] {
-  if (!input) return []
-
-  const values = Array.isArray(input) ? input : [input]
-  const ids = values
-    .map((entry: any) => {
-      if (!entry || typeof entry !== "object") return null
-      const raw = entry.id ?? entry.image_id ?? entry.media_id
-      if (raw === undefined || raw === null) return null
-      const n = Number(raw)
-      return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null
-    })
-    .filter((v): v is number => v !== null)
-
-  return Array.from(new Set(ids))
-}
-
-function extensionFromType(type: string): string {
-  const normalized = String(type || "").toLowerCase()
-  if (normalized.includes("png")) return "png"
-  if (normalized.includes("webp")) return "webp"
-  if (normalized.includes("gif")) return "gif"
-  if (normalized.includes("avif")) return "avif"
-  return "jpg"
-}
-
-function nameFromImageUrl(url: string, index: number, mimeType: string): string {
-  const safeIndex = index + 1
-  try {
-    const parsed = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost")
-    const candidate = decodeURIComponent(parsed.pathname.split("/").pop() || "").trim()
-    if (candidate) return candidate
-  } catch {
-    // Fall through to generated filename.
-  }
-  return `existing-image-${safeIndex}.${extensionFromType(mimeType)}`
-}
-
-async function urlsToFiles(urls: string[]): Promise<File[]> {
-  if (urls.length === 0) return []
-
-  const apiBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "")
-  const toProxyUrl = (url: string) => {
-    if (apiBase && url.startsWith(apiBase)) {
-      return `/api/proxy${url.slice(apiBase.length)}`
-    }
-    return url
-  }
-
-  const settled = await Promise.allSettled(
-    urls.map(async (url, index) => {
-      const response = await fetch(toProxyUrl(url), { cache: "no-store" })
-      if (!response.ok) {
-        throw new Error(`Failed to fetch existing image: ${response.status}`)
-      }
-      const blob = await response.blob()
-      const fileName = nameFromImageUrl(url, index, blob.type)
-      return new File([blob], fileName, { type: blob.type || "image/jpeg" })
-    })
-  )
-
-  return settled
-    .filter((entry): entry is PromiseFulfilledResult<File> => entry.status === "fulfilled")
-    .map((entry) => entry.value)
-}
-
 function extractList(payload: any): any[] {
   if (Array.isArray(payload)) return payload
   if (Array.isArray(payload?.data)) return payload.data
@@ -318,6 +252,7 @@ function MenuManagementContent() {
   const [savingCat, setSavingCat] = useState(false)
   const [savingItem, setSavingItem] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadStage, setUploadStage] = useState<"idle" | "uploading_media" | "saving_item">("idle")
   
   const [activeCategory, setActiveCategory] = useState<Category | null>(null)
   const [catDraft, setCatDraft] = useState({ name: "", description: "" })
@@ -327,7 +262,6 @@ function MenuManagementContent() {
   const [itemDraft, setItemDraft] = useState({
     name: "", description: "", price: "", currency: "ETB",
     category_id: "",
-    existing_image_ids: [] as number[],
     is_available: true,
     images: [] as (File | string)[],
     discount_enabled: false,
@@ -385,7 +319,6 @@ function MenuManagementContent() {
     if (item) {
       const isAvailable = item.available ?? item.is_available ?? true
       const rawImages = item.image_urls || item.images || item.image || item.image_url
-      const existingImageIds = extractImageIds(item.images || item.image)
       const linkedDiscount = getItemSpecificDiscount(item.id)
       setItemDraft({
         name: item.name || "",
@@ -393,7 +326,6 @@ function MenuManagementContent() {
         price: item.price?.toString() || "0",
         currency: item.currency || "ETB",
         category_id: String(item.category_id || categoryId || categories[0]?.id || ""),
-        existing_image_ids: existingImageIds,
         is_available: isAvailable,
         images: getImageUrls(rawImages),
         discount_enabled: Boolean(linkedDiscount),
@@ -410,7 +342,6 @@ function MenuManagementContent() {
         price: "",
         currency: "ETB",
         category_id: String(categoryId || categories[0]?.id || ""),
-        existing_image_ids: [],
         is_available: true,
         images: [],
         discount_enabled: false,
@@ -716,24 +647,7 @@ function MenuManagementContent() {
         ? `/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items/${activeItem.id}`
         : `/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items`
 
-      const getCreatedItemId = (payload: any): string | null => {
-        const candidate =
-          payload?.data?.id ||
-          payload?.id ||
-          payload?.data?.item?.id ||
-          payload?.item?.id ||
-          payload?.data?.data?.id
-
-        if (!candidate) return null
-        return String(candidate)
-      }
-
-      const isMultipartUnsupportedError = (value: unknown): boolean => {
-        const msg = String((value as any)?.message || value || "").toLowerCase()
-        return msg.includes("unsupported file format") || msg.includes("multipart")
-      }
-
-      const buildFormData = (minimal: boolean, _useLegacyImageKey = false, includeFiles = true) => {
+      const buildFormData = (minimal: boolean, imageUrls: string[], mediaIds: string[]) => {
         const fd = new FormData()
         fd.append("name", itemDraft.name.trim())
         fd.append("price", String(numericPrice))
@@ -746,173 +660,51 @@ function MenuManagementContent() {
           fd.append("description", itemDraft.description.trim())
         }
 
-        const existingImageUrls = itemDraft.images
-          .filter((img): img is string => typeof img === "string")
-          .map((img) => img.trim())
-          .filter((img) => img.length > 0 && img !== "/placeholder.svg")
-
-        // Preserve existing images on edit using URL-based keep hints.
-        // Different backend builds consume either `keep_image_urls` or `image_urls`.
-        if (activeItem && existingImageUrls.length > 0) {
-          for (const imageUrl of existingImageUrls) {
-            fd.append("keep_image_urls", imageUrl)
-            fd.append("image_urls", imageUrl)
-          }
+        for (const imageUrl of imageUrls) {
+          fd.append("image_urls", imageUrl)
         }
 
-        // Some backend versions parse `images` as numeric IDs on PATCH.
-        // If IDs are present, provide them for compatibility.
-        if (activeItem && itemDraft.existing_image_ids.length > 0) {
-          for (const imageId of itemDraft.existing_image_ids) {
-            fd.append("images", String(imageId))
-          }
-        } else if (!activeItem && existingImageUrls.length > 0) {
-          // Backend schema expects `images` as JSON payload metadata, not file parts.
-          fd.append("images", JSON.stringify(existingImageUrls))
-        }
-
-        if (activeItem) {
-          const newFiles = itemDraft.images.filter((img): img is File => img instanceof File)
-          if (includeFiles) {
-            for (const file of newFiles) {
-              // Backend schema: Image []*multipart.FileHeader `form:"image,omitempty"`
-              fd.append("image", file, file.name)
-            }
-          }
-        } else if (includeFiles) {
-          const newFiles = itemDraft.images.filter((img): img is File => img instanceof File)
-          for (const file of newFiles) {
-            fd.append("image", file, file.name)
-          }
+        for (const mediaId of mediaIds) {
+          fd.append("image_media_ids", mediaId)
         }
 
         return fd
       }
 
-      const buildImageOnlyFormData = (_useLegacyImageKey = false) => {
-        const fd = new FormData()
-        fd.append("name", itemDraft.name.trim())
-        fd.append("price", String(numericPrice))
-        fd.append("currency", itemDraft.currency || "ETB")
-        fd.append("is_available", String(itemDraft.is_available))
-        fd.append("spice_level", "0")
-        fd.append("display_order", "0")
+      const uploadMenuItemImages = async (files: File[]) => {
+        if (files.length === 0) return { urls: [] as string[], mediaIds: [] as string[] }
 
-        const existingImageUrls = itemDraft.images
-          .filter((img): img is string => typeof img === "string")
-          .map((img) => img.trim())
-          .filter((img) => img.length > 0 && img !== "/placeholder.svg")
-        if (activeItem && existingImageUrls.length > 0) {
-          for (const imageUrl of existingImageUrls) {
-            fd.append("keep_image_urls", imageUrl)
-            fd.append("image_urls", imageUrl)
-          }
-        }
+        const urls: string[] = []
+        const mediaIds: string[] = []
 
-        if (activeItem && itemDraft.existing_image_ids.length > 0) {
-          for (const imageId of itemDraft.existing_image_ids) {
-            fd.append("images", String(imageId))
-          }
-        } else if (!activeItem && existingImageUrls.length > 0) {
-          fd.append("images", JSON.stringify(existingImageUrls))
-        }
+        setUploadStage("uploading_media")
+        setUploadProgress(0)
 
-        const newFiles = itemDraft.images.filter((img): img is File => img instanceof File)
-        for (const file of newFiles) {
-          fd.append("image", file, file.name)
-        }
-        return fd
-      }
+        for (let index = 0; index < files.length; index += 1) {
+          const file = files[index]
+          const fd = new FormData()
+          fd.append("file", file, file.name)
+          fd.append("key_prefix", `restaurants/${restaurantId}/items`)
 
-      const hasNewImageFiles = itemDraft.images.some((img) => img instanceof File)
-
-      const responseIncludesImages = (payload: any): boolean => {
-        const candidate =
-          payload?.data?.item ||
-          payload?.item ||
-          payload?.data ||
-          payload
-        return getImageUrls(candidate?.image_urls || candidate?.images || candidate?.image || candidate?.image_url).length > 0
-      }
-
-      const appendNewImagesToCreatedItem = async (itemId: string) => {
-        const appendUrl = `/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items/${itemId}`
-        try {
-          await apiFetchWithProgress(appendUrl, {
-            method: "PATCH",
+          const mediaRes = await apiFetchWithProgress<any>("/media/upload", {
+            method: "POST",
             token,
-            // Prefer full multipart payload (same shape as edit) for better backend compatibility.
-            body: buildFormData(false, false, true),
-            onProgress: (pct) => setUploadProgress(pct),
+            body: fd,
+            onProgress: (pct) => {
+              const overall = ((index + pct / 100) / files.length) * 100
+              setUploadProgress(Math.max(1, Math.min(95, Math.round(overall))))
+            },
           })
-        } catch (appendErr: any) {
-          if (isMultipartUnsupportedError(appendErr)) {
-            toast({
-              title: "Item created",
-              description: "Your backend rejected multipart image upload for items. The item was saved without new images.",
-            })
-            return
-          }
 
-          try {
-            await apiFetchWithProgress(appendUrl, {
-              method: "PATCH",
-              token,
-              body: buildFormData(false, true, true),
-              onProgress: (pct) => setUploadProgress(pct),
-            })
-          } catch {
-            try {
-              await apiFetchWithProgress(appendUrl, {
-                method: "PATCH",
-                token,
-                body: buildImageOnlyFormData(false),
-                onProgress: (pct) => setUploadProgress(pct),
-              })
-            } catch {
-              await apiFetchWithProgress(appendUrl, {
-                method: "PATCH",
-                token,
-                body: buildImageOnlyFormData(true),
-                onProgress: (pct) => setUploadProgress(pct),
-              })
-            }
-          }
+          const mediaData = mediaRes?.data || mediaRes
+          const uploadedUrl = String(mediaData?.url || mediaData?.public_url || "").trim()
+          const uploadedId = String(mediaData?.id || mediaData?.media_id || "").trim()
+
+          if (uploadedUrl) urls.push(uploadedUrl)
+          if (uploadedId) mediaIds.push(uploadedId)
         }
-      }
 
-      const verifyAndRecoverEditImages = async () => {
-        if (!activeItem || newImageFiles.length === 0 || existingImageUrlsSnapshot.length === 0) return
-
-        const expectedMinimum = existingImageUrlsSnapshot.length + newImageFiles.length
-        try {
-          const verifyRes = await apiFetch<any>(`/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items/${activeItem.id}`, { token })
-          const verified = verifyRes?.data?.item || verifyRes?.item || verifyRes?.data || verifyRes
-          const verifiedUrls = getImageUrls(verified?.image_urls || verified?.images || verified?.image || verified?.image_url)
-
-          if (verifiedUrls.length >= expectedMinimum) return
-
-          const existingImageFiles = await urlsToFiles(existingImageUrlsSnapshot)
-          if (existingImageFiles.length === 0) return
-
-          const recoveryFd = buildFormData(false, false, false)
-          for (const file of [...existingImageFiles, ...newImageFiles]) {
-            recoveryFd.append("image", file, file.name)
-          }
-
-          await apiFetchWithProgress(`/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items/${activeItem.id}`, {
-            method: "PATCH",
-            token,
-            body: recoveryFd,
-            onProgress: (pct) => setUploadProgress(pct),
-          })
-        } catch (recoveryErr: any) {
-          toast({
-            title: "Image append may be backend-limited",
-            description: `Detected replace behavior and automatic recovery failed: ${String(recoveryErr?.message || "unknown error")}`,
-            variant: "destructive",
-          })
-        }
+        return { urls, mediaIds }
       }
 
       const syncItemDiscount = async (itemId: string) => {
@@ -976,85 +768,19 @@ function MenuManagementContent() {
         }
       }
 
-      let savedItemId: string | null = activeItem ? String(activeItem.id) : null
-
       setUploadProgress(0)
-      try {
-        const primaryResponse = await apiFetchWithProgress<any>(url, {
-          method,
-          token,
-          body: buildFormData(false, false, true),
-          onProgress: (pct) => setUploadProgress(pct),
-        })
+      const uploadedMedia = await uploadMenuItemImages(newImageFiles)
+      const mergedImageUrls = Array.from(new Set([...existingImageUrlsSnapshot, ...uploadedMedia.urls]))
 
-        if (!activeItem) {
-          savedItemId = getCreatedItemId(primaryResponse) || savedItemId
-        }
+      setUploadStage("saving_item")
+      await apiFetchWithProgress<any>(url, {
+        method,
+        token,
+        body: buildFormData(false, mergedImageUrls, uploadedMedia.mediaIds),
+        onProgress: (pct) => setUploadProgress(Math.max(95, Math.min(100, pct))),
+      })
 
-        if (!activeItem && hasNewImageFiles && !responseIncludesImages(primaryResponse)) {
-          const createdItemId = getCreatedItemId(primaryResponse)
-          savedItemId = createdItemId || savedItemId
-          if (createdItemId) {
-            await appendNewImagesToCreatedItem(createdItemId)
-          } else {
-            toast({
-              title: "Item created",
-              description: "Image upload could not continue automatically because item ID was missing in the create response.",
-            })
-          }
-        }
-      } catch (err: any) {
-        const msg = String(err?.message || "")
-        const shouldRetryMinimalCreate = !activeItem && (msg.includes("SQLSTATE 42601") || msg.includes("more expression than target columns"))
-        const shouldRetryLegacyImageKey = Boolean(activeItem)
-        const shouldRetryTwoStepCreate = !activeItem && hasNewImageFiles
-
-        if (shouldRetryMinimalCreate) {
-          const created = await apiFetchWithProgress<any>(url, {
-            method,
-            token,
-            body: buildFormData(true, false, false),
-            onProgress: (pct) => setUploadProgress(pct),
-          })
-
-          savedItemId = getCreatedItemId(created) || savedItemId
-
-          if (hasNewImageFiles) {
-            const createdItemId = getCreatedItemId(created)
-            if (!createdItemId) {
-              throw new Error("Item created, but image upload could not continue because item ID was missing in response.")
-            }
-            await appendNewImagesToCreatedItem(createdItemId)
-          }
-        } else if (shouldRetryTwoStepCreate) {
-          // Fallback path: create item first, then append images on the created item.
-          const created = await apiFetchWithProgress<any>(url, {
-            method,
-            token,
-            body: buildFormData(false, false, false),
-            onProgress: (pct) => setUploadProgress(pct),
-          })
-
-          const createdItemId = getCreatedItemId(created)
-          savedItemId = createdItemId || savedItemId
-          if (!createdItemId) {
-            throw new Error("Item created but image upload could not continue because item ID was missing in response.")
-          }
-
-          await appendNewImagesToCreatedItem(createdItemId)
-        } else if (shouldRetryLegacyImageKey) {
-          await apiFetchWithProgress(url, {
-            method,
-            token,
-            body: buildFormData(false, true, true),
-            onProgress: (pct) => setUploadProgress(pct),
-          })
-        } else {
-          throw err
-        }
-      }
-
-      await verifyAndRecoverEditImages()
+      const savedItemId = activeItem ? String(activeItem.id) : null
 
       if (savedItemId) {
         try {
@@ -1070,6 +796,7 @@ function MenuManagementContent() {
 
       toast({ title: activeItem ? "Item updated" : "Item created" })
       setUploadProgress(0)
+      setUploadStage("idle")
       setItemDialogOpen(false)
       setItemStep(1)
       setActiveItem(null)
@@ -1079,6 +806,7 @@ function MenuManagementContent() {
     } catch (err: any) {
       toast({ title: "Error", description: err?.message, variant: "destructive" })
     } finally {
+      setUploadStage("idle")
       setSavingItem(false)
     }
   }
@@ -1760,7 +1488,9 @@ function MenuManagementContent() {
                       className="space-y-3"
                     >
                       <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-primary">
-                        <span>Processing</span>
+                        <span>
+                          {uploadStage === "uploading_media" ? "Uploading media" : uploadStage === "saving_item" ? "Saving item" : "Processing"}
+                        </span>
                         <span>{uploadProgress}%</span>
                       </div>
                       <Progress value={uploadProgress} className="h-1 bg-muted rounded-full" />

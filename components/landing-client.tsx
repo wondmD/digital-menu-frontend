@@ -16,7 +16,7 @@ import {
 import { 
   QrCode, Smartphone, Sparkles, Search, Utensils, MapPin, 
   Loader2, ArrowRight, ShoppingBag, Flame, 
-  ChefHat, Zap, Play, CheckCircle2, Menu as MenuIcon
+  ChefHat, Zap, Play, CheckCircle2, Menu as MenuIcon, Mail, Twitter, Instagram, Facebook
 } from "lucide-react"
 import { useEffect, useState, useMemo, useRef } from "react"
 import { apiFetch } from "@/lib/api-client"
@@ -760,45 +760,16 @@ export default function LandingClient() {
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[150px] pointer-events-none translate-x-1/2 translate-y-1/2" />
         
         <div className="container mx-auto px-6 relative z-10">
-          <div className="grid gap-16 md:gap-24 md:grid-cols-2 lg:grid-cols-4 mb-20 md:mb-40">
-            <div className="lg:col-span-1 space-y-8 md:space-y-12">
-               <Link href="/" className="flex items-center group">
-                  <Logo width={140} height={44} />
-               </Link>
-               <p className="text-muted-foreground text-lg md:text-xl leading-relaxed italic">
-                  "Where the art of hospitality meets the precision of digital engineering. We craft experiences, not just menus."
-               </p>
-               <div className="flex gap-4 md:gap-6">
-                  {[Play, Smartphone, QrCode].map((Icon, i) => (
-                    <motion.div 
-                      key={i} 
-                      whileHover={{ y: -5, backgroundColor: "rgba(230,57,70,0.1)", borderColor: "rgba(230,57,70,0.5)", color: "#E63946" }}
-                      className="h-10 w-10 md:h-14 md:w-14 rounded-xl md:rounded-2xl bg-muted border border-border flex items-center justify-center text-muted-foreground transition-all cursor-pointer"
-                    >
-                       <Icon className="h-5 w-5 md:h-6 md:w-6" />
-                    </motion.div>
-                  ))}
-               </div>
+           <div className="grid gap-8 md:gap-12 md:grid-cols-1 mb-12">
+            <div className="space-y-8 md:space-y-12">
+              <Link href="/" className="flex items-center group">
+                <Logo width={140} height={44} />
+              </Link>
+              <p className="text-muted-foreground text-lg md:text-xl leading-relaxed italic">
+                "Digital menus designed for hospitality — simple, reliable, and elegant."
+              </p>
             </div>
-
-            {[
-              { title: "Platform", links: ["Digital Menus", "Instant Scan", "Dashboard", "Analytics", "API Access"] },
-              { title: "Experience", links: ["Partners", "Gallery", "Success Stories", "Sustainability", "Careers"] },
-              { title: "Resources", links: ["Documentation", "Integration Guide", "Legal", "Privacy Policy", "System Status"] }
-            ].map(col => (
-              <div key={col.title}>
-                 <h4 className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] mb-8 md:mb-12 text-primary">{col.title}</h4>
-                 <ul className="space-y-4 md:space-y-8">
-                    {col.links.map(link => (
-                      <li key={link} className="text-muted-foreground text-base md:text-lg hover:text-foreground transition-all cursor-pointer flex items-center gap-4 group">
-                         <span className="h-[2px] w-0 bg-primary group-hover:w-6 md:group-hover:w-8 transition-all duration-500" />
-                         <span className="group-hover:translate-x-2 transition-transform">{link}</span>
-                      </li>
-                    ))}
-                 </ul>
-              </div>
-            ))}
-          </div>
+           </div>
 
           <div className="pt-10 md:pt-20 border-t border-border flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
              <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 md:gap-10">
@@ -809,10 +780,29 @@ export default function LandingClient() {
                 </span>
              </div>
              
-             <div className="flex flex-wrap justify-center gap-6 md:gap-16 text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground">
-                <span className="hover:text-primary transition-colors cursor-pointer">Sitemap</span>
-                <span className="hover:text-primary transition-colors cursor-pointer">Security</span>
-                <span className="hover:text-primary transition-colors cursor-pointer">Cookie Policy</span>
+             <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-16 text-[9px] md:text-[10px] font-medium tracking-wide text-muted-foreground">
+               <div className="flex items-center gap-4">
+                 <a href="mailto:hello@agelgil.example" className="flex items-center gap-2 hover:text-primary transition-colors">
+                   <Mail className="h-4 w-4" />
+                   <span className="text-[11px] md:text-[12px]">hello@agelgil.example</span>
+                 </a>
+                 <a href="tel:+251900000000" className="flex items-center gap-2 hover:text-primary transition-colors">
+                   <Smartphone className="h-4 w-4" />
+                   <span className="text-[11px] md:text-[12px]">+251 90 000 0000</span>
+                 </a>
+               </div>
+
+               <div className="flex items-center gap-4">
+                 <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="hover:text-primary transition-colors">
+                   <Twitter className="h-5 w-5" />
+                 </a>
+                 <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-primary transition-colors">
+                   <Instagram className="h-5 w-5" />
+                 </a>
+                 <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-primary transition-colors">
+                   <Facebook className="h-5 w-5" />
+                 </a>
+               </div>
              </div>
           </div>
         </div>
