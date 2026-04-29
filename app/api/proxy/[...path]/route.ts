@@ -26,10 +26,15 @@ async function handle(request: Request, context: { params: any }) {
   
   let token: string | undefined
   if (isPrivate) {
-    const session = await getServerSession(authOptions)
-    token = (session?.user as any)?.accessToken as string | undefined
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    try {
+      const session = await getServerSession(authOptions)
+      token = (session?.user as any)?.accessToken as string | undefined
+      if (!token) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+    } catch (err: any) {
+      console.error("[api/proxy] getServerSession error:", err?.stack || err)
+      return NextResponse.json({ error: "Auth session error", detail: String(err?.message || err) }, { status: 500 })
     }
   }
 
@@ -167,7 +172,12 @@ async function handle(request: Request, context: { params: any }) {
       },
     })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error("[api/proxy] upstream fetch failed", {
+      targetUrl,
+      method,
+      error: error?.stack || String(error),
+    })
+    return NextResponse.json({ error: "Upstream request failed", detail: String(error?.message || error) }, { status: 500 })
   }
 }
 

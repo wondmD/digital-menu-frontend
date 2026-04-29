@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Flame, Clock, Star, Sparkles } from "lucide-react"
+import { ArrowLeft, X, Flame, Clock, Star, Sparkles } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -286,6 +286,14 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
               setHotel(currentHotel)
             } else {
               throw new Error("No restaurant data found")
+          <div className="fixed top-4 left-4 z-50">
+            <Button asChild variant="secondary" className="h-11 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-md shadow-lg">
+              <Link href={`/${hotelSlug}`} className="inline-flex items-center gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="text-xs font-semibold uppercase tracking-[0.2em]">Back to public page</span>
+              </Link>
+            </Button>
+          </div>
             }
           } catch (err) {
             setError("Restaurant details could not be loaded.")
@@ -400,6 +408,15 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
 
   return (
     <div className="relative">
+      <div className="fixed top-4 left-4 z-50">
+        <Button asChild variant="secondary" className="h-11 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-md shadow-lg">
+          <Link href={`/${hotelSlug}`} className="inline-flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-xs font-semibold uppercase tracking-[0.2em]">Back to website</span>
+          </Link>
+        </Button>
+      </div>
+
       <div className="fixed top-4 right-4 z-50 rounded-xl border border-border/60 bg-background/80 backdrop-blur-md shadow-lg">
         <ThemeToggle />
       </div>
