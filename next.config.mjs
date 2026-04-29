@@ -1,5 +1,30 @@
 const projectRoot = new URL('.', import.meta.url).pathname
 
+function buildRemotePatterns() {
+  const patterns = [
+    {
+      protocol: "https",
+      hostname: "api.qrserver.com",
+      pathname: "/**",
+    },
+  ]
+
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://menu-viste-1.onrender.com/api/v1"
+  try {
+    const apiUrl = new URL(apiBase)
+    patterns.push({
+      protocol: apiUrl.protocol.replace(":", ""),
+      hostname: apiUrl.hostname,
+      port: apiUrl.port,
+      pathname: "/**",
+    })
+  } catch {
+    // Ignore malformed env values and keep the QR host pattern.
+  }
+
+  return patterns
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   turbopack: {
@@ -10,7 +35,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    remotePatterns: buildRemotePatterns(),
   },
   async rewrites() {
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://menu-viste-1.onrender.com/api/v1"

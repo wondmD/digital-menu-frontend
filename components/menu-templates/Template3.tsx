@@ -49,6 +49,8 @@ export default function Template3({
                      alt={hotel.name}
                      fill
                      className="object-cover"
+                     sizes="32px"
+                     priority
                    />
                  </motion.div>
                ) : (
@@ -134,6 +136,7 @@ export default function Template3({
                           alt={item.name}
                           fill
                           className="object-cover"
+                          sizes="(max-width: 640px) 88px, 96px"
                         />
                       </div>
                     ) : (

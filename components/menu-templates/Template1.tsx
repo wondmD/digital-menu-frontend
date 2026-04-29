@@ -43,7 +43,7 @@ export default function Template1({
             animate={{ opacity: 1, scale: 1 }}
             className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6"
           >
-            <Image src={logoImage} alt={hotel.name} fill className="object-contain" />
+            <Image src={logoImage} alt={hotel.name} fill className="object-contain" sizes="96px" priority />
           </motion.div>
         )}
         <motion.h1 
@@ -150,6 +150,7 @@ export default function Template1({
                         alt={item.name}
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        sizes="(max-width: 640px) 80px, 112px"
                       />
                     </div>
                   )}

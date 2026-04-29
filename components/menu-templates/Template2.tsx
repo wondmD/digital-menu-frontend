@@ -48,7 +48,7 @@ export default function Template2({
               animate={{ opacity: 1, scale: 1 }}
               className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-card shadow-lg border border-border"
             >
-              <Image src={logoImage} alt={hotel.name} fill className="object-contain p-2" />
+              <Image src={logoImage} alt={hotel.name} fill className="object-contain p-2" sizes="80px" priority />
             </motion.div>
           )}
           <motion.div
@@ -151,6 +151,7 @@ export default function Template2({
                       alt={item.name}
                       fill
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
+                      sizes="(max-width: 640px) 50vw, 260px"
                     />
                     <div className="absolute inset-0 bg-black/10 transition-opacity group-hover:opacity-0" />
                     <div className="absolute top-4 left-4 sm:top-5 sm:left-5 flex flex-col gap-2">

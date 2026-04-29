@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -233,10 +234,12 @@ export default function DashboardPage() {
                     <div className="flex flex-col md:flex-row items-center p-4 md:p-6 gap-4 md:gap-8">
                       <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl md:rounded-[1.5rem] bg-muted border border-border/50 overflow-hidden relative flex items-center justify-center group-hover:bg-primary/10 transition-colors shrink-0">
                         {res.logo || res.logo_url || res.logo_image_url ? (
-                          <img 
-                            src={getImageUrl(res.logo || res.logo_url || res.logo_image_url)} 
-                            alt={res.name} 
-                            className="h-full w-full object-cover transition-transform group-hover:scale-110" 
+                          <Image 
+                            src={getImageUrl(res.logo || res.logo_url || res.logo_image_url) || ""}
+                            alt={res.name}
+                            fill
+                            sizes="80px"
+                            className="object-cover transition-transform group-hover:scale-110" 
                           />
                         ) : (
                           <Building2 className="h-8 w-8 md:h-10 md:w-10 text-muted-foreground/20 group-hover:text-primary transition-colors" />
