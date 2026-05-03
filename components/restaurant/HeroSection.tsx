@@ -66,6 +66,7 @@ export function HeroSection({
             fill
             className="object-cover"
             priority
+            sizes="100vw"
           />
         ) : (
           <div className="h-full w-full bg-linear-to-br from-neutral-900 via-neutral-800 to-neutral-900" />
@@ -229,6 +230,7 @@ export function HeroSection({
                     alt={hotel.name}
                     fill
                     className="object-contain p-2 drop-shadow-2xl"
+                    sizes="(max-width: 768px) 160px, 256px"
                   />
                 </div>
                 <div className="pointer-events-none absolute inset-0 rounded-4xl border border-white/10" />

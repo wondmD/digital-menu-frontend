@@ -129,6 +129,7 @@ export function StorySection({ hotel, coverImage }: StorySectionProps) {
                   src={storyImage}
                   alt={`${hotel.name} story`}
                   fill
+                  sizes="(max-width: 768px) 100vw, 600px"
                   className="object-cover"
                   priority
                 />

@@ -26,10 +26,15 @@ async function handle(request: Request, context: { params: any }) {
   
   let token: string | undefined
   if (isPrivate) {
-    const session = await getServerSession(authOptions)
-    token = (session?.user as any)?.accessToken as string | undefined
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    try {
+      const session = await getServerSession(authOptions)
+      token = (session?.user as any)?.accessToken as string | undefined
+      if (!token) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+    } catch (err: any) {
+      console.error("[api/proxy] getServerSession error:", err?.stack || err)
+      return NextResponse.json({ error: "Auth session error", detail: String(err?.message || err) }, { status: 500 })
     }
   }
 
@@ -167,7 +172,25 @@ async function handle(request: Request, context: { params: any }) {
       },
     })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const msg = String(error?.message || error)
+    const causeCode = error?.cause?.code || error?.code
+    console.error("[api/proxy] upstream fetch failed", {
+      targetUrl,
+      method,
+      code: causeCode,
+      error: error?.stack || msg,
+    })
+
+    // Map common network errors to appropriate gateway statuses
+    let statusCode = 502 // Bad Gateway as a default for upstream connectivity issues
+    if (causeCode === "ETIMEDOUT" || msg.includes("ETIMEDOUT") || msg.toLowerCase().includes("timed out")) {
+      statusCode = 504 // Gateway Timeout
+    }
+
+    return NextResponse.json(
+      { error: "Upstream request failed", detail: msg, upstream: targetUrl },
+      { status: statusCode, headers: { "X-Upstream-Url": targetUrl } }
+    )
   }
 }
 

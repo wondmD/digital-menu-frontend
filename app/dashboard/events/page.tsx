@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -298,10 +299,13 @@ export default function DashboardEventsPage() {
             <Card key={String(ev.id)} className="overflow-hidden">
               <div className="relative aspect-video w-full overflow-hidden bg-muted">
                 {getImageUrl(ev.image_url || ev.image_urls) ? (
-                  <img
-                    src={getImageUrl(ev.image_url || ev.image_urls)}
+                  <Image
+                    src={getImageUrl(ev.image_url || ev.image_urls) || ""}
                     alt={ev.title || ev.name || "Event image"}
-                    className="h-full w-full object-cover"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover"
+                    priority={events[0]?.id === ev.id}
                   />
                 ) : (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
@@ -414,7 +418,7 @@ function EventForm({
           <div className="mt-1 flex items-center gap-3 rounded-xl border border-dashed border-border p-3">
             <div className="h-16 w-24 overflow-hidden rounded-lg bg-muted">
               {imagePreview ? (
-                <img src={getImageUrl(imagePreview)} alt="Event preview" className="h-full w-full object-cover" />
+                <Image src={getImageUrl(imagePreview) || ""} alt="Event preview" fill sizes="96px" className="object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                   <ImageIcon className="h-5 w-5" />

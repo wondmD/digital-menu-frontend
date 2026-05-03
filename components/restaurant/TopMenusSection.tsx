@@ -68,12 +68,13 @@ export function TopMenusSection({ items, menuLink, className }: TopMenusSectionP
                   transition={{ duration: 0.7, delay: index * 0.15 }}
                   className="group"
                 >
-                  {getImageUrl(item.image_url) ? (
+                      {getImageUrl(item.image_url) ? (
                     <div className="relative h-64 md:h-72 rounded-3xl overflow-hidden mb-6 shadow-lg">
                       <Image
                         src={getImageUrl(item.image_url) || ""}
                         alt={item.name}
                         fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
                         className="object-cover transition-transform duration-800 group-hover:scale-110"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
@@ -139,12 +140,13 @@ export function TopMenusSection({ items, menuLink, className }: TopMenusSectionP
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   className="group"
                 >
-                  {getImageUrl(item.image_url) ? (
+                    {getImageUrl(item.image_url) ? (
                     <div className="relative h-48 rounded-2xl overflow-hidden mb-4 shadow-md">
                       <Image
                         src={getImageUrl(item.image_url) || ""}
                         alt={item.name}
                         fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
                         className="object-cover transition-transform duration-700 group-hover:scale-110"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -196,6 +198,7 @@ export function TopMenusSection({ items, menuLink, className }: TopMenusSectionP
                           src={getImageUrl(item.image_url) || ""}
                           alt={item.name}
                           fill
+                          sizes="80px"
                           className="object-cover"
                         />
                       </div>

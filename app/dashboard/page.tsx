@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -56,14 +57,14 @@ export default function DashboardPage() {
     const load = async () => {
       try {
         setLoading(true)
-        const [restRes, subRes] = await Promise.all([
-          apiFetch<any>("/my-restaurants", { token }),
-          apiFetch<any>("/subscription/me", { token }).catch(() => null)
-        ])
+        const subscriptionPromise = apiFetch<any>("/subscription/me", { token }).catch(() => null)
+        const restRes = await apiFetch<any>("/my-restaurants", { token })
 
         const list: Restaurant[] = Array.isArray(restRes) ? restRes : (restRes?.data ?? [])
         setRestaurants(list)
-        setSubscription(subRes?.data || subRes)
+        void subscriptionPromise.then((subRes) => {
+          setSubscription(subRes?.data || subRes)
+        })
       } finally {
         setLoading(false)
       }
@@ -76,7 +77,7 @@ export default function DashboardPage() {
       <div className="flex h-[80vh] flex-col items-center justify-center gap-8 px-6">
         <div className="relative h-24 w-24">
           <div className="absolute inset-0 rounded-[2.5rem] border-4 border-primary/10 animate-[spin_3s_linear_infinite]" />
-          <div className="absolute inset-4 rounded-[1.5rem] border-4 border-primary animate-[spin_1.5s_linear_infinite]" />
+          <div className="absolute inset-4 rounded-3xl border-4 border-primary animate-[spin_1.5s_linear_infinite]" />
           <div className="absolute inset-0 flex items-center justify-center">
              <Activity className="h-8 w-8 text-primary animate-pulse" />
           </div>
@@ -114,7 +115,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-12 pb-12 md:pb-20 px-4 md:px-6">
+    <div className="max-w-350 mx-auto space-y-8 md:space-y-12 pb-12 md:pb-20 px-4 md:px-6">
       {/* 1. OPERATIONAL CONTROL HEADER */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
@@ -140,12 +141,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-col sm:flex-row flex-wrap gap-4 md:gap-6 w-full xl:w-auto">
-          <Button className="h-14 md:h-16 px-6 md:px-8 rounded-2xl md:rounded-[1.5rem] bg-primary text-white font-black uppercase text-[10px] md:text-xs tracking-[0.2em] hover:scale-105 transition-all shadow-xl flex-1 md:flex-none" asChild>
+          <Button className="h-14 md:h-16 px-6 md:px-8 rounded-2xl md:rounded-3xl bg-primary text-white font-black uppercase text-[10px] md:text-xs tracking-[0.2em] hover:scale-105 transition-all shadow-xl flex-1 md:flex-none" asChild>
             <Link href="/dashboard/profile">
               <Plus className="h-5 w-5 mr-2 md:mr-3" /> New Restaurant
             </Link>
           </Button>
-          <Button variant="ghost" className="h-14 md:h-16 px-6 md:px-8 rounded-2xl md:rounded-[1.5rem] bg-muted/50 border border-border/50 font-black uppercase text-[10px] md:text-xs tracking-[0.2em] text-foreground hover:bg-foreground hover:text-background transition-all flex-1 md:flex-none" asChild>
+          <Button variant="ghost" className="h-14 md:h-16 px-6 md:px-8 rounded-2xl md:rounded-3xl bg-muted/50 border border-border/50 font-black uppercase text-[10px] md:text-xs tracking-[0.2em] text-foreground hover:bg-foreground hover:text-background transition-all flex-1 md:flex-none" asChild>
             <Link href="/dashboard/qr">
               <QrCode className="h-5 w-5 mr-2 md:mr-3" /> QR Management
             </Link>
@@ -164,7 +165,9 @@ export default function DashboardPage() {
           const activeMenus = restaurants.filter((r) => r.is_published).length
           const draftMenus = Math.max(0, restaurants.length - activeMenus)
           const maxRestaurants = subscription?.features?.max_restaurants
-          const restaurantCapacity = maxRestaurants === -1 ? "Unlimited" : String(maxRestaurants || 0)
+          const restaurantCapacity = typeof maxRestaurants === "number"
+            ? (maxRestaurants === -1 ? "Unlimited" : String(maxRestaurants))
+            : "Loading..."
 
           return [
             { label: "Restaurants", val: restaurants.length, icon: Building2, color: "text-blue-500", detail: "Registered" },
@@ -231,12 +234,14 @@ export default function DashboardPage() {
                     className="bg-card/40 backdrop-blur-3xl border border-border/50 border-l-4 border-l-primary rounded-2xl md:rounded-3xl group hover:border-primary/20 transition-all duration-500 overflow-hidden"
                   >
                     <div className="flex flex-col md:flex-row items-center p-4 md:p-6 gap-4 md:gap-8">
-                      <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl md:rounded-[1.5rem] bg-muted border border-border/50 overflow-hidden relative flex items-center justify-center group-hover:bg-primary/10 transition-colors shrink-0">
+                      <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl md:rounded-3xl bg-muted border border-border/50 overflow-hidden relative flex items-center justify-center group-hover:bg-primary/10 transition-colors shrink-0">
                         {res.logo || res.logo_url || res.logo_image_url ? (
-                          <img 
-                            src={getImageUrl(res.logo || res.logo_url || res.logo_image_url)} 
-                            alt={res.name} 
-                            className="h-full w-full object-cover transition-transform group-hover:scale-110" 
+                          <Image 
+                            src={getImageUrl(res.logo || res.logo_url || res.logo_image_url) || ""}
+                            alt={res.name}
+                            fill
+                            sizes="80px"
+                            className="object-cover transition-transform group-hover:scale-110" 
                           />
                         ) : (
                           <Building2 className="h-8 w-8 md:h-10 md:w-10 text-muted-foreground/20 group-hover:text-primary transition-colors" />
@@ -308,8 +313,8 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                <div className="aspect-[4/3] w-full rounded-[1.5rem] md:rounded-[2rem] bg-muted/50 border-2 border-border/50 flex flex-col items-center justify-center relative overflow-hidden group">
-                   <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent opacity-60" />
+                 <div className="aspect-4/3 w-full rounded-3xl md:rounded-4xl bg-muted/50 border-2 border-border/50 flex flex-col items-center justify-center relative overflow-hidden group">
+                   <div className="absolute inset-0 bg-linear-to-t from-background to-transparent opacity-60" />
                    <h4 className="relative z-10 text-4xl md:text-5xl font-black text-foreground opacity-10 group-hover:opacity-10 transition-opacity uppercase tracking-widest">Data</h4>
                    <div className="absolute bottom-6 md:bottom-8 left-6 md:left-8 right-6 md:right-8 flex items-center justify-between text-[9px] md:text-[11px] font-black uppercase tracking-[0.3em] text-foreground">
                      <span>Published</span>
@@ -328,7 +333,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] text-primary">Subscription plan</span>
                   <div className="space-y-1">
                     <h4 className="text-xl md:text-2xl font-black text-foreground tracking-tighter uppercase leading-tight">Manage your plan</h4>
-                    <p className="text-[11px] md:text-xs text-muted-foreground font-medium leading-relaxed max-w-[220px]">
+                    <p className="text-[11px] md:text-xs text-muted-foreground font-medium leading-relaxed max-w-55">
                        Up to {subscription?.features?.max_restaurants === -1 ? 'unlimited' : subscription?.features?.max_restaurants} restaurants allowed.
                     </p>
                   </div>

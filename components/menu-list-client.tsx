@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Flame, Clock, Star, Sparkles } from "lucide-react"
+import { ArrowLeft, X, Flame, Clock, Star, Sparkles } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { cn, getImageUrl, getImageUrls } from "@/lib/utils"
-import { apiFetch } from "@/lib/api-client"
+import { apiFetch, apiFetchOrNull } from "@/lib/api-client"
 import { fetchPublicRestaurantBySlugOrId } from "@/lib/public-restaurant"
 import {
   Drawer,
@@ -24,6 +24,24 @@ import { MenuItem, Category, Restaurant } from "./menu-templates/types"
 import Template1 from "./menu-templates/Template1"
 import Template2 from "./menu-templates/Template2"
 import Template3 from "./menu-templates/Template3"
+
+function resolveMenuTheme(hotel: Restaurant | null) {
+  const themeSource = (hotel as any)?.theme || hotel || {}
+  return {
+    primaryColor:
+      (themeSource as any)?.primaryColor ||
+      (themeSource as any)?.primary_color ||
+      (themeSource as any)?.brand_primary_color,
+    secondaryColor:
+      (themeSource as any)?.secondaryColor ||
+      (themeSource as any)?.secondary_color ||
+      (themeSource as any)?.brand_secondary_color,
+    fontFamily:
+      (themeSource as any)?.fontFamily ||
+      (themeSource as any)?.font_family ||
+      (themeSource as any)?.brand_font_family,
+  }
+}
 
 type DiscountRule = {
   id: string
@@ -94,6 +112,28 @@ function normalizeMenuItem(item: any, fallbackCategoryId: string): MenuItem {
     image_urls: Array.isArray(item?.image_urls) ? item.image_urls : undefined,
     rating: Number(item?.rating || 0),
     rating_count: Number(item?.rating_count || 0),
+    prep_time: String(item?.prep_time || item?.prepTime || ""),
+    estimated_prep_time: String(item?.estimated_prep_time || item?.estimatedPrepTime || ""),
+    prep_minutes: item?.prep_minutes ?? item?.prepMinutes,
+    service_time: String(item?.service_time || item?.serviceTime || ""),
+    calories: item?.calories ?? item?.calory ?? item?.calogy,
+    calogy: item?.calogy ?? item?.calories ?? item?.calory,
+    spice_level: item?.spice_level ?? item?.spiceLevel,
+    allergens: parseTextList(item?.allergens ?? item?.allergy_list ?? item?.allergyList),
+    dietary_tags: parseTextList(item?.dietary_tags ?? item?.dietaryTags),
+    ingredients: parseTextList(item?.ingredients ?? item?.ingredient_list ?? item?.ingredientList),
+    chef_notes: String(item?.chef_notes || ""),
+    notes: String(item?.notes || ""),
+    kitchen_notes: String(item?.kitchen_notes || ""),
+    freshness: String(item?.freshness || ""),
+    freshly_made: item?.freshly_made,
+    is_fresh: Boolean(item?.is_fresh),
+    is_featured: Boolean(item?.is_featured),
+    is_popular: Boolean(item?.is_popular),
+    is_signature: Boolean(item?.is_signature),
+    chef_pick: Boolean(item?.chef_pick),
+    chef_choice: Boolean(item?.chef_choice),
+    is_chef_pick: Boolean(item?.is_chef_pick),
     discounted_price: Number(item?.discounted_price || item?.final_price || item?.price_after_discount || 0) || undefined,
     original_price: Number(item?.original_price || 0) || undefined,
     discount: item?.discount,
@@ -240,16 +280,83 @@ function formatPrice(value: number, currency: string) {
   return `${currency} ${safe.toFixed(2)}`
 }
 
+function parseTextList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim()).filter(Boolean)
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim()
+    if (!trimmed) return []
+
+    try {
+      const parsed = JSON.parse(trimmed)
+      if (Array.isArray(parsed)) {
+        return parsed.map((entry) => String(entry).trim()).filter(Boolean)
+      }
+    } catch {
+      // Fall back to delimiter splitting.
+    }
+
+    return trimmed.split(/[,|]/).map((entry) => entry.trim()).filter(Boolean)
+  }
+
+  if (value === null || value === undefined || value === false) {
+    return []
+  }
+
+  return [String(value).trim()].filter(Boolean)
+}
+
+function pickFirstText(...values: unknown[]) {
+  for (const value of values) {
+    if (Array.isArray(value)) {
+      const parsed = parseTextList(value)
+      if (parsed.length > 0) return parsed.join(", ")
+      continue
+    }
+
+    if (value === null || value === undefined || value === "") {
+      continue
+    }
+
+    const text = String(value).trim()
+    if (text) return text
+  }
+
+  return ""
+}
+
+function toNumberOrNull(value: unknown) {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : null
+}
+
+function getItemDetails(item: MenuItem) {
+  return {
+    calories: pickFirstText((item as any).calories, (item as any).calogy),
+    spiceLevel: toNumberOrNull((item as any).spice_level),
+    prepTime: pickFirstText((item as any).prep_time, (item as any).estimated_prep_time, (item as any).prep_minutes ? `${(item as any).prep_minutes} min` : ""),
+    serviceTime: pickFirstText((item as any).service_time),
+    dietaryTags: parseTextList((item as any).dietary_tags),
+    allergens: parseTextList((item as any).allergens),
+    ingredients: parseTextList((item as any).ingredients),
+    freshness: pickFirstText((item as any).freshness, (item as any).freshly_made, (item as any).is_fresh ? "Freshly made" : ""),
+    chefNotes: pickFirstText((item as any).chef_notes, (item as any).notes, (item as any).kitchen_notes),
+  }
+}
+
 export default function MenuListClient({ hotelSlug, initialHotel, initialCategories = [], initialItems = [] }: MenuListClientProps) {
   const [hotel, setHotel] = useState<Restaurant | null>(initialHotel || null)
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [activeCategory, setActiveCategory] = useState(initialCategories.length > 0 ? initialCategories[0].id : "")
   const [searchQuery, setSearchQuery] = useState("")
-  const [loading, setLoading] = useState(!initialHotel)
+  const [loading, setLoading] = useState(!initialHotel && initialCategories.length === 0)
   const [error, setError] = useState<string | null>(null)
   const [itemsLoading, setItemsLoading] = useState(false)
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const menuTheme = resolveMenuTheme(hotel)
 
   // Determine template (1, 2, or 3) from backend-compatible fields.
   const selectedTemplate = Number(
@@ -257,6 +364,12 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
   )
 
   useEffect(() => {
+    if (initialHotel && initialCategories.length > 0) {
+      setLoading(false)
+      setItemsLoading(false)
+      return
+    }
+
     const loadData = async () => {
       try {
         if (!initialHotel) setLoading(true)
@@ -278,8 +391,8 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
         // 1. Load Restaurant if missing
         if (!currentHotel || !currentHotel.id) {
           try {
-            const rRes = await apiFetch<any>("/restaurants/" + hotelSlug)
-            const rData = rRes?.data || rRes
+              const rRes = await apiFetchOrNull<any>("/restaurants/" + hotelSlug)
+              const rData = rRes?.data || rRes
             const rList = extractList(rData)
             currentHotel = Array.isArray(rData) ? rData[0] : (rData || rList[0])
             if (currentHotel) {
@@ -359,7 +472,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
       }
     }
     loadData()
-  }, [hotelSlug, initialHotel])
+  }, [hotelSlug, initialHotel, initialCategories])
 
   const templateProps = {
     hotel: hotel || { name: "Restaurant", slug: hotelSlug },
@@ -369,7 +482,8 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
     onItemClick: setSelectedItem,
     searchQuery,
     onSearchChange: setSearchQuery,
-    itemsLoading
+    itemsLoading,
+    theme: menuTheme,
   }
 
   if (loading) {
@@ -400,6 +514,15 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
 
   return (
     <div className="relative">
+      <div className="fixed top-4 left-4 z-50">
+        <Button asChild variant="secondary" className="h-11 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-md shadow-lg">
+          <Link href={`/${hotelSlug}`} className="inline-flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="text-xs font-semibold uppercase tracking-[0.2em]">Back to website</span>
+          </Link>
+        </Button>
+      </div>
+
       <div className="fixed top-4 right-4 z-50 rounded-xl border border-border/60 bg-background/80 backdrop-blur-md shadow-lg">
         <ThemeToggle />
       </div>
@@ -417,12 +540,19 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
           setActiveImageIndex(0)
         }
       }}>
-        <DrawerContent className="max-h-[96vh] md:max-h-[90vh] md:w-[92%] md:max-w-6xl md:mx-auto md:mb-6 rounded-t-4xl md:rounded-4xl border border-border/60 bg-background p-0 overflow-hidden shadow-2xl">
+        <DrawerContent
+          className="max-h-[96vh] md:max-h-[92vh] md:w-[94%] md:max-w-6xl md:mx-auto md:mb-6 rounded-t-[34px] md:rounded-[36px] border border-border/70 p-0 overflow-hidden shadow-2xl backdrop-blur-xl"
+          style={{ backgroundColor: menuTheme.surfaceColor, borderColor: menuTheme.borderColor }}
+        >
           <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-muted rounded-full z-50 md:hidden" />
           {selectedItem && (
-            <div className="flex flex-col md:flex-row h-full bg-background">
+            <div className="relative flex h-full flex-col md:flex-row">
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute -left-20 top-0 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(216,194,164,0.16),transparent_70%)] blur-3xl" />
+                <div className="absolute -right-16 top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(138,90,60,0.12),transparent_70%)] blur-3xl" />
+              </div>
               {/* Image Gallery Section */}
-              <div className="flex flex-col md:flex-[1.05] bg-secondary/15 overflow-hidden">
+              <div className="relative z-10 flex flex-col md:flex-[1.05] overflow-hidden border-b md:border-b-0 md:border-r" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
                 <div className="relative aspect-square md:aspect-auto md:flex-1 w-full overflow-hidden">
                   {(() => {
                     const images = getImageUrls(selectedItem.image_urls || selectedItem.images || selectedItem.image || selectedItem.image_url);
@@ -435,6 +565,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                           src={currentImg} 
                           alt={selectedItem.name} 
                           fill 
+                          sizes="(max-width: 768px) 100vw, 60vw"
                           className="object-cover transition-all duration-700 ease-in-out" 
                           priority
                         />
@@ -474,7 +605,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                   if (images.length <= 1) return null;
                   
                   return (
-                    <div className="p-4 md:p-6 bg-secondary/10 border-t border-border">
+                    <div className="p-4 md:p-6 border-t" style={{ backgroundColor: menuTheme.surfaceColor, borderColor: menuTheme.borderColor }}>
                       <div className="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar justify-center">
                         {images.map((url, idx) => (
                           <button
@@ -487,7 +618,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                                 : "opacity-40 hover:opacity-80 scale-95"
                             )}
                           >
-                            <Image src={url} alt={`${selectedItem.name} thumbnail ${idx}`} fill className="object-cover" />
+                            <Image src={url} alt={`${selectedItem.name} thumbnail ${idx}`} fill sizes="80px" className="object-cover" />
                           </button>
                         ))}
                       </div>
@@ -497,7 +628,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
               </div>
 
               {/* Detail Content Section */}
-              <div className="flex-1 md:flex-[1.2] overflow-y-auto bg-background relative">
+              <div className="relative z-10 flex-1 md:flex-[1.2] overflow-y-auto">
                 <div className="hidden md:block absolute top-8 right-8 z-30">
                   <DrawerClose asChild>
                     <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground">
@@ -507,127 +638,197 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                 </div>
 
                  <div className="px-5 py-8 md:px-12 md:py-12 flex flex-col gap-8 md:gap-10">
-                      <div className="space-y-5">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <span className="bg-primary/5 text-primary px-3 py-1 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase border border-primary/10">
-                           {categories.find(c => String(c.id) === String(selectedItem.category_id))?.name || "Selection"}
-                        </span>
-                        {(selectedItem.is_available === false || selectedItem.available === false) && (
-                          <span className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 px-3 py-1 rounded-lg text-[10px] font-black tracking-[0.2em] uppercase border border-rose-100 dark:border-rose-900/30">
-                             Sold Out
-                          </span>
-                        )}
-                        <div className="flex-1 md:hidden" />
-                        <div className="md:hidden text-right">
-                          {typeof selectedItem.discounted_price === "number" && selectedItem.discounted_price < selectedItem.price ? (
-                            <>
-                              <div className="text-2xl font-black text-primary">
-                                {formatPrice(selectedItem.discounted_price, selectedItem.currency)}
+                      {(() => {
+                        const itemDetails = getItemDetails(selectedItem)
+
+                        return (
+                          <>
+                            <div className="space-y-5">
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <span className="rounded-lg border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em]" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor, color: menuTheme.primaryColor }}>
+                                  {categories.find((c) => String(c.id) === String(selectedItem.category_id))?.name || "Selection"}
+                                </span>
+                                {(selectedItem.is_available === false || selectedItem.available === false) && (
+                                  <span className="rounded-lg border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-rose-600 dark:text-rose-400" style={{ backgroundColor: "rgba(244, 63, 94, 0.08)", borderColor: "rgba(244, 63, 94, 0.15)" }}>
+                                    Sold Out
+                                  </span>
+                                )}
+                                <div className="flex-1 md:hidden" />
+                                <div className="md:hidden text-right">
+                                  {typeof selectedItem.discounted_price === "number" && selectedItem.discounted_price < selectedItem.price ? (
+                                    <>
+                                      <div className="text-2xl font-black" style={{ color: menuTheme.primaryColor }}>
+                                        {formatPrice(selectedItem.discounted_price, selectedItem.currency)}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        <span className="line-through mr-1">{formatPrice(selectedItem.price, selectedItem.currency)}</span>
+                                        {selectedItem.discount?.label || "Offer"}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="text-2xl font-black" style={{ color: menuTheme.primaryColor }}>
+                                      {formatPrice(selectedItem.price, selectedItem.currency)}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                              <div className="text-xs text-muted-foreground">
-                                <span className="line-through mr-1">{formatPrice(selectedItem.price, selectedItem.currency)}</span>
-                                {selectedItem.discount?.label || "Offer"}
+
+                              <DrawerTitle className="text-3xl md:text-5xl font-serif leading-tight tracking-tight" style={{ color: menuTheme.textColor }}>
+                                {selectedItem.name}
+                              </DrawerTitle>
+
+                              <div className="hidden md:flex items-center gap-4">
+                                <div className="h-px w-12" style={{ backgroundColor: menuTheme.borderColor }} />
+                                {typeof selectedItem.discounted_price === "number" && selectedItem.discounted_price < selectedItem.price ? (
+                                  <div className="flex items-end gap-3">
+                                    <div className="text-4xl font-serif" style={{ color: menuTheme.primaryColor }}>
+                                      <span className="text-xl font-sans font-bold vertical-super mr-1 opacity-80">{selectedItem.currency}</span>
+                                      {selectedItem.discounted_price.toFixed(2)}
+                                    </div>
+                                    <div className="pb-1 text-sm text-muted-foreground">
+                                      <span className="line-through mr-2">{formatPrice(selectedItem.price, selectedItem.currency)}</span>
+                                      {selectedItem.discount?.label || "Offer"}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-4xl font-serif" style={{ color: menuTheme.primaryColor }}>
+                                    <span className="text-xl font-sans font-bold vertical-super mr-1 opacity-80">{selectedItem.currency}</span>
+                                    {Number.isFinite(selectedItem.price) ? selectedItem.price.toFixed(2) : "0.00"}
+                                  </div>
+                                )}
                               </div>
-                            </>
-                          ) : (
-                            <div className="text-2xl font-black text-primary">
-                              {formatPrice(selectedItem.price, selectedItem.currency)}
+
+                              {selectedItem.description ? (
+                                <DrawerDescription className="text-lg md:text-xl leading-relaxed font-medium max-w-2xl" style={{ color: menuTheme.mutedTextColor }}>
+                                  {selectedItem.description}
+                                </DrawerDescription>
+                              ) : null}
+
+                              <div className="flex flex-wrap items-center gap-2.5">
+                                {Number(selectedItem.rating) > 0 && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: menuTheme.borderColor, backgroundColor: menuTheme.mutedSurfaceColor, color: menuTheme.mutedTextColor }}>
+                                    <Star className="h-3.5 w-3.5 text-amber-500" />
+                                    {Number(selectedItem.rating).toFixed(1)} rating
+                                  </span>
+                                )}
+
+                                {itemDetails.prepTime && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: menuTheme.borderColor, backgroundColor: menuTheme.mutedSurfaceColor, color: menuTheme.mutedTextColor }}>
+                                    <Clock className="h-3.5 w-3.5 text-sky-500" />
+                                    {itemDetails.prepTime}
+                                  </span>
+                                )}
+
+                                {itemDetails.freshness && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold" style={{ borderColor: menuTheme.borderColor, backgroundColor: menuTheme.mutedSurfaceColor, color: menuTheme.mutedTextColor }}>
+                                    <Flame className="h-3.5 w-3.5 text-orange-500" />
+                                    {itemDetails.freshness}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <DrawerTitle className="text-3xl md:text-5xl font-serif text-foreground leading-tight tracking-tight">
-                        {selectedItem.name}
-                      </DrawerTitle>
 
-                      <div className="hidden md:flex items-center gap-4">
-                        <div className="h-px w-12 bg-primary/20" />
-                        {typeof selectedItem.discounted_price === "number" && selectedItem.discounted_price < selectedItem.price ? (
-                          <div className="flex items-end gap-3">
-                            <div className="text-4xl font-serif text-primary">
-                              <span className="text-xl font-sans font-bold vertical-super mr-1 opacity-80">{selectedItem.currency}</span>
-                              {selectedItem.discounted_price.toFixed(2)}
+                            <div className="grid grid-cols-2 gap-3 md:gap-5">
+                              <div className="flex flex-col gap-3 rounded-4xl border p-5 md:p-7 transition-all hover:bg-secondary/10" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
+                                <div className="h-11 w-11 rounded-2xl flex items-center justify-center text-orange-600 dark:text-orange-400" style={{ backgroundColor: "rgba(249, 115, 22, 0.12)" }}>
+                                  <Flame className="h-5 w-5" />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Calories</p>
+                                  <p className="text-base font-bold" style={{ color: menuTheme.textColor }}>{itemDetails.calories || "Not listed"}</p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-3 rounded-4xl border p-5 md:p-7 transition-all hover:bg-secondary/10" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
+                                <div className="h-11 w-11 rounded-2xl flex items-center justify-center text-sky-600 dark:text-sky-400" style={{ backgroundColor: "rgba(14, 165, 233, 0.12)" }}>
+                                  <Clock className="h-5 w-5" />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Spice level</p>
+                                  <p className="text-base font-bold" style={{ color: menuTheme.textColor }}>{itemDetails.spiceLevel !== null ? `${itemDetails.spiceLevel}/5` : "Not listed"}</p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-3 rounded-4xl border p-5 md:p-7 transition-all hover:bg-secondary/10" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
+                                <div className="h-11 w-11 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400" style={{ backgroundColor: "rgba(16, 185, 129, 0.12)" }}>
+                                  <Sparkles className="h-5 w-5" />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Prep time</p>
+                                  <p className="text-base font-bold" style={{ color: menuTheme.textColor }}>{itemDetails.prepTime || "Not listed"}</p>
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-3 rounded-4xl border p-5 md:p-7 transition-all hover:bg-secondary/10" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
+                                <div className="h-11 w-11 rounded-2xl flex items-center justify-center text-violet-600 dark:text-violet-400" style={{ backgroundColor: "rgba(139, 92, 246, 0.12)" }}>
+                                  <Star className="h-5 w-5" />
+                                </div>
+                                <div className="space-y-0.5">
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Service time</p>
+                                  <p className="text-base font-bold" style={{ color: menuTheme.textColor }}>{itemDetails.serviceTime || "Not listed"}</p>
+                                </div>
+                              </div>
                             </div>
-                            <div className="pb-1 text-sm text-muted-foreground">
-                              <span className="line-through mr-2">{formatPrice(selectedItem.price, selectedItem.currency)}</span>
-                              {selectedItem.discount?.label || "Offer"}
+
+                            {(itemDetails.dietaryTags.length > 0 || itemDetails.allergens.length > 0 || itemDetails.ingredients.length > 0) && (
+                              <div className="rounded-3xl border p-5 md:p-7" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
+                                <div className="space-y-4">
+                                  {itemDetails.dietaryTags.length > 0 && (
+                                    <div className="space-y-2">
+                                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Dietary tags</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {itemDetails.dietaryTags.map((tag) => (
+                                          <span key={tag} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: menuTheme.borderColor, backgroundColor: menuTheme.surfaceColor, color: menuTheme.textColor }}>
+                                            {tag}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {itemDetails.allergens.length > 0 && (
+                                    <div className="space-y-2">
+                                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Allergens</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {itemDetails.allergens.map((allergen) => (
+                                          <span key={allergen} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: menuTheme.borderColor, backgroundColor: menuTheme.surfaceColor, color: menuTheme.textColor }}>
+                                            {allergen}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {itemDetails.ingredients.length > 0 && (
+                                    <div className="space-y-2">
+                                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Ingredients</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {itemDetails.ingredients.map((ingredient) => (
+                                          <span key={ingredient} className="rounded-full border px-3 py-1 text-xs font-semibold" style={{ borderColor: menuTheme.borderColor, backgroundColor: menuTheme.surfaceColor, color: menuTheme.textColor }}>
+                                            {ingredient}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {itemDetails.chefNotes && (
+                              <div className="rounded-3xl border p-5 md:p-7" style={{ backgroundColor: menuTheme.surfaceColor, borderColor: menuTheme.borderColor }}>
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Chef Notes</p>
+                                <p className="mt-2 text-sm md:text-base leading-relaxed" style={{ color: menuTheme.textColor }}>
+                                  {itemDetails.chefNotes}
+                                </p>
+                              </div>
+                            )}
+
+                            <div className="mt-2 md:hidden sticky bottom-0 bg-linear-to-t from-background via-background to-transparent pt-4 pb-2">
+                              <Button className="w-full h-14 rounded-2xl text-base font-bold shadow-2xl shadow-primary/20" onClick={() => setSelectedItem(null)}>
+                                Continue Browsing
+                              </Button>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="text-4xl font-serif text-primary">
-                            <span className="text-xl font-sans font-bold vertical-super mr-1 opacity-80">{selectedItem.currency}</span>
-                            {Number.isFinite(selectedItem.price) ? selectedItem.price.toFixed(2) : "0.00"}
-                          </div>
-                        )}
-                      </div>
-
-                      {selectedItem.description ? (
-                        <DrawerDescription className="text-lg md:text-xl text-muted-foreground leading-relaxed font-medium max-w-2xl">
-                          {selectedItem.description}
-                        </DrawerDescription>
-                      ) : null}
-
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        {Number(selectedItem.rating) > 0 && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-                            <Star className="h-3.5 w-3.5 text-amber-500" />
-                            {Number(selectedItem.rating).toFixed(1)} rating
-                          </span>
-                        )}
-
-                        {((selectedItem as any).prep_time || (selectedItem as any).estimated_prep_time || (selectedItem as any).prep_minutes) && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5 text-sky-500" />
-                            {((selectedItem as any).prep_time && String((selectedItem as any).prep_time)) || ((selectedItem as any).estimated_prep_time && String((selectedItem as any).estimated_prep_time)) || (((selectedItem as any).prep_minutes && `${(selectedItem as any).prep_minutes} min`) || "")}
-                          </span>
-                        )}
-
-                        {((selectedItem as any).freshness || (selectedItem as any).freshly_made || (selectedItem as any).is_fresh) && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary/20 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-                            <Flame className="h-3.5 w-3.5 text-orange-500" />
-                            {(selectedItem as any).freshness || (selectedItem as any).freshly_made || "Freshly made"}
-                          </span>
-                        )}
-                      </div>
-                   </div>
-
-                   {/* Modern Info Tiles */}
-                   <div className="grid grid-cols-2 gap-3 md:gap-5">
-                      <div className="flex flex-col gap-3 p-5 md:p-7 rounded-4xl bg-secondary/20 border border-border transition-all hover:bg-secondary/30">
-                         <div className="h-11 w-11 rounded-2xl bg-orange-100 dark:bg-orange-900/20 flex items-center justify-center text-orange-600 dark:text-orange-400">
-                            <Flame className="h-5 w-5" />
-                         </div>
-                         <div className="space-y-0.5">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Flavor Profile</p>
-                            <p className="text-base font-bold text-foreground">Signature Selection</p>
-                         </div>
-                      </div>
-                      <div className="flex flex-col gap-3 p-5 md:p-7 rounded-4xl bg-secondary/20 border border-border transition-all hover:bg-secondary/30">
-                         <div className="h-11 w-11 rounded-2xl bg-sky-100 dark:bg-sky-900/20 flex items-center justify-center text-sky-600 dark:text-sky-400">
-                            <Clock className="h-5 w-5" />
-                         </div>
-                         <div className="space-y-0.5">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Est. Arrival</p>
-                            <p className="text-base font-bold text-foreground">15 - 20 Mins</p>
-                         </div>
-                      </div>
-                   </div>
-
-                   {((selectedItem as any).chef_notes || (selectedItem as any).notes || (selectedItem as any).kitchen_notes) && (
-                     <div className="rounded-3xl border border-border/70 bg-linear-to-br from-card to-secondary/10 p-5 md:p-7">
-                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Chef Notes</p>
-                       <p className="mt-2 text-sm md:text-base text-foreground/90 leading-relaxed">
-                         {(selectedItem as any).chef_notes || (selectedItem as any).notes || (selectedItem as any).kitchen_notes}
-                       </p>
-                     </div>
-                   )}
-
-                   <div className="mt-2 md:hidden sticky bottom-0 bg-linear-to-t from-background via-background to-transparent pt-4 pb-2">
-                      <Button className="w-full h-14 rounded-2xl text-base font-bold shadow-2xl shadow-primary/20" onClick={() => setSelectedItem(null)}>
-                        Continue Browsing
-                      </Button>
-                   </div>
+                          </>
+                        )
+                      })()}
                 </div>
               </div>
             </div>

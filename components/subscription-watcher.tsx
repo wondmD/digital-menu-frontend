@@ -11,12 +11,19 @@ export function SubscriptionWatcher({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const [checking, setChecking] = useState(true)
 
+  const goToLogin = () => {
+    if (pathname !== "/login") {
+      router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`)
+    }
+  }
+
   useEffect(() => {
     if (status === "loading") return
     
     // If not logged in, the auth middleware will handle it
     if (status === "unauthenticated") {
       setChecking(false)
+      goToLogin()
       return
     }
 
@@ -55,9 +62,18 @@ export function SubscriptionWatcher({ children }: { children: React.ReactNode })
           }
         }
       } catch (err) {
-        // If the subscription is missing (404), redirect to packages
-        if (!pathname.startsWith("/packages") && !pathname.startsWith("/payment")) {
-           router.push("/packages")
+        const message = String((err as any)?.message || "").toLowerCase()
+        const isAuthError =
+          message.includes("unauthorized") ||
+          message.includes("authentication required") ||
+          message.includes("invalid token") ||
+          message.includes("forbidden")
+
+        if (isAuthError) {
+          goToLogin()
+        } else if (!pathname.startsWith("/packages") && !pathname.startsWith("/payment")) {
+          // Keep true subscription-missing cases on the pricing flow.
+          router.push("/packages")
         }
       } finally {
         setChecking(false)

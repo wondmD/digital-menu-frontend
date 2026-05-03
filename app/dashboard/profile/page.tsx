@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -371,7 +372,7 @@ export default function ProfilePage() {
                     <div className="flex gap-4 items-center">
                       <div className="h-20 w-20 rounded-2xl bg-muted border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
                         {previews.logo ? (
-                          <img src={getImageUrl(previews.logo)} className="h-full w-full object-cover" />
+                          <Image src={getImageUrl(previews.logo) || ""} alt="Restaurant logo preview" fill sizes="80px" className="object-cover" />
                         ) : (
                           <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
                         )}
@@ -401,7 +402,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="h-20 w-full rounded-2xl bg-muted border-2 border-dashed border-border/50 flex items-center justify-center overflow-hidden relative group">
                       {previews.cover ? (
-                        <img src={getImageUrl(previews.cover)} className="h-full w-full object-cover" />
+                        <Image src={getImageUrl(previews.cover) || ""} alt="Restaurant cover preview" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                       ) : (
                         <div className="flex flex-col items-center gap-1">
                           <Upload className="h-5 w-5 text-muted-foreground/30" />
@@ -432,7 +433,7 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
                       {previews.gallery.map((url, idx) => (
                         <div key={idx} className="aspect-square rounded-xl bg-muted overflow-hidden relative group border border-border/50">
-                          <img src={getImageUrl(url)} className="h-full w-full object-cover" />
+                          <Image src={getImageUrl(url) || ""} alt="Gallery preview" fill sizes="120px" className="object-cover" />
                           <button 
                             onClick={() => {
                               const urlToRemove = previews.gallery[idx]
@@ -580,7 +581,7 @@ export default function ProfilePage() {
                         <div className="flex flex-col md:flex-row md:items-center p-6 md:p-8 gap-6 md:gap-8">
                            <div className="h-20 w-20 md:h-24 md:w-24 rounded-[1.5rem] md:rounded-[2rem] bg-muted border border-border/50 flex items-center justify-center relative group-hover:bg-primary/10 transition-colors shrink-0 overflow-hidden shadow-inner">
                               {res.logo || res.logo_url || res.logo_image_url ? (
-                                <img src={getImageUrl(res.logo || res.logo_url || res.logo_image_url)} className="h-full w-full object-cover" />
+                                <Image src={getImageUrl(res.logo || res.logo_url || res.logo_image_url) || ""} alt={res.name} fill sizes="80px" className="object-cover" />
                               ) : (
                                 <Building2 className="h-8 w-8 md:h-10 md:w-10 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                               )}

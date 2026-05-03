@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { useSession } from "next-auth/react"
 import { useParams, useRouter } from "next/navigation"
 import { LoadingSignal } from "@/components/ui/loading-signal"
@@ -365,7 +366,7 @@ export default function GalleryPage() {
             {/* Existing Images */}
             {keepGalleryUrls.map((url, idx) => (
               <div key={`keep-${idx}`} className="group relative aspect-square rounded-xl overflow-hidden bg-muted border border-border/50">
-                <img src={getImageUrl(url)} className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                <Image src={getImageUrl(url) || ""} alt="Existing gallery image" fill sizes="120px" className="object-cover transition-transform group-hover:scale-110" />
                 <button 
                   onClick={() => deleteExistingImage(url)}
                   disabled={saving || deletingRefs.includes(url)}
@@ -379,7 +380,7 @@ export default function GalleryPage() {
             {/* New Image Previews */}
             {previews.map((url, idx) => (
               <div key={`new-${idx}`} className="group relative aspect-square rounded-xl overflow-hidden bg-muted border-2 border-primary/30">
-                <img src={url} className="h-full w-full object-cover" />
+                <Image src={url} alt="New gallery preview" fill sizes="120px" className="object-cover" />
                 <div className="absolute inset-0 bg-primary/20 pointer-events-none" />
                 <button 
                   onClick={() => removeNewImage(idx)}

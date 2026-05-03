@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -408,9 +409,12 @@ export default function QRPage() {
                <div className="absolute inset-0 bg-primary/2 opacity-0 group-hover:opacity-100 transition-opacity" />
                <div className="relative z-10 p-4 rounded-3xl bg-white shadow-xl">
                  <div className="h-48 w-48 md:h-56 md:w-56 bg-white rounded-xl flex items-center justify-center p-2">
-                    <img 
+                    <Image 
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(menuUrl)}`}
                       alt="Menu QR"
+                      width={250}
+                      height={250}
+                      sizes="(max-width: 768px) 176px, 208px"
                       className="h-44 w-44 md:h-52 md:w-52"
                     />
                  </div>
@@ -725,9 +729,12 @@ export default function QRPage() {
          <div className="print-container">
             {selected && (printMode === 'qr' ? (
               <div className="text-center p-12 bg-white border border-gray-100 rounded-[3rem]">
-                <img 
+                <Image 
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(menuUrl)}`}
                   alt="Menu QR"
+                  width={1000}
+                  height={1000}
+                  sizes="384px"
                   className="h-96 w-96"
                 />
                 <div className="mt-8 space-y-2">
