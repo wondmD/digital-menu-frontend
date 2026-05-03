@@ -1,13 +1,24 @@
 "use client"
 
-import { MenuItem, TemplateProps } from "./types"
+import { useMemo } from "react"
 import { motion } from "framer-motion"
+import { Search, Clock3 } from "lucide-react"
 import Image from "next/image"
-import { Logo } from "@/components/logo"
-import { getImageUrl } from "@/lib/utils"
-import { Search, Loader2, Zap } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
+import { getImageUrl } from "@/lib/utils"
+import { TemplateProps } from "./types"
+import {
+  CategorySection,
+  MenuEmptyState,
+  MenuItemCard,
+  MenuLoadingState,
+  matchesMenuItemSearch,
+  StickyCategoryNav,
+  TemplateFooterCTA,
+  TemplateShell,
+  getCategorySectionId,
+  resolveTemplateTheme,
+} from "./shared"
 
 export default function Template3({
   hotel,
@@ -18,175 +29,148 @@ export default function Template3({
   searchQuery,
   onSearchChange,
   itemsLoading,
+  theme,
 }: TemplateProps) {
-  const currentCategory = categories.find((c) => c.id === activeCategory)
-  const categoryItems = currentCategory?.items || []
-
-  // Ensure we get the correct logo URL field
+  const resolvedTheme = resolveTemplateTheme("hotel", theme)
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
-  const query = searchQuery.toLowerCase()
-  const filteredItems = categoryItems.filter((item) => {
-    if (!query) return true
-    return item.name.toLowerCase().includes(query) || (item.description || "").toLowerCase().includes(query)
-  })
+  const normalizedQuery = searchQuery.trim().toLowerCase()
+  const visibleCategories = useMemo(() => {
+    return categories
+      .map((category) => {
+        const items = (category.items || []).filter((item) => matchesMenuItemSearch(item, normalizedQuery))
+
+        return {
+          ...category,
+          items,
+        }
+      })
+      .filter((category) => category.items && category.items.length > 0)
+  }, [categories, normalizedQuery])
+
+  const activeSection = visibleCategories.some((category) => category.id === activeCategory)
+    ? activeCategory
+    : visibleCategories[0]?.id || activeCategory
+
+  const selectedCategory = visibleCategories.find((category) => category.id === activeSection) || visibleCategories[0] || null
+
+  const handleCategoryChange = (categoryId: string) => {
+    onCategoryChange(categoryId)
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 font-sans">
-      {/* Search Header */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-5 sm:py-6 sticky top-0 z-40">
-        <div className="container max-w-3xl mx-auto space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl sm:text-2xl font-black flex items-center gap-2">
-               {logoImage ? (
-                 <motion.div
-                   initial={{ scale: 0.8, opacity: 0 }}
-                   animate={{ scale: 1, opacity: 1 }}
-                   className="relative w-8 h-8 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700"
-                 >
-                   <Image
-                     src={logoImage}
-                     alt={hotel.name}
-                     fill
-                     className="object-cover"
-                     sizes="32px"
-                     priority
-                   />
-                 </motion.div>
-               ) : (
-                 <Zap className="h-6 w-6 text-primary fill-current" />
-               )}
-               {hotel.name}
-            </h1>
+    <TemplateShell
+      theme={resolvedTheme}
+      className="bg-[linear-gradient(180deg,#FAF7F1_0%,#F4EFE6_100%)]"
+    >
+      <div className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 lg:px-8">
+        <motion.header
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="overflow-hidden rounded-[34px] border p-6 sm:p-8 lg:p-10"
+          style={{ backgroundColor: "rgba(255,255,255,0.92)", borderColor: resolvedTheme.borderColor, boxShadow: `0 24px 60px ${resolvedTheme.shadowColor}` }}
+        >
+          <div aria-hidden="true" className="absolute inset-0 pointer-events-none opacity-90">
+            <div className="absolute -left-16 top-8 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(140,106,56,0.12),transparent_68%)] blur-2xl sm:h-56 sm:w-56" />
+            <div className="absolute -right-12 -bottom-8 h-52 w-52 rounded-full bg-[radial-gradient(circle,rgba(196,164,107,0.14),transparent_68%)] blur-2xl sm:h-72 sm:w-72" />
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Quick search Ethiopian menu..."
-              className="pl-10 h-11 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-lg dark:text-white"
-            />
-          </div>
-        </div>
-      </div>
+          <div className="relative z-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <h1 className="max-w-3xl font-serif text-4xl leading-tight tracking-tight sm:text-5xl lg:text-6xl" style={{ color: resolvedTheme.textColor }}>
+                  {hotel.name}
+                </h1>
+                {hotel.description ? (
+                  <p className="max-w-2xl text-sm leading-relaxed sm:text-base" style={{ color: resolvedTheme.mutedTextColor }}>
+                    {hotel.description}
+                  </p>
+                ) : null}
+              </div>
 
-      {/* Tightly packed categories */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 py-3 sticky top-27 sm:top-31 z-30">
-        <div className="container max-w-3xl mx-auto flex gap-2 overflow-x-auto no-scrollbar">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => onCategoryChange(cat.id)}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all",
-                activeCategory === cat.id 
-                  ? "bg-primary text-primary-foreground" 
-                  : "bg-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white"
-              )}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-3 rounded-full border px-4 py-3" style={{ backgroundColor: resolvedTheme.surfaceColor, borderColor: resolvedTheme.borderColor }}>
+                  <Search className="h-4 w-4 shrink-0" style={{ color: resolvedTheme.mutedTextColor }} />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    aria-label="Search menu items"
+                    placeholder=""
+                    className="h-auto border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
+                    style={{ color: resolvedTheme.textColor }}
+                  />
+                </div>
+                {logoImage && (
+                  <div className="relative h-14 w-14 overflow-hidden rounded-[18px] border" style={{ borderColor: resolvedTheme.borderColor, backgroundColor: resolvedTheme.surfaceColor }}>
+                    <Image src={logoImage} alt={hotel.name} fill sizes="56px" className="object-contain p-2" priority />
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </motion.header>
+
+        <div className="mt-6 rounded-[28px] border px-3 py-3 shadow-[0_20px_50px_rgba(84,62,33,0.08)]" style={{ backgroundColor: resolvedTheme.surfaceColor, borderColor: resolvedTheme.borderColor }}>
+          <StickyCategoryNav
+            categories={categories}
+            activeCategory={activeSection}
+            onCategoryChange={handleCategoryChange}
+            theme={resolvedTheme}
+            variant="hotel"
+            className="top-0 rounded-[22px] border-0 bg-transparent"
+          />
+        </div>
+
+        <main className="space-y-8 pt-8">
+          {itemsLoading ? (
+            <MenuLoadingState theme={resolvedTheme} variant="hotel" />
+          ) : selectedCategory ? (
+            <CategorySection
+              category={selectedCategory}
+              sectionId={getCategorySectionId(selectedCategory.id)}
+              theme={resolvedTheme}
+              variant="hotel"
+              gridClassName="grid-cols-1"
+              itemCount={selectedCategory.items?.length}
+              meta={
+                <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em]" style={{ backgroundColor: resolvedTheme.mutedSurfaceColor, borderColor: resolvedTheme.borderColor, color: resolvedTheme.primaryColor }} aria-label="Section detail">
+                  <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span aria-hidden="true">•</span>
+                </span>
+              }
+              className="rounded-[28px]"
             >
-              {cat.name}
-            </button>
-          ))}
-        </div>
+              {selectedCategory.items?.map((item, itemIndex) => (
+                <MenuItemCard
+                  key={item.id}
+                  item={item}
+                  theme={resolvedTheme}
+                  variant="hotel"
+                  onClick={() => onItemClick(item)}
+                  priority={itemIndex < 1}
+                />
+              ))}
+            </CategorySection>
+          ) : (
+            <MenuEmptyState
+              theme={resolvedTheme}
+              title="Nothing matches this search"
+              description={normalizedQuery ? "Try another term or clear the search to see the full hotel menu." : "Add dishes in the dashboard to populate the hospitality menu."}
+              onReset={normalizedQuery ? () => onSearchChange("") : undefined}
+            />
+          )}
+        </main>
+
+        <footer className="sticky bottom-4 z-30 mt-14 space-y-4 rounded-4xl border bg-background/90 p-3 shadow-[0_20px_60px_rgba(84,62,33,0.12)] backdrop-blur-xl sm:p-4" style={{ borderColor: resolvedTheme.borderColor }}>
+          <TemplateFooterCTA
+            theme={resolvedTheme}
+            variant="hotel"
+            primaryLabel="Back to top"
+            onPrimary={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            homeHref="/"
+          />
+        </footer>
       </div>
-
-      {/* Efficient List */}
-      <main className="container max-w-3xl mx-auto px-4 sm:px-6 py-8">
-         <motion.section
-           initial={{ opacity: 0, y: 8 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="mb-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5"
-         >
-           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Selected Category</p>
-           <h2 className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white wrap-break-word">
-             {currentCategory?.name || "Highlights"}
-           </h2>
-           <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-             {currentCategory?.description || "Fast, flavorful picks designed for quick decisions and great taste."}
-           </p>
-           <span className="mt-3 inline-flex rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-300">
-             {filteredItems.length} item{filteredItems.length === 1 ? "" : "s"}
-           </span>
-         </motion.section>
-
-         <div className="space-y-4">
-            {itemsLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : filteredItems.length > 0 ? (
-              <div className="grid gap-2">
-                {filteredItems.map((item, idx) => (
-                  (() => {
-                    const itemImage = getImageUrl(item.image_url || item.image || item.images || item.image_urls)
-                    return (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.03 }}
-                    onClick={() => onItemClick(item)}
-                    className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl cursor-pointer hover:border-primary/50 transition-all active:scale-[0.98]"
-                  >
-                    {itemImage ? (
-                      <div className="relative h-16 w-16 shrink-0 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800">
-                        <Image
-                          src={itemImage || "/placeholder.svg"}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 88px, 96px"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-16 w-16 shrink-0 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center uppercase font-black text-slate-300 dark:text-slate-600">
-                        {item.name.substring(0, 2)}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0 pr-2">
-                      <h3 className="font-bold text-slate-900 dark:text-white truncate">{item.name}</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{item.description}</p>
-                    </div>
-                    <div className="text-right">
-                      {typeof item.discounted_price === "number" && item.discounted_price < item.price ? (
-                        <div className="space-y-0.5">
-                          <p className="font-black text-primary whitespace-nowrap">
-                            {item.currency} {item.discounted_price.toFixed(item.discounted_price % 1 === 0 ? 0 : 2)}
-                          </p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                            <span className="line-through mr-1">{item.currency} {item.price.toFixed(item.price % 1 === 0 ? 0 : 2)}</span>
-                            {item.discount?.label || "Offer"}
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="font-black text-primary whitespace-nowrap">
-                          {item.currency} {item.price.toFixed(item.price % 1 === 0 ? 0 : 2)}
-                        </p>
-                      )}
-                        {(item.is_available === false || item.available === false) && (
-                         <p className="text-[10px] font-bold uppercase tracking-wide text-rose-500 mt-1">Sold Out</p>
-                        )}
-                    </div>
-                  </motion.div>
-                    )
-                  })()
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-20 text-slate-400">
-                 No results found.
-              </div>
-            )}
-         </div>
-      </main>
-
-      <footer className="mt-12 mb-12 flex flex-col items-center justify-center gap-3">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-          Powered by
-        </span>
-        <Logo width={100} height={32} />
-      </footer>
-    </div>
+    </TemplateShell>
   )
 }

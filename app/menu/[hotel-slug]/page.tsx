@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from "next"
-import { fetchPublicRestaurantBySlugOrId } from "@/lib/public-restaurant"
+import { getCachedPublicRestaurantBySlugOrId, getCachedRestaurantShowcaseBundle } from "@/lib/public-data.server"
 import HotelMenuClient from "@/components/hotel-menu-client"
 import { getImageUrl } from "@/lib/utils"
 import { getSiteUrl } from "@/lib/site-url"
@@ -18,7 +18,7 @@ export async function generateMetadata(
   const hotelSlug = resolvedParams["hotel-slug"]
 
   try {
-    const hotel = await fetchPublicRestaurantBySlugOrId(hotelSlug)
+    const hotel = await getCachedPublicRestaurantBySlugOrId(hotelSlug)
 
     if (!hotel) {
       return {
@@ -79,11 +79,8 @@ export default async function HotelMenuLandingPage({ params }: Props) {
   const resolvedParams = await params
   const hotelSlug = resolvedParams["hotel-slug"]
   
-  // Fetch initial data on the server for faster load and better SEO
-  let initialData = null
-  try {
-    initialData = await fetchPublicRestaurantBySlugOrId(hotelSlug)
-  } catch (err) {}
+  const initialBundle = await getCachedRestaurantShowcaseBundle(hotelSlug)
+  const initialData = initialBundle?.restaurant || null
 
   return (
     <>
@@ -112,7 +109,7 @@ export default async function HotelMenuLandingPage({ params }: Props) {
           }}
         />
       )}
-      <HotelMenuClient hotelSlug={hotelSlug} initialData={initialData} />
+      <HotelMenuClient hotelSlug={hotelSlug} initialData={initialData} initialBundle={initialBundle} />
     </>
   )
 }

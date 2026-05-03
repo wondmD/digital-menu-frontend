@@ -7,6 +7,11 @@ function buildRemotePatterns() {
       hostname: "api.qrserver.com",
       pathname: "/**",
     },
+    {
+      protocol: "https",
+      hostname: "images.unsplash.com",
+      pathname: "/**",
+    },
   ]
 
   const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://menu-viste-1.onrender.com/api/v1"
@@ -21,6 +26,13 @@ function buildRemotePatterns() {
   } catch {
     // Ignore malformed env values and keep the QR host pattern.
   }
+
+  // Allow Cloudflare R2 public buckets used for media hosting (e.g. pub-*.r2.dev)
+  patterns.push({
+    protocol: "https",
+    hostname: "*.r2.dev",
+    pathname: "/**",
+  })
 
   return patterns
 }

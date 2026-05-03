@@ -75,6 +75,10 @@ const DISH_PLACEHOLDERS = [
   "Hunt for spicy specials..."
 ]
 
+type LandingClientProps = {
+  initialRestaurants?: Restaurant[]
+}
+
 function parseCoordinateAddress(address?: string): { lat: number; lng: number } | null {
   if (!address) return null
   const match = address.match(/^\s*([-+]?\d*\.?\d+)\s*,\s*([-+]?\d*\.?\d+)\s*$/)
@@ -146,16 +150,17 @@ function RestaurantCard({
           <div
             className={cn(
               "relative overflow-hidden",
-              compact ? "aspect-[4/3] rounded-2xl mb-4" : "aspect-square rounded-[2rem] mb-5"
+              compact ? "aspect-4/3 rounded-2xl mb-4" : "aspect-square rounded-4xl mb-5"
             )}
           >
             <Image 
               src={getImageUrl(restaurant.cover_url || restaurant.logo_url) || "/hotel.webp"} 
               alt={restaurant.name} 
               fill 
+              sizes={compact ? "(max-width: 640px) 100vw, 25vw" : "(max-width: 640px) 100vw, 20vw"}
               className="object-cover transition-transform duration-700 group-hover:scale-110" 
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-60" />
+            <div className="absolute inset-0 bg-linear-to-t from-slate-950/80 via-transparent to-transparent opacity-60" />
             <div className="absolute top-4 right-4 h-10 w-10 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
               <CheckCircle2 className="h-4 w-4" />
             </div>
@@ -222,6 +227,7 @@ function DishCard({
               src={getImageUrl(dish.image_url) || "/hotel.webp"} 
               alt={dish.name} 
               fill 
+              sizes={compact ? "80px" : "96px"}
               className="object-cover group-hover:scale-110 transition-transform" 
             />
           </div>
@@ -241,10 +247,10 @@ function DishCard({
   )
 }
 
-export default function LandingClient() {
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+export default function LandingClient({ initialRestaurants = [] }: LandingClientProps) {
+  const [restaurants, setRestaurants] = useState<Restaurant[]>(initialRestaurants)
   const [dishes, setDishes] = useState<Dish[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(initialRestaurants.length === 0)
   const [searchQuery, setSearchQuery] = useState("")
   const [restaurantFilter, setRestaurantFilter] = useState<"all" | "nearby">("all")
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
@@ -270,6 +276,11 @@ export default function LandingClient() {
   }, [])
 
   useEffect(() => {
+    if (initialRestaurants.length > 0) {
+      setLoading(false)
+      return
+    }
+
     const load = async () => {
       try {
         setLoading(true)
@@ -338,8 +349,9 @@ export default function LandingClient() {
         setLoading(false)
       }
     }
+
     load()
-  }, [])
+  }, [initialRestaurants])
 
   const filteredRestaurants = useMemo(() => 
     restaurants.filter(r => 
@@ -407,7 +419,7 @@ export default function LandingClient() {
             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(230,57,70,0.08),transparent_70%)] opacity-50" />
             <motion.div 
                style={{ y: heroY, opacity: heroOpacity }}
-               className="absolute top-[5%] left-[50%] -translate-x-1/2 w-[300px] md:w-[800px] h-[300px] md:h-[600px] rounded-full bg-primary/10 blur-[80px] md:blur-[150px]" 
+               className="absolute top-[5%] left-[50%] -translate-x-1/2 w-75 md:w-200 h-75 md:h-150 rounded-full bg-primary/10 blur-[80px] md:blur-[150px]" 
             />
           </div>
 
@@ -423,7 +435,7 @@ export default function LandingClient() {
                 The Future of Dining
               </motion.div>
               
-              <h1 className="font-serif text-[clamp(2rem,8vw,5.5rem)] leading-[1] tracking-tighter mb-6 md:mb-8">
+              <h1 className="font-serif text-[clamp(2rem,8vw,5.5rem)] leading-none tracking-tighter mb-6 md:mb-8">
                 Find. Scan. <span className="text-primary italic font-normal">Savor.</span>
               </h1>
               
@@ -438,7 +450,7 @@ export default function LandingClient() {
                 transition={{ delay: 0.3 }}
                 className="w-full max-w-3xl mx-auto mb-10 md:mb-16 relative group"
               >
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-[2rem] blur opacity-25 group-focus-within:opacity-50 transition duration-1000"></div>
+                <div className="absolute -inset-1 bg-linear-to-r from-primary/20 to-accent/20 rounded-4xl blur opacity-25 group-focus-within:opacity-50 transition duration-1000"></div>
                 <div className="relative flex flex-col md:flex-row md:items-center gap-3 bg-card/60 backdrop-blur-2xl border border-white/10 rounded-2xl md:rounded-[2.5rem] p-3 md:p-3 shadow-2xl focus-within:border-primary/50 transition-all">
                   <Search className="ml-3 md:ml-6 h-5 md:h-7 w-5 md:w-7 text-muted-foreground group-focus-within:text-primary transition-colors shrink-0" />
                   <div className="flex-1 relative flex flex-col">
@@ -525,7 +537,7 @@ export default function LandingClient() {
                     {loading ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                             {[1, 2, 3, 4].map(i => (
-                                <div key={i} className="h-[300px] rounded-[2rem] bg-card/40 border border-white/5 animate-pulse" />
+                                <div key={i} className="h-75 rounded-4xl bg-card/40 border border-white/5 animate-pulse" />
                             ))}
                         </div>
                     ) : hasSearch ? (
@@ -588,7 +600,7 @@ export default function LandingClient() {
                       <Zap className="h-4 w-4 fill-secondary" />
                       Instant Set up
                     </motion.div>
-                    <h2 className="text-5xl md:text-8xl font-serif mb-10 md:mb-12 tracking-tight leading-[1] text-foreground">Built for <br /> <span className="italic font-normal">Superior</span> <br /> Conversion.</h2>
+                    <h2 className="text-5xl md:text-8xl font-serif mb-10 md:mb-12 tracking-tight leading-none text-foreground">Built for <br /> <span className="italic font-normal">Superior</span> <br /> Conversion.</h2>
                     
                     <div className="space-y-8 md:space-y-12">
                        {[
@@ -648,11 +660,11 @@ export default function LandingClient() {
              whileInView={{ opacity: 1, y: 0 }}
              transition={{ duration: 1 }}
              viewport={{ once: true }}
-             className="max-w-7xl mx-auto rounded-[3rem] md:rounded-[5rem] bg-gradient-to-br from-primary to-[#800000] p-10 md:p-32 text-center relative overflow-hidden group shadow-[0_100px_200px_-50px_rgba(230,57,70,0.6)]"
+             className="max-w-7xl mx-auto rounded-[3rem] md:rounded-[5rem] bg-linear-to-br from-primary to-[#800000] p-10 md:p-32 text-center relative overflow-hidden group shadow-[0_100px_200px_-50px_rgba(230,57,70,0.6)]"
            >
               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none" />
               <div className="absolute top-0 right-0 p-10 md:p-20 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-1000 hidden md:block">
-                 <ChefHat className="h-[500px] w-[500px] text-white" />
+                 <ChefHat className="h-125 w-125 text-white" />
               </div>
 
               <div className="relative z-10 max-w-4xl mx-auto">
@@ -714,11 +726,12 @@ export default function LandingClient() {
         <DialogContent className="max-w-xl rounded-3xl p-0 overflow-hidden border border-border/60 bg-background">
           {selectedDish && (
             <div className="grid md:grid-cols-[220px_1fr]">
-              <div className="relative h-56 md:h-full min-h-[220px]">
+              <div className="relative h-56 md:h-full min-h-55">
                 <Image
                   src={getImageUrl(selectedDish.image_url) || "/hotel.webp"}
                   alt={selectedDish.name}
                   fill
+                  sizes="(max-width: 768px) 100vw, 220px"
                   className="object-cover"
                 />
               </div>
@@ -757,7 +770,7 @@ export default function LandingClient() {
 
       <footer className="py-20 md:py-32 bg-card border-t border-border relative overflow-hidden">
         {/* Decorative Blur */}
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[150px] pointer-events-none translate-x-1/2 translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-125 h-125 bg-primary/10 rounded-full blur-[150px] pointer-events-none translate-x-1/2 translate-y-1/2" />
         
         <div className="container mx-auto px-6 relative z-10">
            <div className="grid gap-8 md:gap-12 md:grid-cols-1 mb-12">

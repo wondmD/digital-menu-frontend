@@ -1,5 +1,6 @@
 import { Metadata } from "next"
 import LandingClient from "@/components/landing-client"
+import { fetchLandingRestaurantsPreview } from "@/lib/landing-data"
 import { getSiteUrl } from "@/lib/site-url"
 
 const siteUrl = getSiteUrl()
@@ -33,7 +34,9 @@ export const metadata: Metadata = {
   }
 }
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const initialRestaurants = await fetchLandingRestaurantsPreview(8)
+
   return (
     <>
       <script
@@ -59,7 +62,7 @@ export default function LandingPage() {
           })
         }}
       />
-      <LandingClient />
+      <LandingClient initialRestaurants={initialRestaurants} />
     </>
   )
 }

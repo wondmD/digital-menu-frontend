@@ -8,6 +8,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { FreeTrialBanner } from "@/components/free-trial-banner"
 import { getSiteUrl } from "@/lib/site-url"
 import "./globals.css"
+// Ensure process-level unhandledRejection handler is registered on the server
+import "@/lib/unhandled-rejection"
 
 const siteUrl = getSiteUrl()
 

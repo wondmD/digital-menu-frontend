@@ -67,6 +67,7 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carouse
 import { motion, AnimatePresence } from "framer-motion"
 import { LoadingSignal } from "@/components/ui/loading-signal"
 import { Progress } from "@/components/ui/progress"
+import { ApiError } from "@/lib/api-client"
 
 type Restaurant = { id: string; name: string; slug?: string; status?: string; is_published?: boolean }
 type Category = { id: string; name: string; description?: string }
@@ -105,6 +106,16 @@ function extractList(payload: any): any[] {
   if (Array.isArray(payload?.items)) return payload.items
   if (Array.isArray(payload?.results)) return payload.results
   return []
+}
+
+function extractDataEnvelope(payload: any): any {
+  return payload?.data?.data || payload?.data || payload
+}
+
+function extractSubscription(payload: any): any {
+  const normalized = extractDataEnvelope(payload)
+  if (!normalized) return null
+  return normalized.subscription || normalized
 }
 
 function normalizeItem(raw: any): MenuItem {
@@ -185,6 +196,52 @@ function buildDiscountCode(name: string): string {
     .slice(0, 10)
   const suffix = Date.now().toString(36).toUpperCase().slice(-4)
   return `${base || "DISC"}${suffix}`
+}
+
+function getMenuErrorMessage(error: unknown, fallback = "Could not complete this action."): string {
+  const defaultMessage = fallback
+
+  if (error instanceof ApiError) {
+    const body = error.body
+    const bodyMessage =
+      typeof body === "string"
+        ? body
+        : String(body?.message || body?.error || body?.detail || "").trim()
+    const message = String(error.message || bodyMessage || defaultMessage).trim() || defaultMessage
+    const lowerMessage = message.toLowerCase()
+
+    if (error.status === 401) {
+      return "Your session expired. Please sign in again and retry the action."
+    }
+
+    if (error.status === 403) {
+      if (lowerMessage.includes("no active subscription") || lowerMessage.includes("inactive subscription")) {
+        return "Subscription check failed: the API did not recognize an active subscription. Refresh the dashboard or open Subscription details if the plan is already active."
+      }
+
+      return `Permission denied: ${message}`
+    }
+
+    if (error.status === 404) {
+      return `Not found: ${message}`
+    }
+
+    if (error.status === 422 || lowerMessage.includes("validation")) {
+      return `Validation error: ${message}`
+    }
+
+    if ([500, 502, 503, 504].includes(Number(error.status))) {
+      return `Server error (${error.status}): ${message}`
+    }
+
+    return message
+  }
+
+  if (error instanceof Error) {
+    return error.message || defaultMessage
+  }
+
+  return defaultMessage
 }
 
 function MenuManagementContent() {
@@ -444,11 +501,11 @@ function MenuManagementContent() {
           // Subscription check
           try {
             const subRes = await apiFetch<any>("/subscription/me", { token })
-            setSubscription(subRes?.data || subRes)
+            setSubscription(extractSubscription(subRes))
           } catch {}
         }
       } catch (err: any) {
-        toast({ title: "Failed to load restaurants", description: err?.message, variant: "destructive" })
+        toast({ title: "Failed to load restaurants", description: getMenuErrorMessage(err, "Unable to load your restaurants right now."), variant: "destructive" })
       } finally {
         setLoading(false)
       }
@@ -478,7 +535,7 @@ function MenuManagementContent() {
           setCategoryId("")
         }
       } catch (err: any) {
-        toast({ title: "Failed to load categories", description: err?.message, variant: "destructive" })
+        toast({ title: "Failed to load categories", description: getMenuErrorMessage(err, "Unable to load categories for this restaurant."), variant: "destructive" })
       }
     }
     loadCategories()
@@ -545,7 +602,7 @@ function MenuManagementContent() {
       const res = await apiFetch<any>(`/my-restaurants/${restaurantId}/categories`, { token })
       setCategories(Array.isArray(res) ? res : (res?.data || []))
     } catch (err: any) {
-      toast({ title: "Error", description: err?.message, variant: "destructive" })
+      toast({ title: "Category save failed", description: getMenuErrorMessage(err, "Unable to save this category."), variant: "destructive" })
     } finally {
       setSavingCat(false)
     }
@@ -563,7 +620,7 @@ function MenuManagementContent() {
       setCategories(list)
       if (categoryId === activeCategory.id) setCategoryId(list[0]?.id || "")
     } catch (err: any) {
-      toast({ title: "Error", description: err?.message, variant: "destructive" })
+      toast({ title: "Category delete failed", description: getMenuErrorMessage(err, "Unable to delete this category."), variant: "destructive" })
     } finally {
       setSavingCat(false)
     }
@@ -804,7 +861,7 @@ function MenuManagementContent() {
       await refreshItems(restaurantId, targetCategoryId)
       await refreshDiscounts(restaurantId)
     } catch (err: any) {
-      toast({ title: "Error", description: err?.message, variant: "destructive" })
+      toast({ title: activeItem ? "Item update failed" : "Item create failed", description: getMenuErrorMessage(err, activeItem ? "Unable to update this menu item." : "Unable to create this menu item."), variant: "destructive" })
     } finally {
       setUploadStage("idle")
       setSavingItem(false)
@@ -823,7 +880,7 @@ function MenuManagementContent() {
       setDeleteItemOpen(false)
       await refreshItems(restaurantId, categoryId)
     } catch (err: any) {
-      toast({ title: "Error", description: err?.message, variant: "destructive" })
+      toast({ title: "Item delete failed", description: getMenuErrorMessage(err, "Unable to delete this menu item."), variant: "destructive" })
     } finally {
       setSavingItem(false)
     }

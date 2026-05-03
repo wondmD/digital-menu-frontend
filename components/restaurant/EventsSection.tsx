@@ -116,6 +116,7 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
                       src={getImageUrl(event.image_url) || fallbackImage}
                       alt={event.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
@@ -234,6 +235,7 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
                   src={getImageUrl(selectedEvent.image_url) || fallbackImage}
                   alt={selectedEvent.title}
                   fill
+                  sizes="100vw"
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />

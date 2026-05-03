@@ -172,12 +172,25 @@ async function handle(request: Request, context: { params: any }) {
       },
     })
   } catch (error: any) {
+    const msg = String(error?.message || error)
+    const causeCode = error?.cause?.code || error?.code
     console.error("[api/proxy] upstream fetch failed", {
       targetUrl,
       method,
-      error: error?.stack || String(error),
+      code: causeCode,
+      error: error?.stack || msg,
     })
-    return NextResponse.json({ error: "Upstream request failed", detail: String(error?.message || error) }, { status: 500 })
+
+    // Map common network errors to appropriate gateway statuses
+    let statusCode = 502 // Bad Gateway as a default for upstream connectivity issues
+    if (causeCode === "ETIMEDOUT" || msg.includes("ETIMEDOUT") || msg.toLowerCase().includes("timed out")) {
+      statusCode = 504 // Gateway Timeout
+    }
+
+    return NextResponse.json(
+      { error: "Upstream request failed", detail: msg, upstream: targetUrl },
+      { status: statusCode, headers: { "X-Upstream-Url": targetUrl } }
+    )
   }
 }
 

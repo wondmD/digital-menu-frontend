@@ -18,7 +18,7 @@ export function QRPrintCard({ restaurant, qrUrl }: Props) {
         <div className="w-full text-center">
           {logo ? (
             <div className="mx-auto mb-4 h-20 w-20 relative">
-              <Image src={logo} alt={restaurant?.name || "logo"} fill className="object-contain" />
+              <Image src={logo} alt={restaurant?.name || "logo"} fill sizes="80px" className="object-contain" />
             </div>
           ) : (
             <div className="h-20 w-20 mb-4 rounded-lg bg-muted/10 flex items-center justify-center text-sm">Logo</div>

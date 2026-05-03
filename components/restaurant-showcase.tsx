@@ -5,7 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
-import { apiFetch } from "@/lib/api-client"
+import { apiFetch, apiFetchOrNull } from "@/lib/api-client"
 import { fetchPublicRestaurantBySlugOrId } from "@/lib/public-restaurant"
 import { getImageUrl } from "@/lib/utils"
 import { normalizeRestaurant, type ManagedRestaurant } from "@/lib/restaurant-normalizers"
@@ -18,6 +18,7 @@ import { EventsSection } from "@/components/restaurant/EventsSection"
 import { LocationSection } from "@/components/restaurant/LocationSection"
 import { FooterSection } from "@/components/restaurant/FooterSection"
 import { FloatingSocialCTA } from "@/components/restaurant/FloatingSocialCTA"
+import type { RestaurantShowcaseBundle } from "@/lib/public-data.server"
 
 type MenuItem = {
   id: string
@@ -54,6 +55,7 @@ type EventItem = {
 interface RestaurantShowcaseProps {
   hotelSlug: string
   initialData?: any
+  initialBundle?: RestaurantShowcaseBundle
 }
 
 const GEO_TAG_REGEX = /\s*\[geo:([-+]?\d*\.?\d+),\s*([-+]?\d*\.?\d+)\]\s*$/i
@@ -162,14 +164,14 @@ async function fetchRestaurantEvents(restaurantIdentifier: string): Promise<Even
   return []
 }
 
-export default function RestaurantShowcase({ hotelSlug, initialData }: RestaurantShowcaseProps) {
+export default function RestaurantShowcase({ hotelSlug, initialData, initialBundle }: RestaurantShowcaseProps) {
   const { setTheme, resolvedTheme } = useTheme()
   const [restaurant, setRestaurant] = useState<ManagedRestaurant | null>(
-    initialData ? normalizeRestaurant(initialData) : null
+    initialBundle?.restaurant ? normalizeRestaurant(initialBundle.restaurant) : initialData ? normalizeRestaurant(initialData) : null
   )
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
-  const [events, setEvents] = useState<EventItem[]>([])
-  const [loading, setLoading] = useState(!initialData)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(initialBundle?.menuItems || [])
+  const [events, setEvents] = useState<EventItem[]>(initialBundle?.events || [])
+  const [loading, setLoading] = useState(!initialData && !initialBundle)
   const [error, setError] = useState<string | null>(null)
   const [isThemeMounted, setIsThemeMounted] = useState(false)
   const appliedSurfaceRef = useRef<string>("")
@@ -181,14 +183,22 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
   useEffect(() => {
     const loadRestaurant = async () => {
       try {
-        if (!initialData) {
-          setLoading(true)
+        if (initialBundle) {
+          setLoading(false)
+          return
         }
+
+        if (initialData) {
+          setLoading(false)
+          return
+        }
+
+        setLoading(true)
         setError(null)
 
         let data = await fetchPublicRestaurantBySlugOrId(hotelSlug)
         if (!data) {
-          const res = (await apiFetch("/restaurants/" + hotelSlug)) as any
+          const res = await apiFetchOrNull("/restaurants/" + hotelSlug)
           data = res?.data || res
         }
 
@@ -207,25 +217,28 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
     }
 
     loadRestaurant()
-  }, [hotelSlug, initialData])
+  }, [hotelSlug, initialData, initialBundle])
 
   useEffect(() => {
-    if (!restaurant) return
+    if (!restaurant || initialBundle) return
 
     const loadExtras = async () => {
       const restaurantIdentifier = String(restaurant.id || hotelSlug)
 
       try {
-        const categoriesRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/categories")) as any
-        const categories = extractList(categoriesRes)
+        const [categoriesRes, eventsList] = await Promise.all([
+          apiFetch("/restaurants/" + restaurantIdentifier + "/categories"),
+          fetchRestaurantEvents(restaurantIdentifier),
+        ])
 
-        const collected: MenuItem[] = []
-        for (const category of categories.slice(0, 6)) {
-          try {
-            const itemsRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/categories/" + category.id + "/items")) as any
-            const items = extractList(itemsRes)
-            for (const item of items.slice(0, 8)) {
-              collected.push({
+        const categories = extractList(categoriesRes as any)
+
+        const collected = await Promise.all(
+          categories.slice(0, 6).map(async (category: any) => {
+            try {
+              const itemsRes = (await apiFetch("/restaurants/" + restaurantIdentifier + "/categories/" + category.id + "/items")) as any
+              const items = extractList(itemsRes)
+              return items.slice(0, 8).map((item: any) => ({
                 id: String(item.id),
                 name: String(item.name || "Menu Item"),
                 description: item.description || "Chef-crafted with premium ingredients.",
@@ -236,21 +249,17 @@ export default function RestaurantShowcase({ hotelSlug, initialData }: Restauran
                 rating: Number(item.rating || 4.7),
                 prep_time: item.prep_time || "15 min",
                 is_available: item.is_available !== false,
-              })
+              }))
+            } catch {
+              return []
             }
-          } catch {
-            continue
-          }
-        }
-        setMenuItems(collected)
-      } catch {
-        setMenuItems([])
-      }
+          })
+        )
 
-      try {
-        const eventsList = await fetchRestaurantEvents(restaurantIdentifier)
+        setMenuItems(collected.flat())
         setEvents(eventsList)
       } catch {
+        setMenuItems([])
         setEvents([])
       }
     }
