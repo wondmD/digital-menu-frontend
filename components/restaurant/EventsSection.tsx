@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { useState } from "react"
 import { motion } from "framer-motion"
+import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -35,9 +36,11 @@ type EventItem = {
 interface EventsSectionProps {
   events: EventItem[]
   coverImage?: string
+  templateTheme?: any
+  variant?: "restaurant" | "hotel" | "cafe"
 }
 
-export function EventsSection({ events, coverImage }: EventsSectionProps) {
+export function EventsSection({ events, coverImage, templateTheme, variant = "restaurant" }: EventsSectionProps) {
   if (!events || events.length === 0) return null
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null)
   const fallbackImage = coverImage || "/hotel.webp"
@@ -74,7 +77,14 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
   }
 
   return (
-    <section id="events" className="relative py-20 md:py-32 bg-slate-950 text-white">
+    <section id="events" className="relative overflow-hidden bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 py-20 text-white md:py-32">
+      {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
+      {templateTheme ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-85 scale-105">
+          <TemplatePatternBackdrop theme={templateTheme} variant={variant} />
+        </div>
+      ) : null}
+      {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-0 left-10 h-72 w-72 rounded-full bg-primary/20 blur-[140px]" />
         <div className="absolute bottom-0 right-10 h-64 w-64 rounded-full bg-amber-500/15 blur-[120px]" />
@@ -86,20 +96,20 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-16"
+          className="mx-auto mb-16 max-w-4xl text-center"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 text-white text-[10px] font-black uppercase tracking-[0.3em] mb-6 backdrop-blur-sm">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white backdrop-blur-sm">
             Moments & Events
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-serif font-bold mb-6 text-white">
+          <h2 className="text-3xl font-serif font-bold tracking-tight text-white sm:text-4xl md:text-6xl">
             Upcoming Events
           </h2>
-          <p className="text-base sm:text-lg md:text-xl text-white/75 max-w-2xl mx-auto font-serif">
+          <p className="mx-auto mt-5 max-w-2xl font-serif text-base text-white/75 sm:text-lg md:text-xl">
             Join us for special occasions, themed dinners, and memorable experiences
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {events.map((event, index) => (
             <motion.div
               key={event.id || index}
@@ -108,7 +118,7 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: index * 0.1 }}
             >
-                <Card className="group rounded-3xl overflow-hidden border border-slate-200/80 bg-white/92 shadow-lg shadow-black/20 backdrop-blur-xl transition-all duration-500 hover:scale-[1.02] hover:border-amber-400/25 hover:shadow-2xl hover:shadow-black/35">
+                <Card className="group overflow-hidden rounded-4xl border border-white/10 bg-white/6 shadow-lg shadow-black/20 backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:border-amber-400/30 hover:shadow-2xl hover:shadow-black/35">
                 {/* Event Image */}
                 {(getImageUrl(event.image_url) || fallbackImage) ? (
                   <div className="relative h-48 md:h-56 overflow-hidden">
@@ -168,9 +178,12 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
                 )}
 
                 {/* Event Content */}
-                <CardContent className="p-6 space-y-4">
+                <CardContent className="space-y-4 p-6">
                   <div className="space-y-2">
-                    <h3 className="text-xl font-serif font-bold line-clamp-2 text-slate-950 group-hover:text-amber-700 transition-colors">
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950/5 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-600 backdrop-blur-sm">
+                      Featured moment
+                    </div>
+                    <h3 className="line-clamp-2 text-xl font-serif font-bold text-slate-950 transition-colors group-hover:text-amber-300">
                       {event.title}
                     </h3>
                     
@@ -203,7 +216,7 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
 
                   {/* Description */}
                   {event.description && (
-                    <p className="text-slate-700 line-clamp-3 leading-relaxed font-serif">
+                    <p className="line-clamp-3 font-serif leading-relaxed text-slate-700">
                       {event.description}
                     </p>
                   )}
@@ -212,7 +225,7 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
                   <div className="pt-2">
                     <Button
                       variant="outline"
-                      className="w-full rounded-full border-slate-900 bg-slate-950 text-white shadow-lg shadow-black/25 hover:scale-[1.01] hover:bg-slate-800 hover:text-white transition-all duration-300"
+                      className="w-full rounded-full border-white/10 bg-white/10 text-white shadow-lg shadow-black/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white/15 hover:text-white"
                       onClick={() => setSelectedEvent(event)}
                     >
                       View Event Details
@@ -227,7 +240,7 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
       </div>
 
       <Dialog open={Boolean(selectedEvent)} onOpenChange={(open) => !open && setSelectedEvent(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200/80 bg-white p-0 shadow-2xl sm:max-w-3xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-4xl border border-white/10 bg-white p-0 shadow-2xl sm:max-w-3xl">
           {selectedEvent && (
             <div className="grid gap-0 md:grid-cols-[1.05fr_0.95fr]">
               <div className="relative min-h-64 md:min-h-full">
@@ -257,7 +270,7 @@ export function EventsSection({ events, coverImage }: EventsSectionProps) {
 
               <div className="flex flex-col gap-5 p-6 md:p-8">
                 <DialogHeader className="text-left">
-                  <DialogTitle className="font-serif text-3xl font-bold text-slate-950">
+                  <DialogTitle className="font-serif text-3xl font-bold tracking-tight text-slate-950">
                     {selectedEvent.title}
                   </DialogTitle>
                   <DialogDescription className="text-base text-slate-600">

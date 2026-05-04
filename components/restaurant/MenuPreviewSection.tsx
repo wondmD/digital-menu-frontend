@@ -77,7 +77,7 @@ export function MenuPreviewSection({ items, loading, menuLink }: MenuPreviewSect
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-16 text-center"
                   >
-                    <div className="mb-6 inline-flex rounded-full bg-primary/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                    <div className="mb-6 inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary shadow-sm backdrop-blur-sm">
                       Signature Plates
                     </div>
                     <h2 className="mb-6 text-3xl font-serif font-bold sm:text-4xl md:text-6xl">
@@ -109,7 +109,7 @@ export function MenuPreviewSection({ items, loading, menuLink }: MenuPreviewSect
           }
 
           return (
-            <section id="menu-preview" className="relative bg-linear-to-b from-background to-muted/20 py-20 md:py-32">
+            <section id="menu-preview" className="relative overflow-hidden bg-linear-to-b from-background via-muted/10 to-background py-20 md:py-32">
               <div className="pointer-events-none absolute inset-0">
                 <div className="absolute -top-16 right-10 h-64 w-64 rounded-full bg-primary/10 blur-[120px]" />
                 <div className="absolute bottom-0 left-8 h-72 w-72 rounded-full bg-amber-500/10 blur-[140px]" />
@@ -123,7 +123,7 @@ export function MenuPreviewSection({ items, loading, menuLink }: MenuPreviewSect
                   transition={{ duration: 0.8 }}
                   className="mb-16 text-center"
                 >
-                  <div className="mb-6 inline-flex rounded-full bg-primary/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                  <div className="mb-6 inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary shadow-sm backdrop-blur-sm">
                     Fresh Food Gallery
                   </div>
                   <h2 className="mb-6 text-3xl font-serif font-bold sm:text-4xl md:text-6xl">
@@ -157,9 +157,9 @@ export function MenuPreviewSection({ items, loading, menuLink }: MenuPreviewSect
                         viewport={{ once: true }}
                         transition={{ duration: 0.8, delay: index * 0.1 }}
                       >
-                        <Card className="group overflow-hidden rounded-2xl border-0 shadow-lg transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl">
+                        <Card className="group overflow-hidden rounded-[1.75rem] border border-border/60 bg-card/90 shadow-lg backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl">
                           {imageUrl ? (
-                            <div className="relative h-48 overflow-hidden md:h-56">
+                            <div className="relative h-56 overflow-hidden md:h-64">
                               <Image
                                 src={imageUrl}
                                 alt={item.name}
@@ -243,7 +243,7 @@ export function MenuPreviewSection({ items, loading, menuLink }: MenuPreviewSect
                   transition={{ duration: 0.8, delay: 0.4 }}
                   className="text-center"
                 >
-                  <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl border border-border/50 bg-linear-to-r from-primary/15 via-background to-amber-500/10 p-8 shadow-2xl md:p-12">
+                      <div className="relative mx-auto max-w-4xl overflow-hidden rounded-4xl border border-border/50 bg-linear-to-r from-primary/15 via-background to-amber-500/10 p-8 shadow-2xl md:p-12">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(230,57,70,0.12),transparent_45%)]" />
                     <div className="space-y-6">
                       <h3 className="text-2xl font-serif font-bold md:text-3xl">

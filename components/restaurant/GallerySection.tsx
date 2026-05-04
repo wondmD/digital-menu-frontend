@@ -3,9 +3,10 @@
 import { useState } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, ZoomIn, ChevronLeft, ChevronRight, Camera, Share2 } from "lucide-react"
+import { X, ZoomIn, ChevronLeft, ChevronRight, Camera, Share2, ChevronDown } from "lucide-react"
 import { cn, getImageUrl } from "@/lib/utils"
 import { useIsMounted } from "@/hooks/useIsMounted"
+import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 
 type GalleryImage = {
   id: string
@@ -17,9 +18,12 @@ type GalleryImage = {
 interface GallerySectionProps {
   images: GalleryImage[]
   className?: string
+  // Optional template theme to enable decorative backdrops/frames
+  templateTheme?: any
+  variant?: "restaurant" | "hotel" | "cafe"
 }
 
-export function GallerySection({ images, className }: GallerySectionProps) {
+export function GallerySection({ images, className, templateTheme, variant = "restaurant" }: GallerySectionProps) {
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const isMounted = useIsMounted()
@@ -51,7 +55,11 @@ export function GallerySection({ images, className }: GallerySectionProps) {
 
   return (
     <>
-      <section id="gallery" className={cn("py-20 md:py-28 bg-gradient-to-b from-background via-muted/10 to-muted/20", className)}>
+      <section id="gallery" className={cn("relative overflow-hidden py-20 md:py-28 bg-linear-to-b from-background via-muted/10 to-background", className)}>
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute left-[-8%] top-0 h-120 w-120 rounded-full bg-primary/8 blur-3xl" />
+          <div className="absolute right-[-10%] top-40 h-144 w-144 rounded-full bg-amber-500/8 blur-3xl" />
+        </div>
         <div className="container mx-auto px-6">
           {/* Section Header */}
           {isMounted ? (
@@ -59,34 +67,34 @@ export function GallerySection({ images, className }: GallerySectionProps) {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-center mb-16"
+              className="mx-auto mb-16 max-w-4xl text-center"
             >
               <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/20 bg-primary/10 shadow-sm backdrop-blur-sm">
                   <Camera className="h-6 w-6 text-primary" />
                 </div>
                 <p className="text-sm uppercase tracking-[0.6em] text-muted-foreground font-serif">Gallery</p>
               </div>
-              <h2 className="text-4xl md:text-6xl font-serif font-bold text-foreground mb-6">
+              <h2 className="text-4xl font-serif font-bold tracking-tight text-foreground md:text-6xl">
                 Visual Journey
               </h2>
-              <p className="text-muted-foreground mt-4 max-w-3xl mx-auto font-serif text-lg leading-relaxed">
+              <p className="mx-auto mt-5 max-w-3xl font-serif text-lg leading-relaxed text-muted-foreground md:text-xl">
                 Immerse yourself in our world through carefully curated moments. From culinary masterpieces to ambient spaces, 
                 each image tells a story of passion and excellence.
               </p>
             </motion.div>
           ) : (
-            <div className="text-center mb-16">
+            <div className="mx-auto mb-16 max-w-4xl text-center">
               <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/20 bg-primary/10 shadow-sm backdrop-blur-sm">
                   <Camera className="h-6 w-6 text-primary" />
                 </div>
                 <p className="text-sm uppercase tracking-[0.6em] text-muted-foreground font-serif">Gallery</p>
               </div>
-              <h2 className="text-4xl md:text-6xl font-serif font-bold text-foreground mb-6">
+              <h2 className="text-4xl font-serif font-bold tracking-tight text-foreground md:text-6xl">
                 Visual Journey
               </h2>
-              <p className="text-muted-foreground mt-4 max-w-3xl mx-auto font-serif text-lg leading-relaxed">
+              <p className="mx-auto mt-5 max-w-3xl font-serif text-lg leading-relaxed text-muted-foreground md:text-xl">
                 Immerse yourself in our world through carefully curated moments. From culinary masterpieces to ambient spaces, 
                 each image tells a story of passion and excellence.
               </p>
@@ -94,12 +102,32 @@ export function GallerySection({ images, className }: GallerySectionProps) {
           )}
 
           {/* Gallery Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          <div className="mx-auto mb-12 max-w-7xl">
+            {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
+            {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
+
+            <div className="overflow-y-auto max-h-[60vh] md:max-h-[70vh] p-2 no-scrollbar rounded-3xl border-2 border-white/6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
             {images.map((image, index) => (
-              <div key={image.id} className="group relative">
+              <div
+                key={image.id}
+                className={cn(
+                  "group relative",
+                  index === 0 && "lg:col-span-7 lg:row-span-2",
+                  index === 1 && "lg:col-span-5",
+                  index === 2 && "lg:col-span-5",
+                  index === 3 && "lg:col-span-7",
+                  index > 3 && "lg:col-span-4"
+                )}
+              >
                 {/* Main Image Frame */}
-                <div className="relative aspect-[4/3] overflow-hidden rounded-3xl cursor-pointer shadow-2xl hover:shadow-3xl transition-all duration-500"
-                     onClick={() => openLightbox(image, index)}>
+                <div
+                  className={cn(
+                    "relative overflow-hidden rounded-3xl cursor-pointer border border-border/50 bg-card/70 shadow-2xl transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_24px_80px_rgba(0,0,0,0.18)]",
+                    index === 0 ? "aspect-[4/5] lg:min-h-[34rem]" : index === 1 ? "aspect-[4/5] lg:min-h-[34rem]" : "aspect-4/3"
+                  )}
+                  onClick={() => openLightbox(image, index)}
+                >
                   <Image
                     src={getImageUrl(image.url) || "/hotel.webp"}
                     alt={image.alt}
@@ -109,7 +137,7 @@ export function GallerySection({ images, className }: GallerySectionProps) {
                   />
                   
                   {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                   
                   {/* Action Buttons */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
@@ -122,7 +150,7 @@ export function GallerySection({ images, className }: GallerySectionProps) {
 
                   {/* Image Caption */}
                   {image.caption && (
-                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+                    <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-6">
                       <p className="text-white text-lg font-medium">{image.caption}</p>
                     </div>
                   )}
@@ -133,16 +161,25 @@ export function GallerySection({ images, className }: GallerySectionProps) {
                 </div>
 
                 {/* Image Number Badge */}
-                <div className="absolute -top-3 -right-3 w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-lg">
+                <div className="absolute -right-3 -top-3 flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary/80 text-sm font-bold text-white shadow-lg">
                   {index + 1}
                 </div>
               </div>
             ))}
+              </div>
+            </div>
+
+            {/* Scroll hint */}
+            <div className="pointer-events-none absolute left-1/2 bottom-4 -translate-x-1/2 z-20 flex items-center justify-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/6 backdrop-blur-md text-white/90 shadow-lg animate-pulse">
+                <ChevronDown className="h-5 w-5" />
+              </div>
+            </div>
           </div>
 
           {/* Gallery Stats */}
           <div className="text-center">
-            <div className="inline-flex items-center gap-6 bg-card rounded-2xl px-8 py-4 border border-border shadow-sm">
+            <div className="inline-flex items-center gap-6 rounded-full border border-border/60 bg-card/80 px-8 py-4 shadow-sm backdrop-blur-md">
               <div className="flex items-center gap-2">
                 <Camera className="h-5 w-5 text-primary" />
                 <span className="font-semibold">{images.length} Photos</span>
@@ -213,7 +250,7 @@ export function GallerySection({ images, className }: GallerySectionProps) {
               )}
 
               {/* Image Info */}
-              <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-8">
                 <div className="flex items-center justify-between">
                   <div>
                     {selectedImage.caption && (

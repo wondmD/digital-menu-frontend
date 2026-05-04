@@ -294,14 +294,19 @@ export default function RestaurantShowcase({ hotelSlug, initialData, initialBund
       }
     }
 
-    for (const item of menuItems) {
-      if (item.image_url) {
-        images.push({
-          id: "menu-" + item.id,
-          url: item.image_url,
-          alt: item.name,
-          caption: item.name,
-        })
+    // Only include menu item images if the restaurant has no explicit gallery images.
+    // This avoids showing menu item photos inside the venue/gallery section unintentionally.
+    const hasGallery = gallerySource.length > 0 || !!cover
+    if (!hasGallery) {
+      for (const item of menuItems) {
+        if (item.image_url) {
+          images.push({
+            id: "menu-" + item.id,
+            url: item.image_url,
+            alt: item.name,
+            caption: item.name,
+          })
+        }
       }
     }
 
@@ -386,6 +391,22 @@ export default function RestaurantShowcase({ hotelSlug, initialData, initialBund
     } as CSSProperties
   }, [visualTheme])
 
+  const templateTheme = useMemo(() => {
+    return {
+      primaryColor: visualTheme.primary,
+      secondaryColor: visualTheme.secondary,
+      fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+      backgroundColor: visualTheme.surface === "dark" ? "#0C0B0B" : "#F7F4EE",
+      surfaceColor: visualTheme.surface === "dark" ? "rgba(24,20,19,0.9)" : "rgba(255,255,255,0.96)",
+      mutedSurfaceColor: visualTheme.surface === "dark" ? "rgba(34,28,26,0.92)" : "rgba(246,242,234,0.95)",
+      borderColor: visualTheme.primary,
+      textColor: visualTheme.surface === "dark" ? "#F6EFE5" : "#1E1813",
+      mutedTextColor: visualTheme.secondary,
+      accentColor: visualTheme.accent,
+      shadowColor: "rgba(0,0,0,0.18)",
+    }
+  }, [visualTheme])
+
   useEffect(() => {
     if (!visualTheme.surface || !isThemeMounted) return
     const restaurantKey = String(restaurant?.id || hotelSlug)
@@ -417,7 +438,7 @@ export default function RestaurantShowcase({ hotelSlug, initialData, initialBund
           <h1 className="text-3xl md:text-5xl font-serif font-bold">Restaurant not found</h1>
           <p className="text-muted-foreground">{error || "We could not load this restaurant at the moment."}</p>
           <Button asChild className="rounded-xl px-8">
-            <Link href="/">Back to Home</Link>
+            <Link href="/" className="text-foreground">Back to Home</Link>
           </Button>
         </div>
       </div>
@@ -452,12 +473,18 @@ export default function RestaurantShowcase({ hotelSlug, initialData, initialBund
   }
 
   return (
-    <main className="bg-background text-foreground" style={themedStyle}>
+    <main className="relative overflow-hidden bg-background text-foreground" style={themedStyle}>
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-[-10%] top-0 h-168 w-2xl rounded-full bg-[radial-gradient(circle,rgba(230,57,70,0.12),transparent_70%)] blur-3xl" />
+        <div className="absolute right-[-12%] top-96 h-144 w-xl rounded-full bg-[radial-gradient(circle,rgba(42,157,143,0.12),transparent_70%)] blur-3xl" />
+        <div className="absolute bottom-0 left-1/2 h-120 w-120 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(244,162,97,0.12),transparent_70%)] blur-3xl" />
+      </div>
+
       <div className="fixed right-4 top-4 z-50">
         <Button
           variant="outline"
           size="icon"
-          className="h-11 w-11 rounded-full border-border/60 bg-card/80 backdrop-blur"
+          className="h-11 w-11 rounded-full border-border/60 bg-card/80 shadow-lg backdrop-blur-xl"
           onClick={() => setTheme((resolvedTheme || "light") === "dark" ? "light" : "dark")}
           aria-label="Toggle light and dark mode"
         >
@@ -474,17 +501,28 @@ export default function RestaurantShowcase({ hotelSlug, initialData, initialBund
         mapLink={mapLink}
       />
 
-      <StorySection hotel={heroRestaurant as any} coverImage={getImageUrl(restaurant.cover_image_url || restaurant.cover_url) || undefined} />
-      {galleryImages.length > 0 ? <GallerySection images={galleryImages} /> : null}
+      <div className="px-4 md:px-6">
+        <StorySection
+          hotel={heroRestaurant as any}
+          coverImage={getImageUrl(restaurant.cover_image_url || restaurant.cover_url) || undefined}
+          templateTheme={templateTheme}
+          variant="restaurant"
+        />
+      </div>
+      {galleryImages.length > 0 ? (
+        <GallerySection images={galleryImages} templateTheme={templateTheme} variant="restaurant" />
+      ) : null}
       {testimonialItems.length > 0 ? <TestimonialsSection testimonials={testimonialItems as any} /> : null}
       {eventCards.length > 0 ? (
         <EventsSection
           events={eventCards as any}
           coverImage={getImageUrl(restaurant.cover_image_url || restaurant.cover_url) || undefined}
+          templateTheme={templateTheme}
+          variant="restaurant"
         />
       ) : null}
-      <LocationSection hotel={heroRestaurant as any} mapSrc={mapSrc} mapLink={mapLink} />
-      <FooterSection hotel={heroRestaurant as any} />
+      <LocationSection hotel={heroRestaurant as any} mapSrc={mapSrc} mapLink={mapLink} templateTheme={templateTheme} variant="restaurant" />
+      <FooterSection hotel={heroRestaurant as any} templateTheme={templateTheme} variant="restaurant" />
       <FloatingSocialCTA hotel={heroRestaurant as any} />
     </main>
   )

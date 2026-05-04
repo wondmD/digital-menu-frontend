@@ -22,6 +22,8 @@ type Restaurant = {
   cover_url?: string
   cuisine_type?: string
   opening_hours?: string
+  rating?: number
+  review_count?: number
   instagram_url?: string
   facebook_url?: string
   twitter_url?: string
@@ -55,9 +57,10 @@ export function HeroSection({
     hotel.telegram_url ||
     hotel.website_url
   )
+  
 
   return (
-    <section className="relative flex min-h-screen w-full items-center overflow-hidden">
+    <section className="relative isolate flex min-h-screen w-full items-center overflow-hidden pt-24 md:pt-28">
       <div className="absolute inset-0">
         {heroImage ? (
           <Image
@@ -71,8 +74,8 @@ export function HeroSection({
         ) : (
           <div className="h-full w-full bg-linear-to-br from-neutral-900 via-neutral-800 to-neutral-900" />
         )}
-        <div className="absolute inset-0 bg-linear-to-r from-black/70 via-black/50 to-black/70" />
-        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-linear-to-r from-black/75 via-black/45 to-black/70" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/85 via-transparent to-black/30" />
       </div>
 
       <div className="absolute inset-0 overflow-hidden">
@@ -88,14 +91,24 @@ export function HeroSection({
         />
       </div>
 
-      <div className="relative z-10 container mx-auto px-6 py-20 md:py-32">
-        <div className="grid min-h-[80vh] items-center gap-10 lg:grid-cols-2 lg:gap-12">
+      <div className="relative z-10 container mx-auto px-4 py-16 sm:px-6 md:py-24">
+        <div className="grid min-h-[78vh] items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
             className="space-y-8 text-center lg:text-left"
           >
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.32em] text-white/85 backdrop-blur-md"
+            >
+              <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_20px_rgba(230,57,70,0.7)]" />
+              Crafted digital dining
+            </motion.div>
+
             {hotel.cuisine_type && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -103,7 +116,7 @@ export function HeroSection({
                 transition={{ duration: 0.8, delay: 0.2 }}
                 className="inline-flex"
               >
-                <Badge className="rounded-full border-0 bg-linear-to-r from-amber-500 to-orange-500 px-6 py-2 text-sm font-semibold text-white">
+                <Badge className="rounded-full border border-white/15 bg-white/10 px-6 py-2 text-sm font-semibold text-white/90 shadow-sm backdrop-blur-md">
                   <Utensils className="mr-2 h-4 w-4" />
                   {hotel.cuisine_type}
                 </Badge>
@@ -115,7 +128,7 @@ export function HeroSection({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
-              <h1 className="mb-4 text-4xl font-serif font-bold leading-tight text-white sm:text-5xl md:text-7xl">
+              <h1 className="max-w-3xl text-5xl font-serif font-bold leading-[0.92] tracking-tight text-white sm:text-6xl md:text-8xl">
                 {hotel.name}
               </h1>
             </motion.div>
@@ -125,16 +138,13 @@ export function HeroSection({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
-                className="text-lg leading-relaxed text-white/90 sm:text-xl md:text-2xl font-serif"
+                className="max-w-2xl text-lg leading-relaxed text-white/85 sm:text-xl md:text-2xl font-serif"
               >
                 {hotel.tagline || hotel.description}
               </motion.p>
             )}
 
             <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-start">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/90 backdrop-blur-sm">
-                Scan Now
-              </div>
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-white/90 backdrop-blur-sm">
                 Fresh Food Photos
               </div>
@@ -188,7 +198,7 @@ export function HeroSection({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.7 }}
-              className="flex flex-wrap items-center justify-center gap-6 text-white/90 lg:justify-start"
+              className="flex flex-wrap items-center justify-center gap-4 text-white/90 lg:justify-start"
             >
               {hotel.address && (
                 <div className="flex items-center gap-2">
@@ -209,6 +219,18 @@ export function HeroSection({
                 </div>
               )}
             </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="w-full max-w-md"
+            >
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 text-left backdrop-blur-md">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Hours</p>
+                <p className="mt-2 line-clamp-2 text-sm font-medium text-white/90">{hotel.opening_hours || "Open daily"}</p>
+              </div>
+            </motion.div>
           </motion.div>
 
           <motion.div
@@ -222,28 +244,46 @@ export function HeroSection({
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.5 }}
-                className="relative"
+                className="relative w-full max-w-120"
               >
-                <div className="relative h-40 w-40 overflow-hidden rounded-3xl border border-white/30 bg-white/10 p-4 shadow-2xl shadow-black/30 backdrop-blur-md sm:h-48 sm:w-48 md:h-64 md:w-64">
-                  <Image
-                    src={logo}
-                    alt={hotel.name}
-                    fill
-                    className="object-contain p-2 drop-shadow-2xl"
-                    sizes="(max-width: 768px) 160px, 256px"
-                  />
-                </div>
-                <div className="pointer-events-none absolute inset-0 rounded-4xl border border-white/10" />
-                {(hotel.tagline || hotel.description) && (
-                  <div className="mt-4 text-center">
-                    {hotel.tagline && (
-                      <p className="mx-auto max-w-[14rem] text-sm italic text-white/90">“{hotel.tagline}”</p>
-                    )}
-                    {hotel.description && (
-                      <p className="mt-2 text-xs uppercase tracking-wider text-white/70">{hotel.description}</p>
-                    )}
+                <div className="relative overflow-hidden rounded-4xl border border-white/15 bg-linear-to-br from-white/14 via-white/8 to-white/4 p-5 shadow-[0_30px_100px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:p-6">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_35%)]" />
+                  <div className="absolute -right-10 top-8 h-32 w-32 rounded-full bg-primary/20 blur-3xl" />
+                  <div className="relative grid gap-5 sm:grid-cols-[0.95fr_1.05fr] sm:items-center">
+                    <div className="flex items-center justify-center">
+                      <div className="relative aspect-square w-full max-w-44 overflow-hidden rounded-3xl border border-white/20 bg-white/15 p-4 shadow-2xl shadow-black/20 sm:max-w-none">
+                        <Image
+                          src={logo}
+                          alt={hotel.name}
+                          fill
+                          className="object-contain p-4 drop-shadow-2xl"
+                          sizes="(max-width: 768px) 176px, 192px"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 text-center sm:text-left">
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.35em] text-white/60">Signature House</p>
+                        <h2 className="text-2xl font-serif font-bold leading-tight text-white sm:text-3xl">
+                          {hotel.name}
+                        </h2>
+                      </div>
+
+                      <div className="grid gap-2 text-sm text-white/80">
+                        {/* cuisine_type removed from logo panel (not provided by backend) */}
+                        {hotel.opening_hours && (
+                          <p className="leading-relaxed text-white/85">Open hours: {hotel.opening_hours}</p>
+                        )}
+                        {hotel.address && (
+                          <p className="leading-relaxed text-white/70">{hotel.address}</p>
+                        )}
+                      </div>
+
+                      {/* Ratings removed: not provided by backend */}
+                    </div>
                   </div>
-                )}
+                </div>
               </motion.div>
             )}
 

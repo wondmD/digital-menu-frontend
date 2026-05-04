@@ -118,7 +118,7 @@ export default function LoginPage() {
         className="w-full max-w-xl relative z-10"
       >
         <div className="mb-8 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-bold text-xs uppercase tracking-[0.2em] group">
+          <Link href="/" className="inline-flex items-center gap-2 text-foreground hover:text-primary transition-colors font-bold text-xs uppercase tracking-[0.2em] group">
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             Back to Home
           </Link>
