@@ -116,7 +116,7 @@ export function SocialLinks({
         const Icon = link.icon
         const isActive = Boolean(link.href)
         const sharedClass = cn(
-          "rounded-2xl border flex items-center justify-center transition-all duration-300",
+          "flex items-center justify-center rounded-2xl border transition-all duration-300",
           sizeClass,
           isActive ? bgClass : disabledClass,
           isActive ? iconClass : "cursor-not-allowed"
@@ -153,7 +153,7 @@ export function SocialLinks({
             whileTap={{ scale: 0.96 }}
             aria-label={link.label}
           >
-            <Icon className={iconSizeClass} />
+            <Icon className={cn(iconSizeClass, "transition-transform duration-300 group-hover:scale-110")} />
           </motion.a>
         )
       })}

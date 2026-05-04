@@ -34,7 +34,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
   }
 
   return (
-    <section id="testimonials" className="py-20 md:py-32 bg-background">
+    <section id="testimonials" className="py-20 md:py-32 bg-linear-to-b from-background via-muted/10 to-background">
       <div className="container mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -51,7 +51,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {testimonials.map((testimonial, index) => (
             <motion.div
               key={index}
@@ -60,7 +60,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: index * 0.1 }}
             >
-              <Card className="group rounded-2xl p-6 sm:p-8 border-0 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] bg-gradient-to-b from-card to-card/50">
+              <Card className="group rounded-4xl border border-border/50 bg-card/80 p-6 shadow-lg backdrop-blur-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl sm:p-8">
                 <CardContent className="p-0 space-y-6">
                   {/* Quote Icon */}
                   <div className="flex items-start justify-between">
@@ -84,7 +84,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
                   </blockquote>
 
                   {/* Author Info */}
-                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                  <div className="flex items-center justify-between border-t border-border/60 pt-4">
                     <div className="space-y-1">
                       <p className="font-semibold text-foreground">{testimonial.name}</p>
                       {testimonial.date && (
@@ -98,7 +98,7 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
                     </div>
                     
                     {/* Avatar placeholder */}
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/20 bg-primary/10 shadow-sm">
                       <span className="text-sm font-semibold text-primary">
                         {testimonial.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                       </span>

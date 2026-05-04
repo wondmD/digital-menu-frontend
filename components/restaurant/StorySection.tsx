@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { motion } from "framer-motion"
+import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { getImageUrl } from "@/lib/utils"
@@ -20,9 +21,11 @@ type Restaurant = {
 interface StorySectionProps {
   hotel: Restaurant
   coverImage?: string
+  templateTheme?: any
+  variant?: "restaurant" | "hotel" | "cafe"
 }
 
-export function StorySection({ hotel, coverImage }: StorySectionProps) {
+export function StorySection({ hotel, coverImage, templateTheme, variant = "restaurant" }: StorySectionProps) {
   if (!hotel.history && !hotel.description) return null
 
   const storyImage = coverImage || getImageUrl(
@@ -33,13 +36,20 @@ export function StorySection({ hotel, coverImage }: StorySectionProps) {
   )
 
   return (
-    <section id="story" className="relative py-20 md:py-32 bg-gradient-to-b from-background to-muted/20">
+    <section id="story" className="relative bg-linear-to-b from-background via-muted/5 to-background py-20 md:py-32">
+      {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
+      {templateTheme ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-80 scale-105">
+          <TemplatePatternBackdrop theme={templateTheme} variant={variant} />
+        </div>
+      ) : null}
+      {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-20 left-8 h-64 w-64 rounded-full bg-primary/10 blur-[120px]" />
         <div className="absolute bottom-0 right-6 h-72 w-72 rounded-full bg-rose-500/10 blur-[140px]" />
       </div>
       <div className="container mx-auto px-6">
-        <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-16 items-center">
+        <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
           {/* Content */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -50,10 +60,10 @@ export function StorySection({ hotel, coverImage }: StorySectionProps) {
           >
             {/* Section Header */}
             <div className="space-y-4">
-              <Badge variant="outline" className="rounded-full px-4 py-2 text-xs uppercase tracking-[0.3em]">
+              <Badge variant="outline" className="rounded-full border-border/60 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.3em] backdrop-blur-md">
                 Our Story
               </Badge>
-              <h2 className="text-3xl sm:text-4xl md:text-6xl font-serif font-bold leading-tight">
+              <h2 className="max-w-xl text-3xl font-serif font-bold leading-tight sm:text-4xl md:text-6xl">
                 Our Story
                 {hotel.established_year ? (
                   <>
@@ -92,7 +102,7 @@ export function StorySection({ hotel, coverImage }: StorySectionProps) {
                     <h3 className="text-sm uppercase tracking-[0.3em] text-muted-foreground font-semibold">
                       Cuisine
                     </h3>
-                    <p className="text-xl font-semibold">
+                    <p className="text-xl font-semibold text-foreground">
                       {hotel.cuisine_type || "Seasonal Contemporary"}
                     </p>
                   </div>
@@ -105,7 +115,7 @@ export function StorySection({ hotel, coverImage }: StorySectionProps) {
                     <h3 className="text-sm uppercase tracking-[0.3em] text-muted-foreground font-semibold">
                       Hours
                     </h3>
-                    <p className="text-xl font-semibold">
+                    <p className="text-xl font-semibold text-foreground">
                       {hotel.opening_hours || "Not specified"}
                     </p>
                   </div>
@@ -124,7 +134,7 @@ export function StorySection({ hotel, coverImage }: StorySectionProps) {
             className="relative"
           >
             {storyImage ? (
-              <div className="relative h-[600px] rounded-3xl overflow-hidden shadow-2xl">
+              <div className="relative h-120 overflow-hidden rounded-4xl border border-border/50 shadow-2xl md:h-150">
                 <Image
                   src={storyImage}
                   alt={`${hotel.name} story`}
@@ -133,7 +143,7 @@ export function StorySection({ hotel, coverImage }: StorySectionProps) {
                   className="object-cover"
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
               </div>
             ) : null}
           </motion.div>

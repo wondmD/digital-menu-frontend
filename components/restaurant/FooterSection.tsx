@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 import { MapPin, Phone, Mail, Clock } from "lucide-react"
 import { SocialLinks } from "@/components/restaurant/SocialLinks"
 
@@ -22,15 +23,24 @@ type Restaurant = {
 
 interface FooterSectionProps {
   hotel: Restaurant
+  templateTheme?: any
+  variant?: "restaurant" | "hotel" | "cafe"
 }
 
-export function FooterSection({ hotel }: FooterSectionProps) {
+export function FooterSection({ hotel, templateTheme, variant = "restaurant" }: FooterSectionProps) {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-gradient-to-b from-muted/30 to-background border-t border-border">
+    <footer className="relative mt-8 rounded-t-4xl border-t border-border/60 bg-linear-to-b from-muted/30 to-background">
+      {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
+      {templateTheme ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-80 scale-102">
+          <TemplatePatternBackdrop theme={templateTheme} variant={variant} />
+        </div>
+      ) : null}
+      {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
       <div className="container mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        <div className="mb-12 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
           {/* Restaurant Info */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -40,7 +50,7 @@ export function FooterSection({ hotel }: FooterSectionProps) {
             className="space-y-6 lg:col-span-2"
           >
             <div className="space-y-4">
-              <h3 className="text-2xl font-bold">{hotel.name}</h3>
+              <h3 className="text-2xl font-bold text-foreground">{hotel.name}</h3>
               {hotel.description ? (
                 <p className="text-muted-foreground leading-relaxed max-w-md">{hotel.description}</p>
               ) : null}
@@ -69,7 +79,7 @@ export function FooterSection({ hotel }: FooterSectionProps) {
             <div className="space-y-4">
               {hotel.address && (
                 <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                   <span className="text-sm text-muted-foreground leading-relaxed">
                     {hotel.address}
                   </span>
@@ -78,7 +88,7 @@ export function FooterSection({ hotel }: FooterSectionProps) {
               
               {hotel.phone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-primary flex-shrink-0" />
+                  <Phone className="h-5 w-5 shrink-0 text-primary" />
                   <Link 
                     href={`tel:${hotel.phone}`} 
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -90,7 +100,7 @@ export function FooterSection({ hotel }: FooterSectionProps) {
               
               {hotel.email && (
                 <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-primary flex-shrink-0" />
+                  <Mail className="h-5 w-5 shrink-0 text-primary" />
                   <Link 
                     href={`mailto:${hotel.email}`} 
                     className="text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -134,9 +144,9 @@ export function FooterSection({ hotel }: FooterSectionProps) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="pt-8 border-t border-border"
+          className="border-t border-border/60 pt-8"
         >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>© {currentYear} {hotel.name}. All rights reserved.</span>
             </div>

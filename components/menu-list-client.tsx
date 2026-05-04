@@ -516,7 +516,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
     <div className="relative">
       <div className="fixed top-4 left-4 z-50">
         <Button asChild variant="secondary" className="h-11 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-md shadow-lg">
-          <Link href={`/${hotelSlug}`} className="inline-flex items-center gap-2">
+          <Link href={`/${hotelSlug}`} className="inline-flex items-center gap-2 text-foreground">
             <ArrowLeft className="h-4 w-4" />
             <span className="text-xs font-semibold uppercase tracking-[0.2em]">Back to website</span>
           </Link>
@@ -541,19 +541,19 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
         }
       }}>
         <DrawerContent
-          className="max-h-[96vh] md:max-h-[92vh] md:w-[94%] md:max-w-6xl md:mx-auto md:mb-6 rounded-t-[34px] md:rounded-[36px] border border-border/70 p-0 overflow-hidden shadow-2xl backdrop-blur-xl"
+            className="h-dvh max-h-dvh md:h-[92dvh] md:max-h-[92dvh] md:w-[94%] md:max-w-6xl md:mx-auto md:mb-6 rounded-none md:rounded-[36px] border border-border/70 p-0 overflow-hidden shadow-2xl backdrop-blur-xl"
           style={{ backgroundColor: menuTheme.surfaceColor, borderColor: menuTheme.borderColor }}
         >
           <div className="absolute top-4 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-muted rounded-full z-50 md:hidden" />
           {selectedItem && (
-            <div className="relative flex h-full flex-col md:flex-row">
+            <div className="relative flex h-full min-h-0 flex-col md:flex-row">
               <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
                 <div className="absolute -left-20 top-0 h-48 w-48 rounded-full bg-[radial-gradient(circle,rgba(216,194,164,0.16),transparent_70%)] blur-3xl" />
                 <div className="absolute -right-16 top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(138,90,60,0.12),transparent_70%)] blur-3xl" />
               </div>
               {/* Image Gallery Section */}
-              <div className="relative z-10 flex flex-col md:flex-[1.05] overflow-hidden border-b md:border-b-0 md:border-r" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
-                <div className="relative aspect-square md:aspect-auto md:flex-1 w-full overflow-hidden">
+              <div className="relative z-10 flex shrink-0 flex-col md:flex-[1.05] overflow-hidden border-b md:border-b-0 md:border-r" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
+                <div className="relative aspect-4/3 sm:aspect-square md:aspect-auto md:flex-1 w-full overflow-hidden">
                   {(() => {
                     const images = getImageUrls(selectedItem.image_urls || selectedItem.images || selectedItem.image || selectedItem.image_url);
                     const validImages = images.length > 0 ? images : ["/placeholder.svg"];
@@ -628,7 +628,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
               </div>
 
               {/* Detail Content Section */}
-              <div className="relative z-10 flex-1 md:flex-[1.2] overflow-y-auto">
+              <div className="relative z-10 min-h-0 flex-1 md:flex-[1.2] overflow-y-auto">
                 <div className="hidden md:block absolute top-8 right-8 z-30">
                   <DrawerClose asChild>
                     <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground">
@@ -728,42 +728,27 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 md:gap-5">
-                              <div className="flex flex-col gap-3 rounded-4xl border p-5 md:p-7 transition-all hover:bg-secondary/10" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
-                                <div className="h-11 w-11 rounded-2xl flex items-center justify-center text-orange-600 dark:text-orange-400" style={{ backgroundColor: "rgba(249, 115, 22, 0.12)" }}>
-                                  <Flame className="h-5 w-5" />
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Calories</p>
-                                  <p className="text-base font-bold" style={{ color: menuTheme.textColor }}>{itemDetails.calories || "Not listed"}</p>
-                                </div>
-                              </div>
-                              <div className="flex flex-col gap-3 rounded-4xl border p-5 md:p-7 transition-all hover:bg-secondary/10" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
-                                <div className="h-11 w-11 rounded-2xl flex items-center justify-center text-sky-600 dark:text-sky-400" style={{ backgroundColor: "rgba(14, 165, 233, 0.12)" }}>
-                                  <Clock className="h-5 w-5" />
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Spice level</p>
-                                  <p className="text-base font-bold" style={{ color: menuTheme.textColor }}>{itemDetails.spiceLevel !== null ? `${itemDetails.spiceLevel}/5` : "Not listed"}</p>
-                                </div>
-                              </div>
-                              <div className="flex flex-col gap-3 rounded-4xl border p-5 md:p-7 transition-all hover:bg-secondary/10" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
-                                <div className="h-11 w-11 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400" style={{ backgroundColor: "rgba(16, 185, 129, 0.12)" }}>
-                                  <Sparkles className="h-5 w-5" />
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Prep time</p>
-                                  <p className="text-base font-bold" style={{ color: menuTheme.textColor }}>{itemDetails.prepTime || "Not listed"}</p>
-                                </div>
-                              </div>
-                              <div className="flex flex-col gap-3 rounded-4xl border p-5 md:p-7 transition-all hover:bg-secondary/10" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
-                                <div className="h-11 w-11 rounded-2xl flex items-center justify-center text-violet-600 dark:text-violet-400" style={{ backgroundColor: "rgba(139, 92, 246, 0.12)" }}>
-                                  <Star className="h-5 w-5" />
-                                </div>
-                                <div className="space-y-0.5">
-                                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Service time</p>
-                                  <p className="text-base font-bold" style={{ color: menuTheme.textColor }}>{itemDetails.serviceTime || "Not listed"}</p>
-                                </div>
+                            <div className="rounded-2xl border px-4 py-3 md:px-5 md:py-4" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
+                              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm md:text-[15px]">
+                                <span className="inline-flex items-center gap-1.5" style={{ color: menuTheme.mutedTextColor }}>
+                                  <span className="text-[10px] uppercase tracking-[0.18em] font-black text-muted-foreground">Calories</span>
+                                  <span className="font-semibold" style={{ color: menuTheme.textColor }}>{itemDetails.calories || "Not listed"}</span>
+                                </span>
+                                <span className="hidden md:inline h-4 w-px" style={{ backgroundColor: menuTheme.borderColor }} />
+                                <span className="inline-flex items-center gap-1.5" style={{ color: menuTheme.mutedTextColor }}>
+                                  <span className="text-[10px] uppercase tracking-[0.18em] font-black text-muted-foreground">Spice</span>
+                                  <span className="font-semibold" style={{ color: menuTheme.textColor }}>{itemDetails.spiceLevel !== null ? `${itemDetails.spiceLevel}/5` : "Not listed"}</span>
+                                </span>
+                                <span className="hidden md:inline h-4 w-px" style={{ backgroundColor: menuTheme.borderColor }} />
+                                <span className="inline-flex items-center gap-1.5" style={{ color: menuTheme.mutedTextColor }}>
+                                  <span className="text-[10px] uppercase tracking-[0.18em] font-black text-muted-foreground">Prep</span>
+                                  <span className="font-semibold" style={{ color: menuTheme.textColor }}>{itemDetails.prepTime || "Not listed"}</span>
+                                </span>
+                                <span className="hidden md:inline h-4 w-px" style={{ backgroundColor: menuTheme.borderColor }} />
+                                <span className="inline-flex items-center gap-1.5" style={{ color: menuTheme.mutedTextColor }}>
+                                  <span className="text-[10px] uppercase tracking-[0.18em] font-black text-muted-foreground">Service</span>
+                                  <span className="font-semibold" style={{ color: menuTheme.textColor }}>{itemDetails.serviceTime || "Not listed"}</span>
+                                </span>
                               </div>
                             </div>
 

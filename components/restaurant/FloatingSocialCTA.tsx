@@ -32,7 +32,7 @@ export function FloatingSocialCTA({ hotel }: FloatingSocialCTAProps) {
   if (!hasSocialLinks) return null
 
   return (
-    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
+    <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
       <AnimatePresence>
         {open && (
           <motion.div
@@ -40,7 +40,7 @@ export function FloatingSocialCTA({ hotel }: FloatingSocialCTAProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ duration: 0.2 }}
-            className="mb-4 max-w-[90vw] rounded-3xl border border-border/60 bg-card/90 p-4 shadow-2xl backdrop-blur-xl"
+            className="mb-4 max-w-[90vw] rounded-4xl border border-border/60 bg-card/90 p-4 shadow-2xl backdrop-blur-xl"
           >
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Connect</p>
@@ -61,7 +61,7 @@ export function FloatingSocialCTA({ hotel }: FloatingSocialCTAProps) {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 flex items-center justify-center hover:scale-105 transition-transform"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 transition-transform hover:scale-105 sm:h-14 sm:w-14"
         aria-label={open ? "Hide social links" : "Show social links"}
       >
         <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />

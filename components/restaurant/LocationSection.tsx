@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Phone, ExternalLink, MessageCircle } from "lucide-react"
@@ -19,9 +20,11 @@ interface LocationSectionProps {
   hotel: Restaurant
   mapSrc?: string
   mapLink?: string
+  templateTheme?: any
+  variant?: "restaurant" | "hotel" | "cafe"
 }
 
-export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps) {
+export function LocationSection({ hotel, mapSrc, mapLink, templateTheme, variant = "restaurant" }: LocationSectionProps) {
   const isMounted = useIsMounted()
   const hasLocation = hotel.address || mapSrc
 
@@ -48,7 +51,14 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
   }
 
   return (
-    <section id="location" className="py-20 md:py-32 bg-background">
+    <section id="location" className="relative py-20 md:py-32 bg-linear-to-b from-background via-muted/10 to-background">
+      {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
+      {templateTheme ? (
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-80 scale-102">
+          <TemplatePatternBackdrop theme={templateTheme} variant={variant} />
+        </div>
+      ) : null}
+      {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
       <div className="container mx-auto px-6">
         {isMounted ? (
           <motion.div
@@ -56,7 +66,7 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="text-center mb-16"
+            className="mb-16 text-center"
           >
             <h2 className="text-3xl sm:text-4xl md:text-6xl font-serif font-bold mb-6">
               Find Us
@@ -76,7 +86,7 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
           </div>
         )}
 
-        <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-12 items-start">
+        <div className="grid items-start gap-12 lg:grid-cols-[1.2fr_0.8fr]">
           {/* Map */}
           {isMounted ? (
             <motion.div
@@ -84,7 +94,7 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative h-[320px] sm:h-[420px] lg:h-[600px] rounded-3xl overflow-hidden shadow-2xl"
+              className="relative h-80 overflow-hidden rounded-3xl border border-border/50 shadow-2xl sm:h-105 lg:h-150"
             >
               {mapSrc ? (
                 <iframe
@@ -105,7 +115,7 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
               )}
             </motion.div>
           ) : (
-            <div className="relative h-[320px] sm:h-[420px] lg:h-[600px] rounded-3xl overflow-hidden shadow-2xl">
+            <div className="relative h-80 overflow-hidden rounded-3xl shadow-2xl sm:h-105 lg:h-150">
               {mapSrc ? (
                 <iframe
                   src={mapSrc}
@@ -137,11 +147,11 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
             >
             {/* Address Card */}
             {hotel.address && (
-              <Card className="rounded-2xl border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Card className="rounded-3xl border border-border/60 bg-card/80 shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
                         <MapPin className="h-6 w-6 text-primary" />
                       </div>
                       <div className="space-y-3">
@@ -169,11 +179,11 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
             {/* Contact Cards */}
             <div className="grid gap-6">
               {hotel.phone && (
-                <Card className="rounded-2xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+                <Card className="rounded-3xl border border-border/60 bg-card/80 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-green-500/20 bg-green-500/10">
                           <Phone className="h-6 w-6 text-green-600 dark:text-green-400" />
                         </div>
                         <div>
@@ -195,11 +205,11 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
               )}
 
               {(hotel.whatsapp || hotel.phone) && (
-                <Card className="rounded-2xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+                <Card className="rounded-3xl border border-border/60 bg-card/80 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-green-500/20 bg-green-500/10">
                           <MessageCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
                         </div>
                         <div>
@@ -223,10 +233,10 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
               )}
 
               {hotel.email && (
-                <Card className="rounded-2xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+                <Card className="rounded-3xl border border-border/60 bg-card/80 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10">
                         <MessageCircle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div>
@@ -240,7 +250,7 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
             </div>
 
             {/* Operating Hours */}
-            <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-primary/5 to-primary/10">
+            <Card className="rounded-3xl border border-primary/15 bg-linear-to-br from-primary/5 to-primary/10 shadow-lg backdrop-blur-xl">
               <CardContent className="p-8">
                 <div className="space-y-4">
                   <h3 className="text-xl font-semibold">Operating Hours</h3>
@@ -264,7 +274,7 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
                         <MapPin className="h-6 w-6 text-primary" />
                       </div>
                       <div className="space-y-3">
@@ -293,7 +303,7 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
                         <Phone className="h-6 w-6 text-primary" />
                       </div>
                       <div className="space-y-3">
@@ -322,7 +332,7 @@ export function LocationSection({ hotel, mapSrc, mapLink }: LocationSectionProps
                 <CardContent className="p-8">
                   <div className="space-y-6">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100">
                         <MessageCircle className="h-6 w-6 text-green-600" />
                       </div>
                       <div className="space-y-3">
