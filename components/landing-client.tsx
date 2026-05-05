@@ -24,7 +24,7 @@ import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSp
 import { cn, getImageUrl } from "@/lib/utils"
 import { Logo } from "@/components/logo"
 
-const MotionLink = motion(Link)
+const MotionLink = motion.create(Link)
 
 type Restaurant = {
   id: string
@@ -140,7 +140,7 @@ function RestaurantCard({
       viewport={{ once: true }}
       className="group"
     >
-      <Link href={menuHref} className="block h-full">
+      <Link href={menuHref} className="block h-full" prefetch={false}>
         <article
           className={cn(
             "relative h-full flex flex-col bg-card/40 border border-border group-hover:border-primary/40 shadow-xl transition-all duration-500 overflow-hidden backdrop-blur-sm",
@@ -535,7 +535,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
 
                 <div className="relative">
                     {loading ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                             {[1, 2, 3, 4].map(i => (
                                 <div key={i} className="h-75 rounded-4xl bg-card/40 border border-white/5 animate-pulse" />
                             ))}
@@ -545,7 +545,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                           {visibleRestaurants.length > 0 && (
                             <div className="space-y-6">
                               <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Restaurant Matches</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                                 {visibleRestaurants.slice(0, 8).map((restaurant, i) => (
                                   <RestaurantCard
                                     key={restaurant.id}
@@ -567,7 +567,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                         <div className="space-y-12">
                           <div className="space-y-6">
                             <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Restaurants</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                               {visibleRestaurants.slice(0, 8).map((restaurant, i) => (
                                 <RestaurantCard
                                   key={restaurant.id}
@@ -752,12 +752,12 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                   <Button asChild className="sm:flex-1 rounded-xl">
-                    <Link href={`/${selectedDish.restaurant_slug}/list`}>
+                    <Link href={`/${selectedDish.restaurant_slug}/list`} prefetch={false}>
                       Go to Menu
                     </Link>
                   </Button>
                   <Button asChild variant="outline" className="sm:flex-1 rounded-xl">
-                    <Link href={`/${selectedDish.restaurant_slug}`}>
+                    <Link href={`/${selectedDish.restaurant_slug}`} prefetch={false}>
                       Restaurant Page
                     </Link>
                   </Button>

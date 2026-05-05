@@ -34,7 +34,12 @@ export function TestimonialsSection({ testimonials }: TestimonialsSectionProps) 
   }
 
   return (
-    <section id="testimonials" className="py-20 md:py-32 bg-linear-to-b from-background via-muted/10 to-background">
+    <section id="testimonials" className="relative overflow-hidden py-20 md:py-32 bg-linear-to-b from-background via-muted/10 to-background">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-20 top-10 h-96 w-96 rounded-full bg-white/35 blur-3xl dark:bg-white/5" />
+        <div className="absolute -right-20 bottom-0 h-[28rem] w-[28rem] rounded-full bg-slate-300/25 blur-3xl dark:bg-slate-500/10" />
+        <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_1px_1px,rgba(100,116,139,0.18)_1px,transparent_0)] [background-size:24px_24px] dark:opacity-20" />
+      </div>
       <div className="container mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

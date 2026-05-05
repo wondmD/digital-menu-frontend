@@ -2,8 +2,9 @@
 
 import { useMemo } from "react"
 import { motion } from "framer-motion"
-import { Search, Clock3 } from "lucide-react"
+import { Search, Clock3, MoonStar, Sun } from "lucide-react"
 import Image from "next/image"
+import { useTheme } from "next-themes"
 import { Input } from "@/components/ui/input"
 import { getImageUrl } from "@/lib/utils"
 import { TemplateProps } from "./types"
@@ -31,7 +32,9 @@ export default function Template3({
   itemsLoading,
   theme,
 }: TemplateProps) {
-  const resolvedTheme = resolveTemplateTheme("hotel", theme)
+  const { resolvedTheme: appTheme, setTheme } = useTheme()
+  const isDark = appTheme === "dark"
+  const resolvedTheme = resolveTemplateTheme("hotel", theme, isDark ? "dark" : "light")
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
@@ -61,14 +64,18 @@ export default function Template3({
   return (
     <TemplateShell
       theme={resolvedTheme}
-      className="bg-[linear-gradient(180deg,#FAF7F1_0%,#F4EFE6_100%)]"
+      className={
+        isDark
+          ? "bg-[radial-gradient(circle_at_top,rgba(209,180,131,0.1),transparent_42%),linear-gradient(180deg,#11141B_0%,#0D1016_100%)]"
+          : "bg-[linear-gradient(180deg,#FAF7F1_0%,#F4EFE6_100%)]"
+      }
     >
-      <div className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 pb-28 pt-4 sm:px-6 lg:px-8">
         <motion.header
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="overflow-hidden rounded-[34px] border p-6 sm:p-8 lg:p-10"
-          style={{ backgroundColor: "rgba(255,255,255,0.92)", borderColor: resolvedTheme.borderColor, boxShadow: `0 24px 60px ${resolvedTheme.shadowColor}` }}
+          className="overflow-hidden rounded-[34px] border p-5 sm:p-7 lg:p-8"
+          style={{ backgroundColor: resolvedTheme.surfaceColor, borderColor: resolvedTheme.borderColor, boxShadow: `0 24px 60px ${resolvedTheme.shadowColor}` }}
         >
           <div aria-hidden="true" className="absolute inset-0 pointer-events-none opacity-90">
             <div className="absolute -left-16 top-8 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(140,106,56,0.12),transparent_68%)] blur-2xl sm:h-56 sm:w-56" />
@@ -104,6 +111,15 @@ export default function Template3({
                     <Image src={logoImage} alt={hotel.name} fill sizes="56px" className="object-contain p-2" priority />
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setTheme(isDark ? "light" : "dark")}
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-full border transition-transform hover:-translate-y-0.5"
+                  style={{ borderColor: resolvedTheme.borderColor, backgroundColor: resolvedTheme.surfaceColor, color: resolvedTheme.textColor }}
+                  aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+                >
+                  {isDark ? <Sun className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
@@ -121,7 +137,7 @@ export default function Template3({
           />
         </div>
 
-        <main className="space-y-8 pt-8">
+        <main className="space-y-7 pt-6">
           {itemsLoading ? (
             <MenuLoadingState theme={resolvedTheme} variant="hotel" />
           ) : selectedCategory ? (
@@ -130,7 +146,7 @@ export default function Template3({
               sectionId={getCategorySectionId(selectedCategory.id)}
               theme={resolvedTheme}
               variant="hotel"
-              gridClassName="grid-cols-1"
+              gridClassName="grid-cols-1 sm:grid-cols-2 md:grid-cols-2"
               itemCount={selectedCategory.items?.length}
               meta={
                 <span className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em]" style={{ backgroundColor: resolvedTheme.mutedSurfaceColor, borderColor: resolvedTheme.borderColor, color: resolvedTheme.primaryColor }} aria-label="Section detail">
@@ -161,7 +177,7 @@ export default function Template3({
           )}
         </main>
 
-        <footer className="sticky bottom-4 z-30 mt-14 space-y-4 rounded-4xl border bg-background/90 p-3 shadow-[0_20px_60px_rgba(84,62,33,0.12)] backdrop-blur-xl sm:p-4" style={{ borderColor: resolvedTheme.borderColor }}>
+        <footer className="sticky bottom-4 z-30 mt-10 space-y-3 rounded-4xl border bg-background/90 p-3 shadow-[0_12px_32px_rgba(84,62,33,0.1)] backdrop-blur-xl sm:p-4" style={{ borderColor: resolvedTheme.borderColor }}>
           <TemplateFooterCTA
             theme={resolvedTheme}
             variant="hotel"

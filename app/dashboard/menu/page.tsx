@@ -77,6 +77,11 @@ type MenuItem = {
   description?: string
   price: number
   currency?: string
+  spice_level?: number | string
+  calories?: number | string
+  calogy?: number | string
+  allergens?: string[] | string
+  dietary_tags?: string[] | string
   image?: any
   images?: any[]
   image_url?: string
@@ -84,6 +89,30 @@ type MenuItem = {
   is_available: boolean
   available?: boolean
   category_id: string
+  allergy_list?: string[] | string
+  dietaryTags?: string[] | string
+  ingredients?: string[] | string
+  ingredient_list?: string[] | string
+  prep_time?: number | string
+  prepTime?: number | string
+  estimated_prep_time?: number | string
+  estimatedPrepTime?: number | string
+  prep_minutes?: number | string
+  prepMinutes?: number | string
+  service_time?: number | string
+  serviceTime?: number | string
+  chef_notes?: string
+  notes?: string
+  kitchen_notes?: string
+  freshness?: string
+  freshly_made?: boolean
+  is_fresh?: boolean
+  is_featured?: boolean
+  is_popular?: boolean
+  is_signature?: boolean
+  chef_pick?: boolean
+  is_chef_pick?: boolean
+  chef_choice?: boolean
 }
 
 type DiscountRule = {
@@ -126,6 +155,11 @@ function normalizeItem(raw: any): MenuItem {
     description: raw?.description || "",
     price: Number(raw?.price || 0),
     currency: String(raw?.currency || "ETB"),
+    spice_level: raw?.spice_level ?? raw?.spiceLevel,
+    calories: raw?.calories,
+    calogy: raw?.calogy,
+    allergens: raw?.allergens,
+    dietary_tags: raw?.dietary_tags ?? raw?.dietaryTags,
     image: raw?.image,
     images: raw?.images,
     image_url: raw?.image_url,
@@ -179,6 +213,28 @@ function computeDiscountedPrice(price: number, discount?: DiscountRule): number 
       : price - value
 
   return Math.max(0, Number(reduced.toFixed(2)))
+}
+
+const MULTI_LANGUAGE_SEPARATOR = " | "
+const MAX_SECONDARY_NAME_FIELDS = 3
+
+function splitCompositeName(value: string): { primary: string; secondary: string } {
+  const parts = String(value || "").split(MULTI_LANGUAGE_SEPARATOR)
+  return {
+    primary: (parts[0] || "").trim(),
+    secondary: parts.slice(1).join(MULTI_LANGUAGE_SEPARATOR).trim(),
+  }
+}
+
+function joinCompositeName(primary: string, secondary: string, extraNames?: string[]): string {
+  const parts = [primary, secondary].map((s) => String(s || "").trim())
+  if (Array.isArray(extraNames) && extraNames.length > 0) {
+    for (const en of extraNames) {
+      const v = String(en || "").trim()
+      if (v) parts.push(v)
+    }
+  }
+  return parts.filter(Boolean).join(MULTI_LANGUAGE_SEPARATOR)
 }
 
 function toIsoStartOfDay(dateInput: string): string {
@@ -308,6 +364,7 @@ function MenuManagementContent() {
   
   const [savingCat, setSavingCat] = useState(false)
   const [savingItem, setSavingItem] = useState(false)
+  const [deletingItem, setDeletingItem] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadStage, setUploadStage] = useState<"idle" | "uploading_media" | "saving_item">("idle")
   
@@ -317,9 +374,11 @@ function MenuManagementContent() {
   const [activeItem, setActiveItem] = useState<MenuItem | null>(null)
   const [subscription, setSubscription] = useState<any>(null)
   const [itemDraft, setItemDraft] = useState({
-    name: "", description: "", price: "", currency: "ETB",
+    name: "", name_secondary: "", description: "", price: "", currency: "ETB",
     category_id: "",
     is_available: true,
+    spice_level: "0",
+    calories: "",
     images: [] as (File | string)[],
     discount_enabled: false,
     discount_type: "percentage" as "percentage" | "fixed_amount",
@@ -327,6 +386,26 @@ function MenuManagementContent() {
     discount_name: "",
     discount_start_date: "",
     discount_end_date: "",
+    // Backend fields
+    allergens: [] as string[] | string,
+    dietary_tags: [] as string[] | string,
+    ingredients: [] as string[] | string,
+    prep_time: "",
+    estimated_prep_time: "",
+    prep_minutes: "",
+    service_time: "",
+    chef_notes: "",
+    notes: "",
+    kitchen_notes: "",
+    freshness: "",
+    freshly_made: false,
+    is_featured: false,
+    is_popular: false,
+    is_signature: false,
+    chef_pick: false,
+    chef_choice: false,
+    // multi-language extra names (beyond primary + one secondary)
+    extra_names: [] as string[],
   })
 
   const isCreatingItem = savingItem && !activeItem
@@ -377,13 +456,20 @@ function MenuManagementContent() {
       const isAvailable = item.available ?? item.is_available ?? true
       const rawImages = item.image_urls || item.images || item.image || item.image_url
       const linkedDiscount = getItemSpecificDiscount(item.id)
+      // parse multilingual name parts (primary | secondary | extra...)
+      const nameParts = String(item.name || "").split(MULTI_LANGUAGE_SEPARATOR).map(s => s.trim()).filter(Boolean)
+      const secondaryParts = nameParts.slice(1, 1 + MAX_SECONDARY_NAME_FIELDS)
       setItemDraft({
-        name: item.name || "",
+        name: nameParts[0] || item.name || "",
+        name_secondary: secondaryParts[0] || "",
+        extra_names: secondaryParts.slice(1),
         description: item.description || "",
         price: item.price?.toString() || "0",
         currency: item.currency || "ETB",
         category_id: String(item.category_id || categoryId || categories[0]?.id || ""),
         is_available: isAvailable,
+        spice_level: String(item.spice_level ?? "0"),
+        calories: item.calories !== undefined && item.calories !== null ? String(item.calories) : String(item.calogy ?? ""),
         images: getImageUrls(rawImages),
         discount_enabled: Boolean(linkedDiscount),
         discount_type: normalizeDiscountType(linkedDiscount?.discount_type),
@@ -391,15 +477,52 @@ function MenuManagementContent() {
         discount_name: linkedDiscount?.name || "",
         discount_start_date: linkedDiscount?.start_date ? String(linkedDiscount.start_date).slice(0, 10) : "",
         discount_end_date: linkedDiscount?.end_date ? String(linkedDiscount.end_date).slice(0, 10) : "",
+        // backend fields
+        allergens: item.allergens ?? item.allergy_list ?? [],
+        dietary_tags: item.dietary_tags ?? item.dietaryTags ?? [],
+        ingredients: item.ingredients ?? item.ingredient_list ?? [],
+        prep_time: item.prep_time !== undefined && item.prep_time !== null
+          ? String(item.prep_time)
+          : item.prepTime !== undefined && item.prepTime !== null
+          ? String(item.prepTime)
+          : "",
+        estimated_prep_time: item.estimated_prep_time !== undefined && item.estimated_prep_time !== null
+          ? String(item.estimated_prep_time)
+          : item.estimatedPrepTime !== undefined && item.estimatedPrepTime !== null
+          ? String(item.estimatedPrepTime)
+          : "",
+        prep_minutes: item.prep_minutes !== undefined && item.prep_minutes !== null
+          ? String(item.prep_minutes)
+          : item.prepMinutes !== undefined && item.prepMinutes !== null
+          ? String(item.prepMinutes)
+          : "",
+        service_time: item.service_time !== undefined && item.service_time !== null
+          ? String(item.service_time)
+          : item.serviceTime !== undefined && item.serviceTime !== null
+          ? String(item.serviceTime)
+          : "",
+        chef_notes: item.chef_notes ?? item.notes ?? item.kitchen_notes ?? "",
+        notes: item.notes ?? "",
+        kitchen_notes: item.kitchen_notes ?? "",
+        freshness: item.freshness ?? "",
+        freshly_made: Boolean(item.freshly_made ?? item.is_fresh),
+        is_featured: Boolean(item.is_featured),
+        is_popular: Boolean(item.is_popular),
+        is_signature: Boolean(item.is_signature),
+        chef_pick: Boolean(item.chef_pick ?? item.is_chef_pick),
+        chef_choice: Boolean(item.chef_choice),
       })
     } else {
       setItemDraft({
         name: "",
+        name_secondary: "",
         description: "",
         price: "",
         currency: "ETB",
         category_id: String(categoryId || categories[0]?.id || ""),
         is_available: true,
+        spice_level: "0",
+        calories: "",
         images: [],
         discount_enabled: false,
         discount_type: "percentage",
@@ -407,6 +530,25 @@ function MenuManagementContent() {
         discount_name: "",
         discount_start_date: "",
         discount_end_date: "",
+        // backend fields defaults
+        allergens: [],
+        extra_names: [],
+        dietary_tags: [],
+        ingredients: [],
+        prep_time: "",
+        estimated_prep_time: "",
+        prep_minutes: "",
+        service_time: "",
+        chef_notes: "",
+        notes: "",
+        kitchen_notes: "",
+        freshness: "",
+        freshly_made: false,
+        is_featured: false,
+        is_popular: false,
+        is_signature: false,
+        chef_pick: false,
+        chef_choice: false,
       })
     }
 
@@ -704,25 +846,65 @@ function MenuManagementContent() {
         ? `/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items/${activeItem.id}`
         : `/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items`
 
-      const buildFormData = (minimal: boolean, imageUrls: string[], mediaIds: string[]) => {
+      const normalizedExtraNames = (itemDraft.extra_names || [])
+        .map((part) => String(part || "").trim())
+        .filter(Boolean)
+        .slice(0, Math.max(0, MAX_SECONDARY_NAME_FIELDS - 1))
+
+      const buildFormData = (minimal: boolean, mediaIds: string[], keepImageUrls: string[] = []) => {
         const fd = new FormData()
-        fd.append("name", itemDraft.name.trim())
+
+        fd.append("name", joinCompositeName(itemDraft.name, itemDraft.name_secondary, normalizedExtraNames))
         fd.append("price", String(numericPrice))
         fd.append("currency", itemDraft.currency || "ETB")
         fd.append("is_available", String(itemDraft.is_available))
-        fd.append("spice_level", "0")
-        fd.append("display_order", "0")
 
         if (!minimal) {
           fd.append("description", itemDraft.description.trim())
         }
 
-        for (const imageUrl of imageUrls) {
-          fd.append("image_urls", imageUrl)
+        // Append extended backend fields when present
+        const normalizeListField = (val: any) => {
+          if (Array.isArray(val)) return val.map(String)
+          if (typeof val === "string") return val.split(",").map(s => s.trim()).filter(Boolean)
+          return []
         }
 
-        for (const mediaId of mediaIds) {
-          fd.append("image_media_ids", mediaId)
+        const allergensList = normalizeListField(itemDraft.allergens)
+        if (allergensList.length > 0) fd.append("allergens", JSON.stringify(allergensList))
+
+        const dietaryList = normalizeListField(itemDraft.dietary_tags)
+        if (dietaryList.length > 0) fd.append("dietary_tags", JSON.stringify(dietaryList))
+
+        const ingredientsList = normalizeListField(itemDraft.ingredients)
+        if (ingredientsList.length > 0) fd.append("ingredients", JSON.stringify(ingredientsList))
+
+        if (itemDraft.prep_time) fd.append("prep_time", String(itemDraft.prep_time))
+        if (itemDraft.estimated_prep_time) fd.append("estimated_prep_time", String(itemDraft.estimated_prep_time))
+        if (itemDraft.prep_minutes) fd.append("prep_minutes", String(itemDraft.prep_minutes))
+        if (itemDraft.service_time) fd.append("service_time", String(itemDraft.service_time))
+
+        if (itemDraft.chef_notes) fd.append("chef_notes", String(itemDraft.chef_notes))
+        if (itemDraft.notes) fd.append("notes", String(itemDraft.notes))
+        if (itemDraft.kitchen_notes) fd.append("kitchen_notes", String(itemDraft.kitchen_notes))
+
+        if (itemDraft.freshness) fd.append("freshness", String(itemDraft.freshness))
+        fd.append("freshly_made", String(Boolean(itemDraft.freshly_made)))
+
+        fd.append("is_featured", String(Boolean(itemDraft.is_featured)))
+        fd.append("is_popular", String(Boolean(itemDraft.is_popular)))
+        fd.append("is_signature", String(Boolean(itemDraft.is_signature)))
+        fd.append("chef_pick", String(Boolean(itemDraft.chef_pick)))
+        fd.append("chef_choice", String(Boolean(itemDraft.chef_choice)))
+
+        if (keepImageUrls && keepImageUrls.length > 0) {
+          for (const url of keepImageUrls) {
+            fd.append("keep_image_urls", url)
+          }
+        }
+
+        if (mediaIds.length > 0) {
+          fd.append("images", JSON.stringify(mediaIds))
         }
 
         return fd
@@ -827,15 +1009,52 @@ function MenuManagementContent() {
 
       setUploadProgress(0)
       const uploadedMedia = await uploadMenuItemImages(newImageFiles)
-      const mergedImageUrls = Array.from(new Set([...existingImageUrlsSnapshot, ...uploadedMedia.urls]))
-
       setUploadStage("saving_item")
-      await apiFetchWithProgress<any>(url, {
+      const saveRes = await apiFetchWithProgress<any>(url, {
         method,
         token,
-        body: buildFormData(false, mergedImageUrls, uploadedMedia.mediaIds),
+        body: buildFormData(false, uploadedMedia.mediaIds, existingImageUrlsSnapshot),
         onProgress: (pct) => setUploadProgress(Math.max(95, Math.min(100, pct))),
       })
+
+      const createdItemId = String(saveRes?.data?.id || saveRes?.id || activeItem?.id || "").trim()
+
+      if (!activeItem && uploadedMedia.urls.length > 0) {
+        const optimisticItem = normalizeItem({
+          id: createdItemId || `temp-${Date.now()}`,
+          name: joinCompositeName(itemDraft.name, itemDraft.name_secondary, normalizedExtraNames),
+          description: itemDraft.description.trim(),
+          price: numericPrice,
+          currency: itemDraft.currency || "ETB",
+          category_id: targetCategoryId,
+          is_available: itemDraft.is_available,
+          available: itemDraft.is_available,
+          spice_level: itemDraft.spice_level,
+          calories: itemDraft.calories || itemDraft.prep_minutes || itemDraft.prep_time || itemDraft.estimated_prep_time,
+          image_urls: uploadedMedia.urls,
+          images: uploadedMedia.urls,
+        })
+
+        setItems((prev) => [optimisticItem, ...prev.filter((entry) => entry.id !== optimisticItem.id)])
+      }
+
+      if (createdItemId) {
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          if (attempt > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 500 * attempt))
+          }
+
+          const res = await apiFetch<any>(`/my-restaurants/${restaurantId}/categories/${targetCategoryId}/items`, { token })
+          const itemsList = extractList(res).map(normalizeItem)
+          const createdItem = itemsList.find((entry) => String(entry.id) === createdItemId)
+          const createdImages = createdItem ? getImageUrls(createdItem.image_urls || createdItem.images || createdItem.image || createdItem.image_url) : []
+
+          if (createdItem && createdImages.length > 0) {
+            setItems(itemsList)
+            break
+          }
+        }
+      }
 
       const savedItemId = activeItem ? String(activeItem.id) : null
 
@@ -871,7 +1090,7 @@ function MenuManagementContent() {
   const handleDeleteItem = async () => {
     if (!token || !activeItem || !restaurantId || !categoryId) return
     try {
-      setSavingItem(true)
+      setDeletingItem(true)
       await apiFetch(`/my-restaurants/${restaurantId}/categories/${categoryId}/items/${activeItem.id}`, {
         method: "DELETE",
         token,
@@ -882,7 +1101,7 @@ function MenuManagementContent() {
     } catch (err: any) {
       toast({ title: "Item delete failed", description: getMenuErrorMessage(err, "Unable to delete this menu item."), variant: "destructive" })
     } finally {
-      setSavingItem(false)
+      setDeletingItem(false)
     }
   }
 
@@ -956,7 +1175,7 @@ function MenuManagementContent() {
         
         <div className="flex w-full min-w-0 flex-col items-stretch gap-3 md:gap-4 md:w-auto md:items-end">
           {restaurants.length > 0 && (
-            <div className="relative z-30 flex w-full md:w-full md:max-w-[460px] min-w-0 flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4 bg-card/70 p-2.5 md:p-3 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl">
+            <div className="relative z-30 flex w-full md:w-full md:max-w-115 min-w-0 flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4 bg-card/70 p-2.5 md:p-3 rounded-2xl border border-border/70 ring-1 ring-border/60 shadow-2xl">
               <div className="flex flex-col gap-2 flex-1 min-w-0">
                 <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.35em] text-primary">Managing Restaurant</span>
                 <div className="relative z-40 group/select">
@@ -1022,7 +1241,7 @@ function MenuManagementContent() {
           </div>
           <div className="flex flex-row lg:flex-col gap-2.5 px-2 overflow-x-auto pb-4 lg:pb-0 scrollbar-hide">
             {categories.length > 0 ? categories.map((cat) => (
-              <div key={cat.id} className={cn("group flex items-center justify-between p-3.5 md:p-4 rounded-xl transition-all cursor-pointer border shadow-lg hover:translate-x-1 shrink-0 min-w-[120px] lg:min-w-0", categoryId === cat.id ? "bg-primary text-white border-primary shadow-[0_15px_30px_-10px_rgba(230,57,70,0.4)]" : "bg-card/40 backdrop-blur-md border-border/70 hover:border-primary/30")} onClick={() => setCategoryId(cat.id)}>
+              <div key={cat.id} className={cn("group flex items-center justify-between p-3.5 md:p-4 rounded-xl transition-all cursor-pointer border shadow-lg hover:translate-x-1 shrink-0 min-w-30 lg:min-w-0", categoryId === cat.id ? "bg-primary text-white border-primary shadow-[0_15px_30px_-10px_rgba(230,57,70,0.4)]" : "bg-card/40 backdrop-blur-md border-border/70 hover:border-primary/30")} onClick={() => setCategoryId(cat.id)}>
                 <div className="flex items-center gap-3 min-w-0">
                   <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center shrink-0", categoryId === cat.id ? "bg-white/20" : "bg-muted")}>
                     <LayoutGrid className={cn("h-3 w-3", categoryId === cat.id ? "text-white" : "text-muted-foreground/40")} />
@@ -1086,7 +1305,7 @@ function MenuManagementContent() {
                 return (
                   <div key={item.id} className="h-full">
                     <Card className="group h-full gap-0 overflow-hidden rounded-3xl border border-border/70 bg-card/40 backdrop-blur-3xl ring-1 ring-border/60 shadow-xl transition-all duration-500 hover:border-primary/40 hover:shadow-[0_20px_40px_-10px_rgba(230,57,70,0.2)] flex flex-col">
-                      <div className="relative aspect-[16/10] overflow-hidden shrink-0">
+                      <div className="relative aspect-16/10 overflow-hidden shrink-0">
                         {images[0] && (
                           <Image 
                             src={images[0]} 
@@ -1096,7 +1315,7 @@ function MenuManagementContent() {
                             unoptimized={images[0].startsWith('http')}
                           />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-80" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent opacity-80" />
                         <div className="absolute top-4 left-4 flex max-w-[70%] flex-col gap-2">
                           <Badge className="max-w-full truncate bg-card/80 backdrop-blur-md border border-border/60 text-primary font-black uppercase text-[8px] tracking-widest px-3 h-7 rounded-lg shadow-xl">{categoryName.toUpperCase()}</Badge>
                            {isAvailable ? (
@@ -1149,9 +1368,21 @@ function MenuManagementContent() {
                             ) : "N/A"}
                           </span>
                         </div>
-                        <CardDescription className="mt-2 line-clamp-2 min-h-[2.5rem] text-xs font-medium leading-relaxed text-muted-foreground/90 transition-colors group-hover:text-foreground">
+                        <CardDescription className="mt-2 line-clamp-2 min-h-10 text-xs font-medium leading-relaxed text-muted-foreground/90 transition-colors group-hover:text-foreground">
                           {item.description || "No description provided."}
                         </CardDescription>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {String(item.spice_level || "0") !== "0" ? (
+                            <Badge className="rounded-md border border-orange-400/20 bg-orange-500/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-orange-500">
+                              Spice {item.spice_level}
+                            </Badge>
+                          ) : null}
+                          {item.calories || item.calogy ? (
+                            <Badge className="rounded-md border border-blue-400/20 bg-blue-500/10 px-2 py-1 text-[8px] font-black uppercase tracking-widest text-blue-500">
+                              {Number(item.calories || item.calogy || 0).toLocaleString()} cal
+                            </Badge>
+                          ) : null}
+                        </div>
                       </CardHeader>
                       <CardContent className="p-5 pt-0 mt-auto">
                         <div className="flex items-center gap-2 min-w-0 border-t border-border/40 pt-3 overflow-hidden">
@@ -1309,7 +1540,7 @@ function MenuManagementContent() {
 
       {/* Item Management Modal */}
       <Dialog open={itemDialogOpen} onOpenChange={(open) => { setItemDialogOpen(open); if (!open) setItemStep(1) }}>
-        <DialogContent className="bg-card border-border text-foreground rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 max-w-2xl w-[95vw] md:w-full overflow-y-auto max-h-[90vh]">
+        <DialogContent className="bg-card border-border text-foreground rounded-4xl p-6 md:p-10 max-w-2xl w-[95vw] md:w-full overflow-y-auto max-h-[90vh]">
           <DialogHeader className="mb-6 md:mb-8">
             <div className="flex items-center justify-between mb-2">
               <DialogTitle className="text-2xl md:text-3xl font-black">
@@ -1352,6 +1583,71 @@ function MenuManagementContent() {
                 </div>
 
                 <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Name in other language(s)</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 rounded-lg px-2 text-[10px] font-black uppercase tracking-widest"
+                      disabled={(itemDraft.name_secondary ? 1 : 0) + itemDraft.extra_names.length >= MAX_SECONDARY_NAME_FIELDS}
+                      onClick={() => {
+                        setItemDraft((p) => {
+                          const usedSlots = (p.name_secondary ? 1 : 0) + p.extra_names.length
+                          if (usedSlots >= MAX_SECONDARY_NAME_FIELDS) return p
+                          if (!p.name_secondary.trim()) return { ...p, name_secondary: "" }
+                          return { ...p, extra_names: [...p.extra_names, ""] }
+                        })
+                      }}
+                    >
+                      <Plus className="mr-1 h-3 w-3" /> Add language
+                    </Button>
+                  </div>
+
+                  <Input
+                    className="bg-muted border-border/50 h-12 rounded-xl focus:ring-primary/20"
+                    placeholder="e.g. ዶሮ ወጥ"
+                    value={itemDraft.name_secondary}
+                    onChange={e => setItemDraft(p => ({ ...p, name_secondary: e.target.value }))}
+                  />
+
+                  {itemDraft.extra_names.map((value, index) => (
+                    <div key={`extra-name-${index}`} className="flex items-center gap-2">
+                      <Input
+                        className="bg-muted border-border/50 h-12 rounded-xl focus:ring-primary/20"
+                        placeholder={`Additional language ${index + 2}`}
+                        value={value}
+                        onChange={(e) =>
+                          setItemDraft((p) => {
+                            const next = [...p.extra_names]
+                            next[index] = e.target.value
+                            return { ...p, extra_names: next }
+                          })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 shrink-0 rounded-lg"
+                        onClick={() =>
+                          setItemDraft((p) => ({
+                            ...p,
+                            extra_names: p.extra_names.filter((_, i) => i !== index),
+                          }))
+                        }
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  <p className="text-[10px] text-muted-foreground">
+                    Up to {MAX_SECONDARY_NAME_FIELDS} secondary languages are saved to the backend as one string with {MULTI_LANGUAGE_SEPARATOR}.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Category</Label>
                   <select
                     className="h-12 w-full rounded-xl border border-border/50 bg-muted px-4 text-sm font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
@@ -1387,6 +1683,36 @@ function MenuManagementContent() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Spice level</Label>
+                    <select
+                      className="h-12 w-full rounded-xl border border-border/50 bg-muted px-4 text-sm font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      value={itemDraft.spice_level}
+                      onChange={(e) => setItemDraft((p) => ({ ...p, spice_level: e.target.value }))}
+                    >
+                      <option value="0">Not specified</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Calories</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      className="bg-muted border-border/50 h-12 rounded-xl"
+                      value={itemDraft.calories}
+                      onChange={(e) => setItemDraft((p) => ({ ...p, calories: e.target.value }))}
+                      placeholder="550"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description</Label>
                   <textarea
@@ -1396,6 +1722,8 @@ function MenuManagementContent() {
                     onChange={e => setItemDraft(p => ({ ...p, description: e.target.value }))}
                   />
                 </div>
+
+                {/* additional details moved to step 2 for compactness */}
 
                 <div className="flex items-center justify-between p-4 rounded-xl bg-muted border border-border/50">
                   <div className="space-y-0.5">
@@ -1536,6 +1864,94 @@ function MenuManagementContent() {
                   </div>
                 </div>
 
+                {/* moved additional details from step 1 here */}
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Additional details</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Ingredients (comma separated)</Label>
+                      <Input
+                        className="bg-muted border-border/50 h-11 rounded-xl"
+                        placeholder="e.g. chicken, onion, garlic"
+                        value={Array.isArray(itemDraft.ingredients) ? (itemDraft.ingredients as string[]).join(", ") : String(itemDraft.ingredients || "")}
+                        onChange={(e) => setItemDraft(p => ({ ...p, ingredients: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Allergens (comma separated)</Label>
+                      <Input
+                        className="bg-muted border-border/50 h-11 rounded-xl"
+                        placeholder="e.g. peanuts, dairy"
+                        value={Array.isArray(itemDraft.allergens) ? (itemDraft.allergens as string[]).join(", ") : String(itemDraft.allergens || "")}
+                        onChange={(e) => setItemDraft(p => ({ ...p, allergens: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Dietary tags (comma separated)</Label>
+                      <Input
+                        className="bg-muted border-border/50 h-11 rounded-xl"
+                        placeholder="e.g. vegan, gluten-free"
+                        value={Array.isArray(itemDraft.dietary_tags) ? (itemDraft.dietary_tags as string[]).join(", ") : String(itemDraft.dietary_tags || "")}
+                        onChange={(e) => setItemDraft(p => ({ ...p, dietary_tags: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Prep time / Estimated / Minutes</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Input className="bg-muted border-border/50 h-11 rounded-xl" placeholder="15 min" value={itemDraft.prep_time} onChange={e => setItemDraft(p => ({ ...p, prep_time: e.target.value }))} />
+                        <Input className="bg-muted border-border/50 h-11 rounded-xl" placeholder="15-20 min" value={itemDraft.estimated_prep_time} onChange={e => setItemDraft(p => ({ ...p, estimated_prep_time: e.target.value }))} />
+                        <Input className="bg-muted border-border/50 h-11 rounded-xl" placeholder="15" value={itemDraft.prep_minutes} onChange={e => setItemDraft(p => ({ ...p, prep_minutes: e.target.value }))} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Service time</Label>
+                      <Input className="bg-muted border-border/50 h-11 rounded-xl" placeholder="e.g. 20 min" value={itemDraft.service_time} onChange={e => setItemDraft(p => ({ ...p, service_time: e.target.value }))} />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Chef notes / Kitchen notes</Label>
+                      <Input className="bg-muted border-border/50 h-11 rounded-xl" placeholder="Short note for chefs" value={itemDraft.chef_notes} onChange={e => setItemDraft(p => ({ ...p, chef_notes: e.target.value }))} />
+                      <Input className="bg-muted border-border/50 h-11 rounded-xl mt-2" placeholder="Public notes" value={itemDraft.notes} onChange={e => setItemDraft(p => ({ ...p, notes: e.target.value }))} />
+                      <Input className="bg-muted border-border/50 h-11 rounded-xl mt-2" placeholder="Kitchen-only notes" value={itemDraft.kitchen_notes} onChange={e => setItemDraft(p => ({ ...p, kitchen_notes: e.target.value }))} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border/50 min-w-0">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Freshly made</span>
+                        <p className="text-xs text-muted-foreground">Mark as freshly prepared</p>
+                      </div>
+                      <Switch className="shrink-0" checked={itemDraft.freshly_made} onCheckedChange={checked => setItemDraft(p => ({ ...p, freshly_made: checked }))} />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border/50 min-w-0">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Featured</span>
+                      </div>
+                      <Switch className="shrink-0" checked={itemDraft.is_featured} onCheckedChange={checked => setItemDraft(p => ({ ...p, is_featured: checked }))} />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border/50 min-w-0">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Popular</span>
+                      </div>
+                      <Switch className="shrink-0" checked={itemDraft.is_popular} onCheckedChange={checked => setItemDraft(p => ({ ...p, is_popular: checked }))} />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-muted border border-border/50 min-w-0">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Signature</span>
+                      </div>
+                      <Switch className="shrink-0" checked={itemDraft.is_signature} onCheckedChange={checked => setItemDraft(p => ({ ...p, is_signature: checked }))} />
+                    </div>
+                  </div>
+                </div>
+
                 <AnimatePresence>
                   {savingItem && uploadProgress > 0 && (
                     <motion.div
@@ -1605,8 +2021,15 @@ function MenuManagementContent() {
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
             <AlertDialogCancel className="flex-1 h-12 rounded-xl border-border/50 bg-muted/40 text-[10px] font-black uppercase tracking-widest">Keep</AlertDialogCancel>
-            <AlertDialogAction className="flex-1 h-12 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest" onClick={handleDeleteItem}>
-              Delete
+            <AlertDialogAction
+              className="flex-1 h-12 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest"
+              onClick={(event) => {
+                event.preventDefault()
+                void handleDeleteItem()
+              }}
+              disabled={deletingItem}
+            >
+              {deletingItem ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

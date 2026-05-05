@@ -2,8 +2,9 @@
 
 import { useMemo } from "react"
 import { motion } from "framer-motion"
-import { Search } from "lucide-react"
+import { MoonStar, Search, Sun } from "lucide-react"
 import Image from "next/image"
+import { useTheme } from "next-themes"
 import { Input } from "@/components/ui/input"
 import { cn, getImageUrl } from "@/lib/utils"
 import { TemplateProps } from "./types"
@@ -31,7 +32,9 @@ export default function Template1({
   itemsLoading,
   theme,
 }: TemplateProps) {
-  const resolvedTheme = resolveTemplateTheme("cafe", theme)
+  const { resolvedTheme: appTheme, setTheme } = useTheme()
+  const isDark = appTheme === "dark"
+  const resolvedTheme = resolveTemplateTheme("cafe", theme, isDark ? "dark" : "light")
   const logoImage = getImageUrl(hotel.logo_url || (hotel as any).logo_image_url)
 
   const normalizedQuery = searchQuery.trim().toLowerCase()
@@ -61,13 +64,17 @@ export default function Template1({
   return (
     <TemplateShell
       theme={resolvedTheme}
-      className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),transparent_55%),linear-gradient(180deg,#F9F3E9_0%,#F4EADF_42%,#F7F1E8_100%)]"
+      className={
+        isDark
+          ? "bg-[radial-gradient(circle_at_top,rgba(217,185,138,0.14),transparent_55%),linear-gradient(180deg,#14120F_0%,#0F0D0B_55%,#12100E_100%)]"
+          : "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),transparent_55%),linear-gradient(180deg,#F9F3E9_0%,#F4EADF_42%,#F7F1E8_100%)]"
+      }
     >
-      <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 pb-24 pt-4 sm:px-6 lg:px-8">
         <motion.header
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative mb-6 overflow-hidden rounded-[34px] border p-5 shadow-[0_24px_70px_rgba(138,90,60,0.12)] sm:p-7 lg:p-8"
+          className="relative mb-5 overflow-hidden rounded-[34px] border p-5 shadow-[0_18px_50px_rgba(138,90,60,0.1)] sm:p-6 lg:p-7"
           style={{ backgroundColor: "var(--menu-surface)", borderColor: resolvedTheme.borderColor }}
         >
           <div aria-hidden="true" className="absolute inset-0 pointer-events-none opacity-90">
@@ -104,6 +111,15 @@ export default function Template1({
                     <Image src={logoImage} alt={hotel.name} fill sizes="64px" className="object-contain p-2" priority />
                   </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setTheme(isDark ? "light" : "dark")}
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-full border transition-transform hover:-translate-y-0.5"
+                  style={{ borderColor: resolvedTheme.borderColor, backgroundColor: resolvedTheme.surfaceColor, color: resolvedTheme.textColor }}
+                  aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+                >
+                  {isDark ? <Sun className="h-4 w-4" /> : <MoonStar className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
@@ -119,7 +135,7 @@ export default function Template1({
           className="top-0 rounded-3xl border"
         />
 
-        <main className="space-y-8 pt-8">
+        <main className="space-y-7 pt-6">
           {itemsLoading ? (
             <MenuLoadingState theme={resolvedTheme} variant="cafe" />
           ) : selectedCategory ? (
@@ -130,7 +146,7 @@ export default function Template1({
               theme={resolvedTheme}
               variant="cafe"
               itemCount={selectedCategory.items?.length}
-              gridClassName="md:grid-cols-2"
+              gridClassName="grid-cols-1 sm:grid-cols-2 md:grid-cols-2"
             >
               {selectedCategory.items?.map((item, itemIndex) => (
                 <MenuItemCard
@@ -153,7 +169,7 @@ export default function Template1({
           )}
         </main>
 
-        <footer className="sticky bottom-4 z-30 mt-10 space-y-4 rounded-4xl border bg-background/90 p-3 shadow-[0_20px_60px_rgba(0,0,0,0.12)] backdrop-blur-xl sm:p-4" style={{ borderColor: resolvedTheme.borderColor }}>
+        <footer className="sticky bottom-4 z-30 mt-9 space-y-3 rounded-4xl border bg-background/90 p-3 shadow-[0_12px_30px_rgba(0,0,0,0.1)] backdrop-blur-xl sm:p-4" style={{ borderColor: resolvedTheme.borderColor }}>
           <TemplateFooterCTA
             theme={resolvedTheme}
             variant="cafe"

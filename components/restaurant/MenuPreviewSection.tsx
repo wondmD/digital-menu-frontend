@@ -257,7 +257,7 @@ export function MenuPreviewSection({ items, loading, menuLink }: MenuPreviewSect
                         size="lg"
                         className="rounded-xl border-0 bg-linear-to-r from-primary to-orange-500 px-8 h-14 text-base font-semibold text-white shadow-lg transition-all duration-300 group hover:shadow-xl"
                       >
-                        <Link href={menuLink}>
+                        <Link href={menuLink} prefetch={false}>
                           Order Now
                           <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                         </Link>

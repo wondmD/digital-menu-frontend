@@ -3,9 +3,25 @@ import type { NextRequest } from "next/server"
 import { getToken } from "next-auth/jwt"
 
 const PUBLIC_CACHE_CONTROL = "public, s-maxage=300, stale-while-revalidate=86400"
+const RESERVED_TOP_LEVEL = new Set([
+  "login",
+  "register",
+  "forgot-password",
+  "reset-password",
+  "verify-email",
+  "packages",
+  "payment",
+  "demo",
+  "activate",
+  "partner",
+  "dashboard",
+  "admin",
+  "app",
+])
 
 function isPublicMenuRoute(pathname: string): boolean {
   if (pathname === "/") return true
+  if (pathname === "/demo") return true
   if (pathname.startsWith("/menu/")) return true
   if (pathname.startsWith("/app/") || pathname.startsWith("/dashboard/") || pathname.startsWith("/admin/") || pathname.startsWith("/api/")) {
     return false
@@ -13,25 +29,13 @@ function isPublicMenuRoute(pathname: string): boolean {
 
   const segments = pathname.split("/").filter(Boolean)
   if (segments.length === 1) {
-    const reservedTopLevel = new Set([
-      "login",
-      "register",
-      "forgot-password",
-      "reset-password",
-      "verify-email",
-      "packages",
-      "payment",
-      "demo",
-      "activate",
-      "partner",
-    ])
-    return !reservedTopLevel.has(segments[0])
+    return !RESERVED_TOP_LEVEL.has(segments[0])
   }
   if (segments.length === 2 && segments[1] === "list") return true
   return false
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl
   const isLoginRoute = pathname === "/login"
 
@@ -75,5 +79,14 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/app/:path*", "/admin/:path*", "/login"],
+  matcher: [
+    "/",
+    "/menu/:path*",
+    "/:slug",
+    "/:slug/list",
+    "/dashboard/:path*",
+    "/app/:path*",
+    "/admin/:path*",
+    "/login",
+  ],
 }

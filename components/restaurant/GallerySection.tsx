@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, ZoomIn, ChevronLeft, ChevronRight, Camera, Share2, ChevronDown } from "lucide-react"
 import { cn, getImageUrl } from "@/lib/utils"
 import { useIsMounted } from "@/hooks/useIsMounted"
-import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 
 type GalleryImage = {
   id: string
@@ -57,8 +56,9 @@ export function GallerySection({ images, className, templateTheme, variant = "re
     <>
       <section id="gallery" className={cn("relative overflow-hidden py-20 md:py-28 bg-linear-to-b from-background via-muted/10 to-background", className)}>
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-[-8%] top-0 h-120 w-120 rounded-full bg-primary/8 blur-3xl" />
-          <div className="absolute right-[-10%] top-40 h-144 w-144 rounded-full bg-amber-500/8 blur-3xl" />
+          <div className="absolute left-[-8%] top-0 h-120 w-120 rounded-full bg-white/35 blur-3xl dark:bg-white/5" />
+          <div className="absolute right-[-10%] top-40 h-144 w-144 rounded-full bg-slate-300/30 blur-3xl dark:bg-slate-500/10" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.05),transparent_40%,rgba(15,23,42,0.03))] dark:bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_40%,rgba(255,255,255,0.01))]" />
         </div>
         <div className="container mx-auto px-6">
           {/* Section Header */}
@@ -103,10 +103,7 @@ export function GallerySection({ images, className, templateTheme, variant = "re
 
           {/* Gallery Grid */}
           <div className="mx-auto mb-12 max-w-7xl">
-            {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
-            {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
-
-            <div className="overflow-y-auto max-h-[60vh] md:max-h-[70vh] p-2 no-scrollbar rounded-3xl border-2 border-white/6">
+            <div className="overflow-y-auto max-h-[60vh] md:max-h-[70vh] p-2 no-scrollbar rounded-3xl border border-border/60 bg-card/35 backdrop-blur-sm">
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-12">
             {images.map((image, index) => (
               <div

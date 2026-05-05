@@ -21,16 +21,26 @@ function isRecord(value: any): boolean {
   return Boolean(value && typeof value === "object")
 }
 
+function looksLikeRestaurantId(identifier: string): boolean {
+  const value = normalizeSlug(identifier)
+  if (!value) return false
+  if (/^\d+$/.test(value)) return true
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) return true
+  return false
+}
+
 export async function fetchPublicRestaurantBySlugOrId(identifier: string): Promise<any | null> {
   const normalizedIdentifier = normalizeSlug(identifier)
   if (!normalizedIdentifier) return null
 
-  try {
-    const directRes = await apiFetch<any>(`/restaurants/${encodeURIComponent(normalizedIdentifier)}`)
-    const direct = directRes?.data || directRes
-    if (isRecord(direct) && direct?.id) return direct
-  } catch {
-    // Ignore and try the public catalog search fallback below.
+  if (looksLikeRestaurantId(normalizedIdentifier)) {
+    try {
+      const directRes = await apiFetch<any>(`/restaurants/${encodeURIComponent(normalizedIdentifier)}`)
+      const direct = directRes?.data || directRes
+      if (isRecord(direct) && direct?.id) return direct
+    } catch {
+      // Ignore and try the public catalog search fallback below.
+    }
   }
 
   try {
