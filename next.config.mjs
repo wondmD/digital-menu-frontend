@@ -48,6 +48,11 @@ const nextConfig = {
   },
   images: {
     remotePatterns: buildRemotePatterns(),
+    // Dev frequently points at unstable/staging media hosts; bypass optimizer to avoid
+    // local 500s from upstream timeouts/404s and allow SVG placeholders to render.
+    unoptimized: process.env.NODE_ENV === "development",
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   async rewrites() {
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "https://menu-viste-1.onrender.com/api/v1"

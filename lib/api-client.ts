@@ -14,6 +14,13 @@ export type ApiOptions = {
   headers?: Record<string, string>
   body?: any
   token?: string
+  /**
+   * Overrides default cache behavior.
+   * - "auto": cache only safe public GET requests (default)
+   * - "force-cache": always cache GET requests
+   * - "no-store": never cache this request
+   */
+  cacheMode?: "auto" | "force-cache" | "no-store"
   cacheTtlMs?: number
   /** request timeout in milliseconds */
   timeoutMs?: number
@@ -68,13 +75,16 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   const method = (options.method || "GET").toUpperCase()
   const isGetRequest = method === "GET"
   const isIdempotentRequest = isGetRequest || method === "HEAD" || method === "OPTIONS"
-  // Cache and dedupe all GETs, including token-authenticated ones.
-  // The cache key already includes the token, so responses stay user-scoped.
-  const shouldCache = isGetRequest
+  const cacheMode = options.cacheMode || "auto"
+  // Keep authenticated/private state perfectly fresh by default.
+  // Public GETs still get cache/dedupe for efficiency.
+  const shouldCache =
+    isGetRequest &&
+    (cacheMode === "force-cache" || (cacheMode === "auto" && !options.token))
   const cacheKey = shouldCache ? buildCacheKey(url, method, options.token, options.body) : null
   const cacheTtlMs = options.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS
 
-  if (cacheKey) {
+  if (isClient && cacheKey) {
     const cached = clientResponseCache.get(cacheKey)
     if (cached && cached.expiresAt > Date.now()) {
       return cached.value as T
@@ -118,7 +128,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
               : options.body
                 ? JSON.stringify(options.body)
                 : undefined,
-          cache: shouldCache ? "force-cache" : "no-store",
+          cache: cacheMode === "no-store" || !shouldCache ? "no-store" : "force-cache",
           next:
             shouldCache
               ? {
@@ -174,7 +184,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
           // @ts-ignore
           data = (txt as unknown) as T
         }
-        if (cacheKey) {
+        if (isClient && cacheKey) {
           clientResponseCache.set(cacheKey, {
             expiresAt: Date.now() + cacheTtlMs,
             value: data,
@@ -221,7 +231,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     throw lastError
   })()
 
-  if (cacheKey) {
+  if (isClient && cacheKey) {
     clientInFlightRequests.set(cacheKey, requestPromise)
     requestPromise.finally(() => {
       clientInFlightRequests.delete(cacheKey)
@@ -265,8 +275,34 @@ export async function apiFetchWithProgress<T>(
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
-          resolve(JSON.parse(xhr.responseText))
+          const parsed = JSON.parse(xhr.responseText)
+
+          if (method !== "GET" && options.token && !options.skipCacheInvalidation) {
+            invalidateTokenCache(options.token)
+            void fetch("/api/cache/revalidate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                tags: ["public-restaurant-data", "public-landing-data"],
+              }),
+              cache: "no-store",
+            }).catch(() => {})
+          }
+
+          resolve(parsed)
         } catch (e) {
+          if (method !== "GET" && options.token && !options.skipCacheInvalidation) {
+            invalidateTokenCache(options.token)
+            void fetch("/api/cache/revalidate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                tags: ["public-restaurant-data", "public-landing-data"],
+              }),
+              cache: "no-store",
+            }).catch(() => {})
+          }
+
           resolve(xhr.responseText as any)
         }
       } else {

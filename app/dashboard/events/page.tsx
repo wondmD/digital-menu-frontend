@@ -416,7 +416,7 @@ function EventForm({
         <div>
           <label className="text-sm font-black uppercase text-muted-foreground">Image</label>
           <div className="mt-1 flex items-center gap-3 rounded-xl border border-dashed border-border p-3">
-            <div className="h-16 w-24 overflow-hidden rounded-lg bg-muted">
+            <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
               {imagePreview ? (
                 <Image src={getImageUrl(imagePreview) || ""} alt="Event preview" fill sizes="96px" className="object-cover" />
               ) : (

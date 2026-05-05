@@ -10,6 +10,7 @@ import type { Category, MenuItem, TemplateTheme } from "./types"
 import { ArrowRight, BellRing, Coffee, CupSoda, Flame, Hotel, KeyRound, Sparkles, Star, UtensilsCrossed } from "lucide-react"
 
 export type MenuTemplateVariant = "cafe" | "restaurant" | "hotel"
+export type TemplateColorMode = "light" | "dark"
 
 export type ResolvedTemplateTheme = Required<TemplateTheme> & {
   backgroundColor: string
@@ -34,50 +35,99 @@ type TemplateThemeInput = TemplateTheme & {
   shadowColor?: string
 }
 
-const DEFAULT_THEMES: Record<MenuTemplateVariant, ResolvedTemplateTheme> = {
+const DEFAULT_THEMES: Record<MenuTemplateVariant, Record<TemplateColorMode, ResolvedTemplateTheme>> = {
   cafe: {
-    primaryColor: "#8A5A3C",
-    secondaryColor: "#D8C2A4",
-    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
-    backgroundColor: "#F6EFE5",
-    surfaceColor: "rgba(255, 251, 245, 0.92)",
-    mutedSurfaceColor: "rgba(248, 240, 229, 0.9)",
-    borderColor: "rgba(138, 90, 60, 0.16)",
-    textColor: "#1D1714",
-    mutedTextColor: "#6E5A4C",
-    accentColor: "#E9D8C1",
-    shadowColor: "rgba(100, 67, 45, 0.12)",
+    light: {
+      primaryColor: "#8A5A3C",
+      secondaryColor: "#D8C2A4",
+      fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+      backgroundColor: "#F6EFE5",
+      surfaceColor: "rgba(255, 251, 245, 0.92)",
+      mutedSurfaceColor: "rgba(248, 240, 229, 0.9)",
+      borderColor: "rgba(138, 90, 60, 0.16)",
+      textColor: "#1D1714",
+      mutedTextColor: "#6E5A4C",
+      accentColor: "#E9D8C1",
+      shadowColor: "rgba(100, 67, 45, 0.12)",
+    },
+    dark: {
+      primaryColor: "#D9B98A",
+      secondaryColor: "#A97A56",
+      fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+      backgroundColor: "#11100E",
+      surfaceColor: "rgba(30, 26, 22, 0.95)",
+      mutedSurfaceColor: "rgba(45, 39, 33, 0.92)",
+      borderColor: "rgba(217, 185, 138, 0.24)",
+      textColor: "#F8EFE4",
+      mutedTextColor: "#C1AA91",
+      accentColor: "#2E2520",
+      shadowColor: "rgba(0, 0, 0, 0.42)",
+    },
   },
   restaurant: {
-    primaryColor: "#D9B46F",
-    secondaryColor: "#8D5A3C",
-    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
-    backgroundColor: "#0C0B0B",
-    surfaceColor: "rgba(24, 20, 19, 0.9)",
-    mutedSurfaceColor: "rgba(34, 28, 26, 0.92)",
-    borderColor: "rgba(217, 180, 111, 0.18)",
-    textColor: "#F6EFE5",
-    mutedTextColor: "#B8A998",
-    accentColor: "#2C2220",
-    shadowColor: "rgba(0, 0, 0, 0.35)",
+    light: {
+      primaryColor: "#A16B2F",
+      secondaryColor: "#D9B46F",
+      fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+      backgroundColor: "#F8F4EF",
+      surfaceColor: "rgba(255, 251, 247, 0.94)",
+      mutedSurfaceColor: "rgba(245, 238, 229, 0.95)",
+      borderColor: "rgba(161, 107, 47, 0.18)",
+      textColor: "#1A1511",
+      mutedTextColor: "#6F5C4A",
+      accentColor: "#ECE2D5",
+      shadowColor: "rgba(74, 45, 15, 0.16)",
+    },
+    dark: {
+      primaryColor: "#D9B46F",
+      secondaryColor: "#8D5A3C",
+      fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
+      backgroundColor: "#0C0B0B",
+      surfaceColor: "rgba(24, 20, 19, 0.9)",
+      mutedSurfaceColor: "rgba(34, 28, 26, 0.92)",
+      borderColor: "rgba(217, 180, 111, 0.18)",
+      textColor: "#F6EFE5",
+      mutedTextColor: "#B8A998",
+      accentColor: "#2C2220",
+      shadowColor: "rgba(0, 0, 0, 0.35)",
+    },
   },
   hotel: {
-    primaryColor: "#8C6A38",
-    secondaryColor: "#C4A46B",
-    fontFamily: "Georgia, Cambria, 'Times New Roman', Times, serif",
-    backgroundColor: "#F7F4EE",
-    surfaceColor: "rgba(255, 255, 255, 0.96)",
-    mutedSurfaceColor: "rgba(246, 242, 234, 0.95)",
-    borderColor: "rgba(140, 106, 56, 0.16)",
-    textColor: "#1E1813",
-    mutedTextColor: "#76695D",
-    accentColor: "#EEE4D0",
-    shadowColor: "rgba(84, 62, 33, 0.10)",
+    light: {
+      primaryColor: "#8C6A38",
+      secondaryColor: "#C4A46B",
+      fontFamily: "Georgia, Cambria, 'Times New Roman', Times, serif",
+      backgroundColor: "#F7F4EE",
+      surfaceColor: "rgba(255, 255, 255, 0.96)",
+      mutedSurfaceColor: "rgba(246, 242, 234, 0.95)",
+      borderColor: "rgba(140, 106, 56, 0.16)",
+      textColor: "#1E1813",
+      mutedTextColor: "#76695D",
+      accentColor: "#EEE4D0",
+      shadowColor: "rgba(84, 62, 33, 0.10)",
+    },
+    dark: {
+      primaryColor: "#D1B483",
+      secondaryColor: "#8F7244",
+      fontFamily: "Georgia, Cambria, 'Times New Roman', Times, serif",
+      backgroundColor: "#0F1116",
+      surfaceColor: "rgba(21, 25, 33, 0.94)",
+      mutedSurfaceColor: "rgba(31, 37, 48, 0.92)",
+      borderColor: "rgba(209, 180, 131, 0.2)",
+      textColor: "#EEE4D6",
+      mutedTextColor: "#B8AA95",
+      accentColor: "#253043",
+      shadowColor: "rgba(0, 0, 0, 0.36)",
+    },
   },
 }
 
-export function resolveTemplateTheme(variant: MenuTemplateVariant, theme?: TemplateThemeInput): ResolvedTemplateTheme {
-  const defaults = DEFAULT_THEMES[variant]
+export function resolveTemplateTheme(
+  variant: MenuTemplateVariant,
+  theme?: TemplateThemeInput,
+  colorMode: TemplateColorMode = "light"
+): ResolvedTemplateTheme {
+  const defaults = DEFAULT_THEMES[variant][colorMode]
 
   return {
     primaryColor: theme?.primaryColor || defaults.primaryColor,
@@ -106,6 +156,18 @@ function getReadableTextColor(hexColor: string, lightColor = "#FFFFFF", darkColo
   return luminance > 0.62 ? darkColor : lightColor
 }
 
+function toRgba(color: string, alpha: number, fallback = `rgba(255,255,255,${alpha})`) {
+  const normalized = String(color || "").trim()
+  const hex = normalized.replace("#", "")
+  if (/^[0-9a-fA-F]{6}$/.test(hex)) {
+    const r = Number.parseInt(hex.slice(0, 2), 16)
+    const g = Number.parseInt(hex.slice(2, 4), 16)
+    const b = Number.parseInt(hex.slice(4, 6), 16)
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+  return fallback
+}
+
 export function templateStyle(theme: ResolvedTemplateTheme): CSSProperties {
   return {
     backgroundColor: theme.backgroundColor,
@@ -127,11 +189,27 @@ export function getCategorySectionId(categoryId: string) {
 }
 
 export function getMenuImageSource(item: MenuItem): string {
-  return (
-    getImageUrl(item.image_url || item.image || item.images || item.image_urls) ||
-    getImageUrls(item.image_url || item.image || item.images || item.image_urls)[0] ||
-    "/placeholder.svg"
-  )
+  const imageCandidates = [
+    item.image_urls,
+    item.images,
+    item.image,
+    item.image_url,
+    (item as any).thumbnail_url,
+    (item as any).media,
+    (item as any).media_ref,
+    (item as any).media_id,
+  ]
+
+  // Prefer gallery-style fields first so we don't get stuck with a stale single URL.
+  for (const candidate of imageCandidates) {
+    const fromList = getImageUrls(candidate)[0]
+    if (fromList) return fromList
+
+    const fromSingle = getImageUrl(candidate)
+    if (fromSingle) return fromSingle
+  }
+
+  return "/placeholder.svg"
 }
 
 function stringifySearchValue(value: unknown) {
@@ -240,9 +318,18 @@ export function DecorativeBackdrop({
   if (variant === "restaurant") {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-20 top-6 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(217,180,111,0.22),transparent_68%)] blur-3xl sm:h-72 sm:w-72" />
-        <div className="absolute -right-24 top-24 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(141,90,60,0.24),transparent_70%)] blur-3xl sm:h-80 sm:w-80" />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-[linear-gradient(180deg,transparent,rgba(255,255,255,0.03))]" />
+        <div
+          className="absolute -left-20 top-6 h-56 w-56 rounded-full blur-3xl sm:h-72 sm:w-72"
+          style={{ background: `radial-gradient(circle, ${toRgba(theme.primaryColor, 0.22)}, transparent 68%)` }}
+        />
+        <div
+          className="absolute -right-24 top-24 h-64 w-64 rounded-full blur-3xl sm:h-80 sm:w-80"
+          style={{ background: `radial-gradient(circle, ${toRgba(theme.secondaryColor, 0.24)}, transparent 70%)` }}
+        />
+        <div
+          className="absolute inset-x-0 bottom-0 h-40"
+          style={{ background: `linear-gradient(180deg, transparent, ${toRgba(theme.textColor, 0.08)})` }}
+        />
         <div
           className="absolute left-1/2 top-24 h-px w-[120%] -translate-x-1/2 opacity-40"
           style={{ background: `linear-gradient(90deg, transparent, ${theme.primaryColor}, transparent)` }}
@@ -254,9 +341,18 @@ export function DecorativeBackdrop({
   if (variant === "hotel") {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-32 top-10 h-60 w-60 rounded-full bg-[radial-gradient(circle,rgba(196,164,107,0.2),transparent_70%)] blur-3xl sm:h-80 sm:w-80" />
-        <div className="absolute -right-28 top-40 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(140,106,56,0.16),transparent_72%)] blur-3xl sm:h-96 sm:w-96" />
-        <div className="absolute inset-x-0 top-20 h-px bg-[linear-gradient(90deg,transparent,rgba(140,106,56,0.28),transparent)]" />
+        <div
+          className="absolute -left-32 top-10 h-60 w-60 rounded-full blur-3xl sm:h-80 sm:w-80"
+          style={{ background: `radial-gradient(circle, ${toRgba(theme.secondaryColor, 0.2)}, transparent 70%)` }}
+        />
+        <div
+          className="absolute -right-28 top-40 h-72 w-72 rounded-full blur-3xl sm:h-96 sm:w-96"
+          style={{ background: `radial-gradient(circle, ${toRgba(theme.primaryColor, 0.16)}, transparent 72%)` }}
+        />
+        <div
+          className="absolute inset-x-0 top-20 h-px"
+          style={{ background: `linear-gradient(90deg, transparent, ${toRgba(theme.primaryColor, 0.28)}, transparent)` }}
+        />
         <div className="absolute right-8 top-6 grid grid-cols-6 gap-2 opacity-50 sm:right-12 sm:top-10">
           {Array.from({ length: 12 }).map((_, index) => (
             <span
@@ -272,9 +368,18 @@ export function DecorativeBackdrop({
 
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute -left-24 top-0 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(138,90,60,0.2),transparent_68%)] blur-3xl sm:h-80 sm:w-80" />
-      <div className="absolute -right-20 top-32 h-60 w-60 rounded-full bg-[radial-gradient(circle,rgba(216,194,164,0.26),transparent_70%)] blur-3xl sm:h-72 sm:w-72" />
-      <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.28),transparent)]" />
+      <div
+        className="absolute -left-24 top-0 h-64 w-64 rounded-full blur-3xl sm:h-80 sm:w-80"
+        style={{ background: `radial-gradient(circle, ${toRgba(theme.primaryColor, 0.2)}, transparent 68%)` }}
+      />
+      <div
+        className="absolute -right-20 top-32 h-60 w-60 rounded-full blur-3xl sm:h-72 sm:w-72"
+        style={{ background: `radial-gradient(circle, ${toRgba(theme.secondaryColor, 0.26)}, transparent 70%)` }}
+      />
+      <div
+        className="absolute inset-x-0 top-0 h-24"
+        style={{ background: `linear-gradient(180deg, ${toRgba(theme.textColor, 0.16)}, transparent)` }}
+      />
       <div className="absolute bottom-8 right-8 grid grid-cols-8 gap-2 opacity-45 sm:bottom-10 sm:right-12">
         {Array.from({ length: 16 }).map((_, index) => (
           <span
@@ -298,9 +403,15 @@ export function TemplateAccentCluster({
   if (variant === "restaurant") {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute right-4 top-4 hidden sm:block">
-        <div className="relative h-24 w-24 rounded-[28px] border border-white/10 bg-white/5 p-4 shadow-2xl backdrop-blur-xl">
+        <div
+          className="relative h-24 w-24 rounded-[28px] border p-4 shadow-2xl backdrop-blur-xl"
+          style={{ borderColor: theme.borderColor, backgroundColor: theme.surfaceColor }}
+        >
           <div className="absolute -left-3 -top-3 h-8 w-8 rounded-full bg-[radial-gradient(circle,rgba(217,180,111,0.45),transparent_68%)] blur-md" />
-          <div className="grid h-full w-full place-items-center rounded-[20px] border border-white/10 bg-black/25 text-white">
+          <div
+            className="grid h-full w-full place-items-center rounded-[20px] border"
+            style={{ borderColor: theme.borderColor, backgroundColor: theme.mutedSurfaceColor, color: theme.textColor }}
+          >
             <UtensilsCrossed className="h-8 w-8" />
           </div>
         </div>
@@ -371,10 +482,10 @@ export function TemplatePatternBackdrop({
 }) {
   const isCafe = variant === "cafe"
   const isRestaurant = variant === "restaurant"
-  const base = isRestaurant ? "rgba(255,255,255,0.03)" : isCafe ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.18)"
-  const primary = isRestaurant ? "rgba(217,180,111,0.65)" : isCafe ? "rgba(35, 72, 114, 0.9)" : "rgba(140, 106, 56, 0.85)"
-  const secondary = isRestaurant ? "rgba(141,90,60,0.72)" : isCafe ? "rgba(84, 113, 157, 0.75)" : "rgba(196, 164, 107, 0.78)"
-  const muted = isRestaurant ? "rgba(184,169,152,0.42)" : isCafe ? "rgba(176, 192, 210, 0.9)" : "rgba(238, 228, 208, 0.95)"
+  const base = isRestaurant ? toRgba(theme.textColor, 0.05) : isCafe ? toRgba(theme.textColor, 0.16) : toRgba(theme.textColor, 0.1)
+  const primary = isRestaurant ? toRgba(theme.primaryColor, 0.65) : isCafe ? toRgba(theme.primaryColor, 0.8) : toRgba(theme.primaryColor, 0.85)
+  const secondary = isRestaurant ? toRgba(theme.secondaryColor, 0.72) : isCafe ? toRgba(theme.secondaryColor, 0.75) : toRgba(theme.secondaryColor, 0.78)
+  const muted = isRestaurant ? toRgba(theme.mutedTextColor, 0.42) : isCafe ? toRgba(theme.mutedTextColor, 0.68) : toRgba(theme.mutedTextColor, 0.7)
 
   const cells = [
     [primary, 90], [secondary, 180], [muted, 0], [primary, 90],
@@ -410,8 +521,8 @@ export function TemplatePatternBackdrop({
         </div>
       </div>
 
-      <div className="absolute inset-x-0 top-0 h-10 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),transparent)]" />
-      <div className="absolute inset-x-0 bottom-0 h-12 bg-[linear-gradient(0deg,rgba(255,255,255,0.12),transparent)]" />
+      <div className="absolute inset-x-0 top-0 h-10" style={{ background: `linear-gradient(180deg, ${toRgba(theme.textColor, 0.12)}, transparent)` }} />
+      <div className="absolute inset-x-0 bottom-0 h-12" style={{ background: `linear-gradient(0deg, ${toRgba(theme.textColor, 0.12)}, transparent)` }} />
     </div>
   )
 }
@@ -460,16 +571,16 @@ export function TemplateFrameOrnament({
   if (variant === "restaurant") {
     return (
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden lg:block">
-        <div className="absolute left-6 right-6 top-6 bottom-6 rounded-[34px] border border-white/10" />
-        <div className="absolute left-1/2 top-5 flex -translate-x-1/2 items-center gap-3 text-white/50">
-          <span className="h-px w-28 bg-white/20" />
+        <div className="absolute left-6 right-6 top-6 bottom-6 rounded-[34px] border" style={{ borderColor: theme.borderColor }} />
+        <div className="absolute left-1/2 top-5 flex -translate-x-1/2 items-center gap-3" style={{ color: theme.mutedTextColor }}>
+          <span className="h-px w-28" style={{ backgroundColor: theme.borderColor }} />
           <FlowerCenter />
-          <span className="h-px w-28 bg-white/20" />
+          <span className="h-px w-28" style={{ backgroundColor: theme.borderColor }} />
         </div>
-        <div className="absolute left-1/2 bottom-5 flex -translate-x-1/2 items-center gap-3 text-white/40">
-          <span className="h-px w-28 bg-white/20" />
+        <div className="absolute left-1/2 bottom-5 flex -translate-x-1/2 items-center gap-3" style={{ color: theme.mutedTextColor }}>
+          <span className="h-px w-28" style={{ backgroundColor: theme.borderColor }} />
           <FlowerCenter />
-          <span className="h-px w-28 bg-white/20" />
+          <span className="h-px w-28" style={{ backgroundColor: theme.borderColor }} />
         </div>
       </div>
     )
@@ -510,17 +621,12 @@ export function StickyCategoryNav({
   const isCafe = variant === "cafe"
   const isRestaurant = variant === "restaurant"
   const isHotel = variant === "hotel"
-  const backgroundColor = isRestaurant
-    ? "rgba(12, 11, 11, 0.82)"
-    : isCafe
-      ? "rgba(249, 244, 235, 0.9)"
-      : "rgba(251, 248, 242, 0.92)"
+  const backgroundColor = theme.surfaceColor
 
   return (
     <div
       className={cn(
         "sticky top-0 z-40 border-b backdrop-blur-xl",
-        isRestaurant && "border-white/10",
         className
       )}
       style={{ backgroundColor, borderColor: theme.borderColor, boxShadow: `0 10px 30px ${theme.shadowColor}` }}
@@ -537,8 +643,8 @@ export function StickyCategoryNav({
               className={cn(
                 "group inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all duration-300 sm:text-xs",
                 active
-                  ? "scale-[1.01] shadow-lg"
-                  : "opacity-80 hover:opacity-100 hover:-translate-y-0.5"
+                  ? "scale-[1.01] shadow-lg ring-2 ring-offset-1"
+                  : "opacity-85 hover:opacity-100 hover:-translate-y-0.5"
               )}
               style={{
                 borderColor: active ? theme.primaryColor : theme.borderColor,
@@ -608,7 +714,10 @@ export function CategorySection({
     >
       <TemplatePatternBackdrop theme={theme} variant={variant} />
       <TemplateFrameOrnament theme={theme} variant={variant} />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_34%)]" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: `radial-gradient(circle_at_top, ${toRgba(theme.textColor, 0.12)}, transparent 34%)` }}
+      />
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="relative z-10 max-w-3xl space-y-3">
           <div className="flex items-center gap-3">
@@ -647,7 +756,7 @@ export function CategorySection({
         </div>
       </div>
 
-      <div className={cn("relative z-10 grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-2", gridClassName)}>{children}</div>
+      <div className={cn("relative z-10 grid gap-2.5 sm:gap-4 grid-cols-1 md:grid-cols-2", gridClassName)}>{children}</div>
     </section>
   )
 }
@@ -706,7 +815,7 @@ export function MenuItemCard({
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
-              <h3 className="truncate text-lg font-semibold sm:text-xl">{item.name}</h3>
+              <h3 className="line-clamp-2 text-lg font-semibold sm:text-xl">{item.name}</h3>
               {item.description && (
                 <p className="line-clamp-2 text-sm leading-relaxed" style={{ color: theme.mutedTextColor }}>
                   {item.description}
@@ -714,11 +823,11 @@ export function MenuItemCard({
               )}
             </div>
             <div className="text-right">
-              <p className="text-lg font-bold" style={{ color: theme.primaryColor }}>
+              <p className="text-xl font-black leading-none" style={{ color: theme.primaryColor }}>
                 {price.currentPriceLabel}
               </p>
               {price.originalPriceLabel && (
-                <p className="text-[10px] font-medium line-through" style={{ color: theme.mutedTextColor }}>
+                <p className="mt-1 text-[10px] font-medium line-through opacity-80" style={{ color: theme.mutedTextColor }}>
                   {price.originalPriceLabel}
                 </p>
               )}
@@ -746,10 +855,10 @@ export function MenuItemCard({
         onClick={onClick}
         whileHover={{ y: -8, scale: 1.01 }}
         whileTap={{ scale: 0.995 }}
-        className="group flex h-full w-full flex-col overflow-hidden rounded-[30px] border text-left transition-all duration-500"
+        className="group flex h-full w-full flex-row items-start overflow-hidden rounded-[30px] border text-left transition-all duration-500"
         style={{ backgroundColor: theme.surfaceColor, borderColor: theme.borderColor, boxShadow: `0 24px 70px ${theme.shadowColor}` }}
       >
-        <div className="relative aspect-4/3 overflow-hidden">
+        <div className="relative aspect-square w-20 shrink-0 overflow-hidden sm:w-24 md:w-28">
           <Image
             src={image}
             alt={item.name}
@@ -758,30 +867,38 @@ export function MenuItemCard({
             priority={priority}
             className="object-cover transition-transform duration-700 group-hover:scale-110"
           />
-          <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/18 to-transparent" />
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(to top, ${toRgba(theme.backgroundColor, 0.82)}, ${toRgba(theme.backgroundColor, 0.3)}, transparent)` }}
+          />
           <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4 sm:p-5">
             <div className="flex flex-wrap gap-2">
-              {popular && <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-white/90 shadow-[0_0_0_6px_rgba(255,255,255,0.12)]" />}
-              {chefChoice && <Sparkles aria-hidden="true" className="h-4 w-4 text-white/85" />}
+              {popular && (
+                <span
+                  aria-hidden="true"
+                  className="h-2.5 w-2.5 rounded-full shadow-[0_0_0_6px_rgba(0,0,0,0.16)]"
+                  style={{ backgroundColor: theme.primaryColor }}
+                />
+              )}
+              {chefChoice && <Sparkles aria-hidden="true" className="h-4 w-4" style={{ color: theme.primaryColor }} />}
             </div>
-            {unavailable && <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-white/70" />}
-          </div>
-          <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
-            <div className="flex items-end justify-between gap-4 text-white">
-              <div className="space-y-1">
-                <h3 className="text-2xl font-black leading-tight sm:text-3xl">{item.name}</h3>
-              </div>
-              <div className="text-right">
-                <p className="text-xl font-black sm:text-2xl">{price.currentPriceLabel}</p>
-                {price.originalPriceLabel && <p className="text-[11px] text-white/65 line-through">{price.originalPriceLabel}</p>}
-              </div>
-            </div>
+            {unavailable && <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: theme.mutedTextColor }} />}
           </div>
         </div>
 
-        <div className="flex flex-1 flex-col gap-3 p-5 sm:p-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5 p-3 sm:gap-2 sm:p-4">
+          <div className="flex items-start justify-between gap-3" style={{ color: getReadableTextColor(theme.primaryColor, "#FFFFFF", "#111111") }}>
+            <div className="min-w-0 space-y-1">
+              <h3 className="line-clamp-2 text-sm font-black leading-tight sm:text-xl">{item.name}</h3>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-black sm:text-xl">{price.currentPriceLabel}</p>
+              {price.originalPriceLabel && <p className="text-[11px] line-through" style={{ color: toRgba(theme.textColor, 0.72) }}>{price.originalPriceLabel}</p>}
+            </div>
+          </div>
+
           {item.description && (
-            <p className="line-clamp-3 text-sm leading-relaxed" style={{ color: theme.mutedTextColor }}>
+            <p className="line-clamp-2 text-[11px] leading-relaxed sm:text-sm" style={{ color: theme.mutedTextColor }}>
               {item.description}
             </p>
           )}
@@ -792,7 +909,7 @@ export function MenuItemCard({
                 {price.discountLabel}
               </span>
             )}
-            {(item.rating || item.rating_count) && (
+            {(Number(item.rating || 0) > 0 || Number(item.rating_count || 0) > 0) && (
               <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]" style={{ borderColor: theme.borderColor, color: theme.mutedTextColor }}>
                 <Star className="h-3.5 w-3.5 fill-current" />
                 {Number(item.rating || 0).toFixed(1)}
@@ -812,10 +929,10 @@ export function MenuItemCard({
       onClick={onClick}
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.995 }}
-      className="group flex w-full items-center gap-4 rounded-3xl border px-4 py-4 text-left transition-all duration-300 sm:px-5 sm:py-5"
+      className="group flex w-full flex-col gap-3 rounded-3xl border px-3 py-3 text-left transition-all duration-300 sm:flex-row sm:items-center sm:gap-4 sm:px-5 sm:py-5"
       style={{ backgroundColor: theme.surfaceColor, borderColor: theme.borderColor, boxShadow: `0 16px 40px ${theme.shadowColor}` }}
     >
-      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[20px] sm:h-24 sm:w-24">
+      <div className="relative aspect-4/3 w-full shrink-0 overflow-hidden rounded-[20px] sm:h-24 sm:w-24 sm:aspect-auto">
         <Image
           src={image}
           alt={item.name}
@@ -826,19 +943,19 @@ export function MenuItemCard({
         />
       </div>
 
-      <div className="min-w-0 flex-1 space-y-2">
+      <div className="min-w-0 flex-1 space-y-2 px-1 sm:px-0">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <h3 className="truncate text-base font-semibold sm:text-lg">{item.name}</h3>
+            <h3 className="line-clamp-2 text-base font-semibold sm:text-lg">{item.name}</h3>
             <p className="line-clamp-2 text-sm leading-relaxed" style={{ color: theme.mutedTextColor }}>
               {item.description}
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-            <p className="text-base font-black sm:text-lg" style={{ color: theme.primaryColor }}>
+            <p className="text-base font-black leading-none sm:text-xl" style={{ color: theme.primaryColor }}>
               {price.currentPriceLabel}
             </p>
-            {price.originalPriceLabel && <p className="text-[11px] line-through" style={{ color: theme.mutedTextColor }}>{price.originalPriceLabel}</p>}
+            {price.originalPriceLabel && <p className="text-[11px] line-through opacity-80" style={{ color: theme.mutedTextColor }}>{price.originalPriceLabel}</p>}
           </div>
         </div>
 
@@ -864,7 +981,6 @@ export function MenuItemCard({
         </div>
       </div>
 
-      <ArrowRight className="h-4 w-4 shrink-0 opacity-35 transition-transform duration-300 group-hover:translate-x-1" style={{ color: theme.mutedTextColor }} />
     </motion.button>
   )
 }
@@ -876,10 +992,10 @@ export function MenuLoadingState({
   theme: ResolvedTemplateTheme
   variant: MenuTemplateVariant
 }) {
-  const skeletonCard = variant === "restaurant"
-    ? "aspect-[4/3] rounded-[30px]"
+    const skeletonCard = variant === "restaurant"
+    ? "aspect-[5/6] rounded-[30px]"
     : variant === "hotel"
-      ? "h-28 rounded-[24px]"
+      ? "h-36 sm:h-28 rounded-[24px]"
       : "h-24 rounded-[24px]"
 
   return (
@@ -898,10 +1014,18 @@ export function MenuLoadingState({
             </div>
             <div className="h-9 w-28 rounded-full" style={{ backgroundColor: theme.mutedSurfaceColor }} />
           </div>
-          <div className={cn("grid gap-4 sm:gap-5", variant === "restaurant" ? "md:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2")}>
+          <div
+            className={cn(
+              "grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-2",
+              variant === "restaurant" && "xl:grid-cols-3"
+            )}
+          >
             {Array.from({ length: 4 }).map((__, cardIndex) => (
               <div key={cardIndex} className={cn("overflow-hidden border", skeletonCard)} style={{ backgroundColor: theme.mutedSurfaceColor, borderColor: theme.borderColor }}>
-                <div className="h-full animate-pulse bg-linear-to-br from-white/10 via-white/20 to-transparent" />
+                <div
+                  className="h-full animate-pulse"
+                  style={{ background: `linear-gradient(to bottom right, ${toRgba(theme.textColor, 0.08)}, ${toRgba(theme.textColor, 0.16)}, transparent)` }}
+                />
               </div>
             ))}
           </div>
@@ -965,10 +1089,10 @@ export function TemplateFooterCTA({
   return (
     <div
       className={cn(
-        "rounded-[28px] border px-4 py-4 sm:px-5 sm:py-5",
-        isRestaurant ? "bg-white/5" : "bg-(--menu-surface)"
+        "rounded-[28px] border px-4 py-3.5 sm:px-5 sm:py-4",
+        "bg-(--menu-surface)"
       )}
-      style={{ borderColor: theme.borderColor, boxShadow: `0 18px 40px ${theme.shadowColor}` }}
+      style={{ borderColor: toRgba(theme.borderColor, 0.85), boxShadow: `0 10px 24px ${toRgba(theme.shadowColor, 0.55)}` }}
     >
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-3">

@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/drawer"
 
 import { LoadingSignal } from "@/components/ui/loading-signal"
-import { ThemeToggle } from "@/components/theme-toggle"
 
 // Template Imports
 import { MenuItem, Category, Restaurant } from "./menu-templates/types"
@@ -333,6 +332,7 @@ function toNumberOrNull(value: unknown) {
 }
 
 function getItemDetails(item: MenuItem) {
+  const isTruthy = (value: unknown) => Boolean(value) && String(value).toLowerCase() !== "false"
   return {
     calories: pickFirstText((item as any).calories, (item as any).calogy),
     spiceLevel: toNumberOrNull((item as any).spice_level),
@@ -343,7 +343,49 @@ function getItemDetails(item: MenuItem) {
     ingredients: parseTextList((item as any).ingredients),
     freshness: pickFirstText((item as any).freshness, (item as any).freshly_made, (item as any).is_fresh ? "Freshly made" : ""),
     chefNotes: pickFirstText((item as any).chef_notes, (item as any).notes, (item as any).kitchen_notes),
+    notes: pickFirstText((item as any).notes),
+    kitchenNotes: pickFirstText((item as any).kitchen_notes),
+    prepMinutes: toNumberOrNull((item as any).prep_minutes),
+    estimatedPrepTime: pickFirstText((item as any).estimated_prep_time),
+    freshlyMade: isTruthy((item as any).freshly_made || (item as any).is_fresh),
+    isFeatured: isTruthy((item as any).is_featured),
+    isPopular: isTruthy((item as any).is_popular),
+    isSignature: isTruthy((item as any).is_signature),
+    chefPick: isTruthy((item as any).chef_pick || (item as any).is_chef_pick),
+    chefChoice: isTruthy((item as any).chef_choice),
+    rating: Number((item as any).rating || 0),
+    ratingCount: Number((item as any).rating_count || 0),
   }
+}
+
+function formatYesNo(value: boolean) {
+  return value ? "Yes" : "No"
+}
+
+function formatDetailValue(value: unknown, fallback = "Not listed") {
+  if (Array.isArray(value)) {
+    const parsed = value.map((entry) => String(entry).trim()).filter(Boolean)
+    return parsed.length > 0 ? parsed.join(", ") : fallback
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return fallback
+  }
+
+  const text = String(value).trim()
+  return text ? text : fallback
+}
+
+function hasDetailValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim()).filter(Boolean).length > 0
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return false
+  }
+
+  return String(value).trim().length > 0
 }
 
 export default function MenuListClient({ hotelSlug, initialHotel, initialCategories = [], initialItems = [] }: MenuListClientProps) {
@@ -506,7 +548,7 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
           <p className="text-muted-foreground max-w-xs">{error || "We couldn't load the menu."}</p>
         </div>
         <Button asChild variant="outline" className="rounded-full">
-          <Link href={`/${hotelSlug}`}>Try Again</Link>
+          <Link href={`/${hotelSlug}`} prefetch={false}>Try Again</Link>
         </Button>
       </div>
     )
@@ -515,16 +557,12 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
   return (
     <div className="relative">
       <div className="fixed top-4 left-4 z-50">
-        <Button asChild variant="secondary" className="h-11 rounded-full border border-border/60 bg-background/80 px-4 backdrop-blur-md shadow-lg">
-          <Link href={`/${hotelSlug}`} className="inline-flex items-center gap-2 text-foreground">
+          <Button asChild variant="outline" className="h-11 rounded-full border-border/60 bg-background/90 px-4 text-foreground backdrop-blur-md shadow-lg hover:bg-background hover:text-foreground">
+          <Link href={`/${hotelSlug}`} prefetch={false} className="inline-flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             <span className="text-xs font-semibold uppercase tracking-[0.2em]">Back to website</span>
           </Link>
         </Button>
-      </div>
-
-      <div className="fixed top-4 right-4 z-50 rounded-xl border border-border/60 bg-background/80 backdrop-blur-md shadow-lg">
-        <ThemeToggle />
       </div>
 
       {/* Template Switcher Logic */}
@@ -728,28 +766,50 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                               </div>
                             </div>
 
-                            <div className="rounded-2xl border px-4 py-3 md:px-5 md:py-4" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
-                              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm md:text-[15px]">
-                                <span className="inline-flex items-center gap-1.5" style={{ color: menuTheme.mutedTextColor }}>
-                                  <span className="text-[10px] uppercase tracking-[0.18em] font-black text-muted-foreground">Calories</span>
-                                  <span className="font-semibold" style={{ color: menuTheme.textColor }}>{itemDetails.calories || "Not listed"}</span>
-                                </span>
-                                <span className="hidden md:inline h-4 w-px" style={{ backgroundColor: menuTheme.borderColor }} />
-                                <span className="inline-flex items-center gap-1.5" style={{ color: menuTheme.mutedTextColor }}>
-                                  <span className="text-[10px] uppercase tracking-[0.18em] font-black text-muted-foreground">Spice</span>
-                                  <span className="font-semibold" style={{ color: menuTheme.textColor }}>{itemDetails.spiceLevel !== null ? `${itemDetails.spiceLevel}/5` : "Not listed"}</span>
-                                </span>
-                                <span className="hidden md:inline h-4 w-px" style={{ backgroundColor: menuTheme.borderColor }} />
-                                <span className="inline-flex items-center gap-1.5" style={{ color: menuTheme.mutedTextColor }}>
-                                  <span className="text-[10px] uppercase tracking-[0.18em] font-black text-muted-foreground">Prep</span>
-                                  <span className="font-semibold" style={{ color: menuTheme.textColor }}>{itemDetails.prepTime || "Not listed"}</span>
-                                </span>
-                                <span className="hidden md:inline h-4 w-px" style={{ backgroundColor: menuTheme.borderColor }} />
-                                <span className="inline-flex items-center gap-1.5" style={{ color: menuTheme.mutedTextColor }}>
-                                  <span className="text-[10px] uppercase tracking-[0.18em] font-black text-muted-foreground">Service</span>
-                                  <span className="font-semibold" style={{ color: menuTheme.textColor }}>{itemDetails.serviceTime || "Not listed"}</span>
-                                </span>
+                            <div className="rounded-3xl border p-5 md:p-7" style={{ backgroundColor: menuTheme.mutedSurfaceColor, borderColor: menuTheme.borderColor }}>
+                              <div className="flex items-center justify-between gap-3 mb-4">
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Item details</p>
+                                  {/* <p className="text-sm font-medium" style={{ color: menuTheme.textColor }}>All available data fields from the backend</p> */}
+                                </div>
+                                {Number(selectedItem.rating_count || 0) > 0 && (
+                                  <span className="rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]" style={{ borderColor: menuTheme.borderColor, backgroundColor: menuTheme.surfaceColor, color: menuTheme.textColor }}>
+                                    {Number(selectedItem.rating_count)} reviews
+                                  </span>
+                                )}
                               </div>
+
+                              {(() => {
+                                const detailRows = [
+                                  ["Category", categories.find((c) => String(c.id) === String(selectedItem.category_id))?.name || "Selection"],
+                                  ["Availability", formatYesNo(!(selectedItem.is_available === false || selectedItem.available === false))],
+                                  hasDetailValue(itemDetails.calories) ? ["Calories", formatDetailValue(itemDetails.calories)] : null,
+                                  itemDetails.spiceLevel !== null ? ["Spice level", `${itemDetails.spiceLevel}/5`] : null,
+                                  hasDetailValue(itemDetails.prepTime) ? ["Prep time", formatDetailValue(itemDetails.prepTime)] : null,
+                                  hasDetailValue(itemDetails.estimatedPrepTime) ? ["Estimated prep", formatDetailValue(itemDetails.estimatedPrepTime)] : null,
+                                  itemDetails.prepMinutes !== null ? ["Prep minutes", String(itemDetails.prepMinutes)] : null,
+                                  hasDetailValue(itemDetails.serviceTime) ? ["Service time", formatDetailValue(itemDetails.serviceTime)] : null,
+                                  hasDetailValue(itemDetails.freshness) ? ["Freshness", formatDetailValue(itemDetails.freshness)] : null,
+                                  itemDetails.freshlyMade ? ["Freshly made", formatYesNo(itemDetails.freshlyMade)] : null,
+                                  itemDetails.isFeatured ? ["Featured", formatYesNo(itemDetails.isFeatured)] : null,
+                                  itemDetails.isPopular ? ["Popular", formatYesNo(itemDetails.isPopular)] : null,
+                                  itemDetails.isSignature ? ["Signature", formatYesNo(itemDetails.isSignature)] : null,
+                                  itemDetails.chefPick ? ["Chef pick", formatYesNo(itemDetails.chefPick)] : null,
+                                  itemDetails.chefChoice ? ["Chef choice", formatYesNo(itemDetails.chefChoice)] : null,
+                                  itemDetails.rating > 0 ? ["Rating", `${itemDetails.rating.toFixed(1)} / 5`] : null,
+                                ].filter(Boolean) as Array<readonly [string, string]>
+
+                                return (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                                    {detailRows.map(([label, value]) => (
+                                      <div key={label} className="rounded-2xl border px-4 py-3" style={{ backgroundColor: menuTheme.surfaceColor, borderColor: menuTheme.borderColor }}>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+                                        <p className="mt-1 text-sm font-semibold leading-snug" style={{ color: menuTheme.textColor }}>{value}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
+                              })()}
                             </div>
 
                             {(itemDetails.dietaryTags.length > 0 || itemDetails.allergens.length > 0 || itemDetails.ingredients.length > 0) && (
@@ -797,12 +857,36 @@ export default function MenuListClient({ hotelSlug, initialHotel, initialCategor
                               </div>
                             )}
 
-                            {itemDetails.chefNotes && (
+                            {(itemDetails.chefNotes || itemDetails.notes || itemDetails.kitchenNotes) && (
                               <div className="rounded-3xl border p-5 md:p-7" style={{ backgroundColor: menuTheme.surfaceColor, borderColor: menuTheme.borderColor }}>
-                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Chef Notes</p>
-                                <p className="mt-2 text-sm md:text-base leading-relaxed" style={{ color: menuTheme.textColor }}>
-                                  {itemDetails.chefNotes}
-                                </p>
+                                <div className="space-y-5">
+                                  {itemDetails.chefNotes && (
+                                    <div>
+                                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Chef notes</p>
+                                      <p className="mt-2 text-sm md:text-base leading-relaxed" style={{ color: menuTheme.textColor }}>
+                                        {itemDetails.chefNotes}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {itemDetails.notes && (
+                                    <div>
+                                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Public notes</p>
+                                      <p className="mt-2 text-sm md:text-base leading-relaxed" style={{ color: menuTheme.textColor }}>
+                                        {itemDetails.notes}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {itemDetails.kitchenNotes && (
+                                    <div>
+                                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Kitchen notes</p>
+                                      <p className="mt-2 text-sm md:text-base leading-relaxed" style={{ color: menuTheme.textColor }}>
+                                        {itemDetails.kitchenNotes}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
 

@@ -3,7 +3,6 @@
 import Image from "next/image"
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -78,16 +77,9 @@ export function EventsSection({ events, coverImage, templateTheme, variant = "re
 
   return (
     <section id="events" className="relative overflow-hidden bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 py-20 text-white md:py-32">
-      {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
-      {templateTheme ? (
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-85 scale-105">
-          <TemplatePatternBackdrop theme={templateTheme} variant={variant} />
-        </div>
-      ) : null}
-      {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-0 left-10 h-72 w-72 rounded-full bg-primary/20 blur-[140px]" />
-        <div className="absolute bottom-0 right-10 h-64 w-64 rounded-full bg-amber-500/15 blur-[120px]" />
+        <div className="absolute top-0 left-10 h-72 w-72 rounded-full bg-slate-400/12 blur-[140px]" />
+        <div className="absolute bottom-0 right-10 h-64 w-64 rounded-full bg-white/8 blur-[120px]" />
         <div className="absolute inset-0 bg-linear-to-b from-white/4 via-transparent to-white/2" />
       </div>
       <div className="container mx-auto px-6">
@@ -127,6 +119,7 @@ export function EventsSection({ events, coverImage, templateTheme, variant = "re
                       alt={event.title}
                       fill
                       sizes="(max-width: 768px) 100vw, 33vw"
+                      unoptimized
                       className="object-cover transition-transform duration-700 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/20 to-transparent" />
@@ -249,6 +242,7 @@ export function EventsSection({ events, coverImage, templateTheme, variant = "re
                   alt={selectedEvent.title}
                   fill
                   sizes="100vw"
+                  unoptimized
                   className="object-cover"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent" />

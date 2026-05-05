@@ -2,7 +2,6 @@
 
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { getImageUrl } from "@/lib/utils"
@@ -37,16 +36,10 @@ export function StorySection({ hotel, coverImage, templateTheme, variant = "rest
 
   return (
     <section id="story" className="relative bg-linear-to-b from-background via-muted/5 to-background py-20 md:py-32">
-      {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
-      {templateTheme ? (
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-80 scale-105">
-          <TemplatePatternBackdrop theme={templateTheme} variant={variant} />
-        </div>
-      ) : null}
-      {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-20 left-8 h-64 w-64 rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute bottom-0 right-6 h-72 w-72 rounded-full bg-rose-500/10 blur-[140px]" />
+        <div className="absolute -top-20 left-8 h-64 w-64 rounded-full bg-white/40 blur-[120px] dark:bg-white/5" />
+        <div className="absolute bottom-0 right-6 h-72 w-72 rounded-full bg-slate-300/30 blur-[140px] dark:bg-slate-500/10" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.05),transparent_35%,rgba(15,23,42,0.03))] dark:bg-[linear-gradient(to_bottom,rgba(255,255,255,0.02),transparent_35%,rgba(255,255,255,0.01))]" />
       </div>
       <div className="container mx-auto px-6">
         <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">

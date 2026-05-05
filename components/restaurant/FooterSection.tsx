@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 import { MapPin, Phone, Mail, Clock } from "lucide-react"
 import { SocialLinks } from "@/components/restaurant/SocialLinks"
 
@@ -32,13 +31,11 @@ export function FooterSection({ hotel, templateTheme, variant = "restaurant" }: 
 
   return (
     <footer className="relative mt-8 rounded-t-4xl border-t border-border/60 bg-linear-to-b from-muted/30 to-background">
-      {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
-      {templateTheme ? (
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-80 scale-102">
-          <TemplatePatternBackdrop theme={templateTheme} variant={variant} />
-        </div>
-      ) : null}
-      {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-white/30 blur-3xl dark:bg-white/5" />
+        <div className="absolute right-0 bottom-0 h-80 w-80 rounded-full bg-slate-300/25 blur-3xl dark:bg-slate-500/10" />
+        <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(circle_at_1px_1px,rgba(71,85,105,0.2)_1px,transparent_0)] [background-size:22px_22px] dark:opacity-15" />
+      </div>
       <div className="container mx-auto px-6 py-16">
         <div className="mb-12 grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4">
           {/* Restaurant Info */}

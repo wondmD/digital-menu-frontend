@@ -14,6 +14,7 @@ import "@/lib/unhandled-rejection"
 const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Agelgil | Elegant Digital Menus for Modern Hospitality",
     template: "%s | Agelgil",

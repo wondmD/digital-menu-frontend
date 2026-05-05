@@ -224,7 +224,7 @@ export function TopMenusSection({ items, menuLink, className }: TopMenusSectionP
 
         <div className="text-center mt-12">
           <Button size="lg" className="rounded-xl px-8 font-serif" asChild>
-            <Link href={menuLink}>
+            <Link href={menuLink} prefetch={false}>
               Explore Complete Menu
             </Link>
           </Button>

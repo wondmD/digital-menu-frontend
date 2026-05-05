@@ -210,9 +210,9 @@ async function loadRestaurantShowcaseBundle(identifier: string): Promise<Restaur
   const menuItems = categories.flatMap((category: any) => category.items || [])
 
   const eventPaths = [
-    `/my-restaurants/${restaurantId}/events?is_active=true`,
     `/restaurants/${restaurantId}/events?is_active=true`,
     `/restaurants/${restaurantId}/events`,
+    `/my-restaurants/${restaurantId}/events?is_active=true`,
   ]
 
   let events: any[] = []

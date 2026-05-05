@@ -144,9 +144,9 @@ function isActiveEvent(event: EventItem): boolean {
 
 async function fetchRestaurantEvents(restaurantIdentifier: string): Promise<EventItem[]> {
   const candidatePaths = [
-    `/my-restaurants/${restaurantIdentifier}/events?is_active=true`,
     `/restaurants/${restaurantIdentifier}/events?is_active=true`,
     `/restaurants/${restaurantIdentifier}/events`,
+    `/my-restaurants/${restaurantIdentifier}/events?is_active=true`,
   ]
 
   for (const path of candidatePaths) {

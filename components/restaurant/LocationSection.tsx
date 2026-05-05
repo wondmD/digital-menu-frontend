@@ -1,7 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { TemplatePatternBackdrop, TemplateFrameOrnament } from "@/components/menu-templates/shared"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { MapPin, Phone, ExternalLink, MessageCircle } from "lucide-react"
@@ -52,13 +51,11 @@ export function LocationSection({ hotel, mapSrc, mapLink, templateTheme, variant
 
   return (
     <section id="location" className="relative py-20 md:py-32 bg-linear-to-b from-background via-muted/10 to-background">
-      {templateTheme ? <TemplatePatternBackdrop theme={templateTheme} variant={variant} /> : null}
-      {templateTheme ? (
-        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-80 scale-102">
-          <TemplatePatternBackdrop theme={templateTheme} variant={variant} />
-        </div>
-      ) : null}
-      {templateTheme ? <TemplateFrameOrnament theme={templateTheme} variant={variant} /> : null}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-6 left-[-6%] h-96 w-96 rounded-full bg-white/35 blur-3xl dark:bg-white/5" />
+        <div className="absolute bottom-0 right-[-8%] h-96 w-96 rounded-full bg-slate-300/25 blur-3xl dark:bg-slate-500/10" />
+        <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(100,116,139,0.09)_1px,transparent_1px),linear-gradient(90deg,rgba(100,116,139,0.09)_1px,transparent_1px)] [background-size:42px_42px] dark:opacity-15" />
+      </div>
       <div className="container mx-auto px-6">
         {isMounted ? (
           <motion.div
@@ -250,7 +247,7 @@ export function LocationSection({ hotel, mapSrc, mapLink, templateTheme, variant
             </div>
 
             {/* Operating Hours */}
-            <Card className="rounded-3xl border border-primary/15 bg-linear-to-br from-primary/5 to-primary/10 shadow-lg backdrop-blur-xl">
+            <Card className="rounded-3xl border border-border/60 bg-linear-to-br from-card/80 to-muted/25 shadow-lg backdrop-blur-xl">
               <CardContent className="p-8">
                 <div className="space-y-4">
                   <h3 className="text-xl font-semibold">Operating Hours</h3>
