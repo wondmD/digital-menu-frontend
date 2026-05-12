@@ -93,7 +93,8 @@ export default function QRPage() {
   const [updatingTemplate, setUpdatingTemplate] = useState(false)
   const [previewTemplate, setPreviewTemplate] = useState<number | null>(null)
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false)
-  const [printMode, setPrintMode] = useState<'qr' | 'card'>('qr')
+  const [printMode, setPrintMode] = useState<'qr' | 'card' | 'banner'>('qr')
+  const [selectedBanner, setSelectedBanner] = useState<'restaurant' | 'cafe' | 'hotel'>('restaurant')
 
   // Removed demo/mock preview data; real preview data is loaded on demand.
 
@@ -701,6 +702,34 @@ export default function QRPage() {
               <span className="text-[10px] font-black uppercase tracking-widest leading-tight">Option 2: Design Card (3×4)</span>
               <span className="text-[8px] font-medium text-muted-foreground uppercase tracking-widest mt-1">Logo + Name + Brand Design</span>
             </Button>
+            
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1">
+                <Label className="text-[9px] font-black uppercase tracking-[0.5em] text-muted-foreground ml-2">Banner design</Label>
+                <div className="mt-2 flex gap-2">
+                  <button onClick={() => setSelectedBanner('restaurant')} className={cn("px-3 py-2 rounded-lg border", selectedBanner === 'restaurant' ? 'border-primary bg-primary/10' : 'border-border bg-card/30')}>Restaurant</button>
+                  <button onClick={() => setSelectedBanner('cafe')} className={cn("px-3 py-2 rounded-lg border", selectedBanner === 'cafe' ? 'border-primary bg-primary/10' : 'border-border bg-card/30')}>Cafe</button>
+                  <button onClick={() => setSelectedBanner('hotel')} className={cn("px-3 py-2 rounded-lg border", selectedBanner === 'hotel' ? 'border-primary bg-primary/10' : 'border-border bg-card/30')}>Hotel</button>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="h-20 w-48 flex flex-col items-center justify-center gap-1 rounded-2xl border-2 hover:border-primary hover:bg-primary/5 group"
+                onClick={() => {
+                  // set a banner-specific print mode, then trigger print
+                  setPrintMode('banner')
+                  setTimeout(() => {
+                    window.print()
+                    setIsPrintDialogOpen(false)
+                    setPrintMode('card')
+                  }, 100)
+                }}
+              >
+                <img src={`/qrbanners/${selectedBanner}.png`} alt="banner" width={48} height={32} className="object-cover rounded" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Option 3: Banner Print</span>
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -723,25 +752,66 @@ export default function QRPage() {
                 background: white !important; 
                 z-index: 99999;
              }
-             @page { size: auto; margin: 0; }
+             @page { size: portrait; margin: 0; }
            }
          `}</style>
          <div className="print-container">
             {selected && (printMode === 'qr' ? (
               <div className="text-center p-12 bg-white border border-gray-100 rounded-[3rem]">
-                <Image 
+                <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(menuUrl)}`}
                   alt="Menu QR"
                   width={1000}
                   height={1000}
-                  sizes="384px"
-                  className="h-96 w-96"
+                  className="h-96 w-96 mx-auto"
                 />
                 <div className="mt-8 space-y-2">
                    <p className="text-2xl font-black uppercase tracking-[0.4em] text-black">Scan to View Menu</p>
                    <p className="text-lg font-bold text-black font-serif italic">{selected.name}</p>
                 </div>
               </div>
+            ) : printMode === 'banner' ? (
+              (() => {
+                const banner = selectedBanner || 'restaurant'
+                const bannerUrl = `/qrbanners/${banner}.png`
+                const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=800x800&data=${encodeURIComponent(menuUrl)}`
+                const anchors: Record<string, { xPercent: number; yPercent: number; sizePercent: number }> = {
+                  // Anchors are measured against the full 1080x1920 canvas and target the placeholder area.
+                  restaurant: { xPercent: 50, yPercent: 56, sizePercent: 41 },
+                  cafe: { xPercent: 50, yPercent: 56, sizePercent: 41 },
+                  hotel: { xPercent: 50, yPercent: 56, sizePercent: 41 },
+                }
+                const cfg = anchors[banner] || anchors.restaurant
+                const bannerAspect = 1080 / 1920
+                return (
+                  <div
+                    style={{
+                      width: `min(calc((100vh - 48px) * ${bannerAspect}), calc(100vw - 48px))`,
+                      maxHeight: 'calc(100vh - 48px)',
+                      position: 'relative',
+                      display: 'inline-block',
+                    }}
+                  >
+                    <img src={bannerUrl} alt="banner" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                    <img
+                      src={qrSrc}
+                      alt="QR overlay"
+                      style={{
+                        position: 'absolute',
+                        left: `${cfg.xPercent}%`,
+                        top: `${cfg.yPercent}%`,
+                        width: `${cfg.sizePercent}%`,
+                        aspectRatio: '1 / 1',
+                        transform: 'translate(-50%, -50%)',
+                        boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+                        background: 'white',
+                        padding: 8,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                )
+              })()
             ) : (
               <QRPrintCard restaurant={selected} qrUrl={menuUrl} />
             ))}
