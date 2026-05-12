@@ -3,7 +3,7 @@
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { MapPin, Phone, ExternalLink, MessageCircle } from "lucide-react"
+import { MapPin, Phone, ExternalLink } from "lucide-react"
 import { useIsMounted } from "@/hooks/useIsMounted"
 
 type Restaurant = {
@@ -41,20 +41,12 @@ export function LocationSection({ hotel, mapSrc, mapLink, templateTheme, variant
     }
   }
 
-  const handleWhatsAppClick = () => {
-    const phoneNumber = hotel.whatsapp || hotel.phone
-    if (phoneNumber) {
-      const message = encodeURIComponent(`Hi! I'd like to inquire about ${hotel.name}.`)
-      window.open(`https://wa.me/${phoneNumber.replace(/[^0-9]/g, '')}?text=${message}`, '_blank', 'noopener,noreferrer')
-    }
-  }
-
   return (
     <section id="location" className="relative py-20 md:py-32 bg-linear-to-b from-background via-muted/10 to-background">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-6 left-[-6%] h-96 w-96 rounded-full bg-white/35 blur-3xl dark:bg-white/5" />
         <div className="absolute bottom-0 right-[-8%] h-96 w-96 rounded-full bg-slate-300/25 blur-3xl dark:bg-slate-500/10" />
-        <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(100,116,139,0.09)_1px,transparent_1px),linear-gradient(90deg,rgba(100,116,139,0.09)_1px,transparent_1px)] [background-size:42px_42px] dark:opacity-15" />
+        <div className="absolute inset-0 opacity-35 bg-[linear-gradient(rgba(100,116,139,0.09)_1px,transparent_1px),linear-gradient(90deg,rgba(100,116,139,0.09)_1px,transparent_1px)] bg-size-[42px_42px] dark:opacity-15" />
       </div>
       <div className="container mx-auto px-6">
         {isMounted ? (
@@ -201,67 +193,7 @@ export function LocationSection({ hotel, mapSrc, mapLink, templateTheme, variant
                 </Card>
               )}
 
-              {(hotel.whatsapp || hotel.phone) && (
-                <Card className="rounded-3xl border border-border/60 bg-card/80 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-green-500/20 bg-green-500/10">
-                          <MessageCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold">WhatsApp</h4>
-                          <p className="text-muted-foreground">
-                            {hotel.whatsapp || hotel.phone}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        onClick={handleWhatsAppClick}
-                        variant="outline"
-                        size="sm"
-                        className="rounded-xl"
-                      >
-                        Message
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {hotel.email && (
-                <Card className="rounded-3xl border border-border/60 bg-card/80 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-blue-500/20 bg-blue-500/10">
-                        <MessageCircle className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold">Email</h4>
-                        <p className="text-muted-foreground">{hotel.email}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </div>
-
-            {/* Operating Hours */}
-            <Card className="rounded-3xl border border-border/60 bg-linear-to-br from-card/80 to-muted/25 shadow-lg backdrop-blur-xl">
-              <CardContent className="p-8">
-                <div className="space-y-4">
-                  <h3 className="text-xl font-semibold">Operating Hours</h3>
-                  <div className="space-y-2 text-sm">
-                    {hotel.opening_hours ? (
-                      <div className="flex justify-between gap-4">
-                        <span className="text-muted-foreground">Current Schedule</span>
-                        <span className="font-medium text-right">{hotel.opening_hours}</span>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
             </motion.div>
           ) : (
             <div className="space-y-8">
@@ -315,35 +247,6 @@ export function LocationSection({ hotel, mapSrc, mapLink, templateTheme, variant
                         >
                           <Phone className="mr-2 h-4 w-4" />
                           Call Now
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* WhatsApp Card */}
-            {(hotel.whatsapp || hotel.phone) && (
-              <Card className="rounded-2xl border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <CardContent className="p-8">
-                  <div className="space-y-6">
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-green-100">
-                        <MessageCircle className="h-6 w-6 text-green-600" />
-                      </div>
-                      <div className="space-y-3">
-                        <h3 className="text-xl font-semibold">WhatsApp</h3>
-                        <p className="text-muted-foreground leading-relaxed">
-                          Chat with us for quick questions and support
-                        </p>
-                        <Button 
-                          onClick={handleWhatsAppClick} 
-                          variant="outline" 
-                          className="rounded-xl border-green-200 hover:bg-green-50"
-                        >
-                          <MessageCircle className="mr-2 h-4 w-4" />
-                          Chat on WhatsApp
                         </Button>
                       </div>
                     </div>

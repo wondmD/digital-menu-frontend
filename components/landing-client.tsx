@@ -16,7 +16,7 @@ import {
 import { 
   QrCode, Smartphone, Sparkles, Search, Utensils, MapPin, 
   Loader2, ArrowRight, ShoppingBag, Flame, 
-  ChefHat, Zap, Play, CheckCircle2, Menu as MenuIcon, Mail, Twitter, Instagram, Facebook
+  ChefHat, Zap, Play, CheckCircle2, Menu as MenuIcon, Mail, Instagram, Send
 } from "lucide-react"
 import { useEffect, useState, useMemo, useRef } from "react"
 import { apiFetch } from "@/lib/api-client"
@@ -686,6 +686,20 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                     Join leading hospitality businesses redefining the intersection of taste and technology.
                  </p>
 
+                 <div className="mb-10 md:mb-14 flex flex-col items-center gap-2 text-white/95 text-sm md:text-base font-medium">
+                   <a href="mailto:contact@agelgel.ethioace.com" className="hover:text-white transition-colors">
+                     contact@agelgel.ethioace.com
+                   </a>
+                   <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-white/90">
+                     <a href="tel:+251978174570" className="hover:text-white transition-colors">+251978174570</a>
+                     <a href="tel:+251991598182" className="hover:text-white transition-colors">+251991598182</a>
+                   </div>
+                   <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-white/90">
+                     <a href="https://instagram.com/agelgelmenu" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">@agelgelmenu on Instagram</a>
+                     <a href="https://t.me/agelgelmenu" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">@agelgelmenu on Telegram</a>
+                   </div>
+                 </div>
+
                  <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-8">
                     <Button 
                       size="lg" 
@@ -779,7 +793,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                 <Logo width={140} height={44} />
               </Link>
               <p className="text-muted-foreground text-lg md:text-xl leading-relaxed italic">
-                "Digital menus designed for hospitality — simple, reliable, and elegant."
+                Digital menus designed for hospitality! simple, reliable, and elegant.
               </p>
             </div>
            </div>
@@ -794,26 +808,27 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
              </div>
              
              <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-16 text-[9px] md:text-[10px] font-medium tracking-wide text-muted-foreground">
-               <div className="flex items-center gap-4">
+               <div className="flex flex-wrap items-center justify-center gap-4">
                  <a href="mailto:hello@agelgil.example" className="flex items-center gap-2 hover:text-primary transition-colors">
                    <Mail className="h-4 w-4" />
-                   <span className="text-[11px] md:text-[12px]">hello@agelgil.example</span>
+                   <span className="text-[11px] md:text-[12px]">contact@agelgel.ethioace.com</span>
                  </a>
-                 <a href="tel:+251900000000" className="flex items-center gap-2 hover:text-primary transition-colors">
+                 <a href="tel:+251978174570" className="flex items-center gap-2 hover:text-primary transition-colors">
                    <Smartphone className="h-4 w-4" />
-                   <span className="text-[11px] md:text-[12px]">+251 90 000 0000</span>
+                   <span className="text-[11px] md:text-[12px]">+251978174570</span>
+                 </a>
+                 <a href="tel:+251991598182" className="flex items-center gap-2 hover:text-primary transition-colors">
+                   <Smartphone className="h-4 w-4" />
+                   <span className="text-[11px] md:text-[12px]">+251991598182</span>
                  </a>
                </div>
 
                <div className="flex items-center gap-4">
-                 <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="hover:text-primary transition-colors">
-                   <Twitter className="h-5 w-5" />
-                 </a>
-                 <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-primary transition-colors">
+                 <a href="https://instagram.com/agelgelmenu" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-primary transition-colors">
                    <Instagram className="h-5 w-5" />
                  </a>
-                 <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-primary transition-colors">
-                   <Facebook className="h-5 w-5" />
+                 <a href="https://t.me/agelgelmenu" target="_blank" rel="noopener noreferrer" aria-label="Telegram" className="hover:text-primary transition-colors">
+                   <Send className="h-5 w-5" />
                  </a>
                </div>
              </div>

@@ -1,5 +1,5 @@
 import { Metadata, ResolvingMetadata } from "next"
-import { getCachedPublicRestaurantBySlugOrId, getCachedRestaurantShowcaseBundle } from "@/lib/public-data.server"
+import { getCachedPublicRestaurantBySlugOrId } from "@/lib/public-data.server"
 import HotelMenuClient from "@/components/hotel-menu-client"
 import { getImageUrl } from "@/lib/utils"
 import { getSiteUrl } from "@/lib/site-url"
@@ -78,9 +78,11 @@ export async function generateMetadata(
 export default async function HotelMenuLandingPage({ params }: Props) {
   const resolvedParams = await params
   const hotelSlug = resolvedParams["hotel-slug"]
-  
-  const initialBundle = await getCachedRestaurantShowcaseBundle(hotelSlug)
-  const initialData = initialBundle?.restaurant || null
+
+  // Prioritize first paint: fetch the core restaurant profile only.
+  // Menu/event extras are loaded client-side after the hero is visible.
+  const initialData = await getCachedPublicRestaurantBySlugOrId(hotelSlug)
+  const initialBundle = null
 
   return (
     <>

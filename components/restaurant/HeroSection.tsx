@@ -94,8 +94,31 @@ export function HeroSection({ hotel, coverImage, logoImage, menuLink, mapLink }:
           payload?.name ||
           (typeof payload?.display_name === "string" ? payload.display_name.split(",")[0] : "")
 
+        const subcity =
+          address?.suburb ||
+          address?.city_district ||
+          address?.neighbourhood ||
+          address?.quarter ||
+          address?.hamlet ||
+          ""
+
+        const city =
+          address?.city ||
+          address?.town ||
+          address?.municipality ||
+          address?.county ||
+          address?.state_district ||
+          ""
+
+        const parts = [primaryLabel, subcity, city]
+          .map((part: unknown) => String(part || "").trim())
+          .filter(Boolean)
+
+        const uniqueParts = parts.filter((part, index) => parts.indexOf(part) === index)
+        const composedLabel = uniqueParts.join(", ")
+
         if (!isCancelled) {
-          setResolvedPlaceName(String(primaryLabel || "").trim())
+          setResolvedPlaceName(composedLabel)
         }
       } catch {
         if (!isCancelled) {
@@ -223,10 +246,10 @@ export function HeroSection({ hotel, coverImage, logoImage, menuLink, mapLink }:
           <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, ease: "easeOut", delay: 0.3 }} className="flex flex-col items-center justify-center space-y-5 md:space-y-7">
             {logo && (
               <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8, delay: 0.5 }} className="relative w-full max-w-120">
-                <div className="relative overflow-hidden rounded-4xl border border-white/20 bg-white/10 p-5 shadow-2xl backdrop-blur-xl">
+                <div className="relative overflow-hidden rounded-4xl border border-white/20 p-5 shadow-2xl">
                   <div className="relative grid gap-5 sm:grid-cols-[0.95fr_1.05fr] sm:items-center">
                     <div className="flex items-center justify-center">
-                      <div className="relative aspect-square w-full max-w-44 overflow-hidden rounded-3xl border border-white/25 bg-white/15 p-4">
+                      <div className="relative aspect-square w-full max-w-44 overflow-hidden rounded-3xl border border-white/25 p-4">
                         <Image src={logo} alt={hotel.name} fill className="object-contain p-4" sizes="(max-width: 768px) 176px, 192px" />
                       </div>
                     </div>
@@ -239,17 +262,6 @@ export function HeroSection({ hotel, coverImage, logoImage, menuLink, mapLink }:
 
                       <div className="grid gap-2 text-sm text-white/80">
                         {hotel.opening_hours && <p className="leading-relaxed text-white/85">Open hours: {hotel.opening_hours}</p>}
-                        {displayAddress && (
-                          <a
-                            href={mapLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex leading-relaxed text-white/70 transition-colors hover:text-white/90"
-                            aria-label={`Open ${hotel.name} location in maps`}
-                          >
-                            {displayAddress}
-                          </a>
-                        )}
                       </div>
                     </div>
                   </div>
