@@ -6,7 +6,6 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import Bilingual from "@/components/ui/Bilingual"
 import { getImageUrl } from "@/lib/utils"
 import { SocialLinks } from "@/components/restaurant/SocialLinks"
 import { Clock, MapPin, Phone, Mail, Utensils, QrCode, ArrowRight } from "lucide-react"
@@ -195,9 +194,9 @@ export function HeroSection({ hotel, coverImage, logoImage, menuLink, mapLink }:
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }} className="flex flex-wrap items-center justify-center gap-3.5 lg:justify-start">
               <Button size="lg" className="w-full border-0 bg-linear-to-r from-primary to-primary/80 px-8 h-14 rounded-2xl text-base font-semibold text-white shadow-[0_14px_35px_rgba(0,0,0,0.25)] sm:w-auto" asChild>
                 <Link href={menuLink} prefetch={false}>
-                    <QrCode className="mr-2 h-4 w-4" />
-                    <Bilingual ns="home" id="dialog.goToMenu" />
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                  <QrCode className="mr-2 h-4 w-4" />
+                  Explore Menu
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
 
