@@ -1,0 +1,149 @@
+{
+  "common": {
+    "language": "Afaan",
+    "logo": "MenuVista",
+    "home": "Mana",
+    "about": "Waa'ee",
+    "contact": "Quunnamtii",
+    "login": "Seenama",
+    "register": "Galmee",
+    "logout": "Ba'uu",
+    "profile": "Eenyummeessaa",
+    "settings": "Qindaa'inoota",
+    "dashboard": "Dabaree",
+    "menu": "Menuu",
+    "restaurant": "Restauraantii",
+    "save": "Oolchi",
+    "cancel": "Haqi",
+    "delete": "Haquu",
+    "edit": "Gulaaluu",
+    "add": "Dabaluu",
+    "close": "Cufuu",
+    "search": "Barbaadi",
+    "loading": "Fe'amaa jira...",
+    "error": "Dogoggora",
+    "success": "Milkaa'eera",
+    "warning": "Akeekkachiisa",
+    "info": "Odeeffannoo",
+    "help": "Gargaarsa"
+  },
+  "navigation": {
+    "home": "Mana",
+    "menu": "Menuu",
+    "restaurant": "Restauraantii",
+    "packages": "Paakeejota",
+    "blog": "Bloogii",
+    "contact": "Nu quunnamuu",
+    "dashboard": "Dabaree koompiitaraa",
+    "admin": "Bulchiinsa",
+    "partner": "Paartinerii"
+  },
+  "hero": {
+    "title": "Restauraantii Keessaniif Menuu Dijiitaalaa",
+    "subtitle": "Mala menuu ammayyaa fi salphaa fayyadamaa",
+    "cta": "Amma Jalqabi"
+  },
+  "auth": {
+    "login": "Seeni",
+    "register": "Galmaa'i",
+    "email": "Imeelii",
+    "password": "Jecha icciitii",
+    "confirmPassword": "Jecha icciitii mirkaneessi",
+    "firstName": "Maqaa",
+    "lastName": "Maqaa Abbaa",
+    "rememberMe": "Na yaadadhu",
+    "forgotPassword": "Jecha icciitii dagattee?",
+    "noAccount": "Akkaawuntii hin qabduu?",
+    "haveAccount": "Akkaawuntii qabdaa?",
+    "signUp": "Galmaa'i",
+    "signIn": "Seeni",
+    "resetPassword": "Jecha icciitii jijjiiri",
+    "verifyEmail": "Imeelii mirkaneessi"
+  },
+  "errors": {
+    "required": "Bakki kun guutamuu qaba",
+    "invalidEmail": "Imeelii sirrii galchi",
+    "passwordTooShort": "Jechi icciitii yoo xiqqaate herrega 8 ta'uu qaba",
+    "passwordMismatch": "Jechi icciitii wal hin fudhatu",
+    "unauthorized": "Hayyamni hin kennamne",
+    "notFound": "Fuulli hin argamne",
+    "serverError": "Dogoggora sarvarii",
+    "networkError": "Dogoggora neetiworkii. Irra deebi'ii yaali."
+  },
+  "messages": {
+    "welcome": "Gara MenuVista Nagaan Dhuftan",
+    "loginSuccess": "Milkaa'inaan seenteetta",
+    "logoutSuccess": "Milkaa'inaan baateetta",
+    "saved": "Jijjiiramni kuufameera",
+    "deleted": "Haqameera"
+  },
+  "home": {
+    "nav": {
+      "features": "Amaloota",
+      "demo": "Agarsiisa",
+      "login": "Seeni",
+      "joinPlatform": "Waltajjii Keenya Makami",
+      "signIn": "Seeni",
+      "getStarted": "Jalqabi"
+    },
+    "hero": {
+      "badge": "Fuuldura Tajaajila Nyaataa",
+      "titleMain": "Barbaadi. Iskaanii godhi.",
+      "titleAccent": "Itti Gammadi.",
+      "subtitle": "Bakka jaallattu irraa menuyii dijitaalaa qulqulluu salphaatti argadhu."
+    },
+    "search": {
+      "button": "Restauraantota Barbaadi",
+      "nearby": "Dhiyoo",
+      "restaurants": "Restauraantota",
+      "all": "Hunda",
+      "locating": "Bakka barbaadaa jira...",
+      "restaurantMatches": "Restauraantota Walsimatan",
+      "noRestaurants": "Barbaacha \"{query}\" keessatti restauraantiin hin argamne",
+      "placeholders": {
+        "p1": "Restauraantota sadarkaa olaanaa barbaadi...",
+        "p2": "Menuu adda addaa argadhu...",
+        "p3": "Bakki steak qulqulluu qoradhu...",
+        "p4": "Kaafee naannoo kee barbaadi...",
+        "p5": "Iddoo filatamaa qoradhu..."
+      }
+    },
+    "features": {
+      "badge": "Qophii Saffisaa",
+      "titleLine1": "Kan ijaarame",
+      "titleLine2": "Fooyya'aa",
+      "titleLine3": "Bu'aaaf.",
+      "steps": {
+        "s1": {
+          "title": "Biraandii Kee Ijaari",
+          "desc": "Daqiiqaa muraasa keessatti menuyii kee bifa siif ta'een qopheessi."
+        },
+        "s2": {
+          "title": "Bulchiinsa Menuu",
+          "desc": "Gatii, argamuu fi suuraa yeroo dhugaa keessatti jijjiiri."
+        },
+        "s3": {
+          "title": "Hojii Irra Oolchi",
+          "desc": "QR qulqulluu waliin menuyii kee saffisaan maxxansi."
+        }
+      }
+    },
+    "cta": {
+      "badge": "Amma Makami",
+      "titleLine1": "Muuxannoo Keessan",
+      "titleLine2": "Dijitaalaa Ijaaraa.",
+      "subtitle": "Daldala keessummummaa teeknooloojii fi mi'a waliin walitti fidu keessaa ta'i.",
+      "createMenu": "Menuu Kee Uumi",
+      "exploreDemo": "Demo Ilaali"
+    },
+    "dialog": {
+      "fallback": "Filannoo nyaataa mi'aawaa si eeggachaa jira.",
+      "goToMenu": "Gara Menuutti Deemi",
+      "restaurantPage": "Fuula Restauraantii"
+    },
+    "footer": {
+      "tagline": "Menuu dijitaalaa tajaajila keessummummaaf qophaa'e. Salphaa, amanamaa fi miidhagaa.",
+      "systemStatus": "Haala Sirnaa: Toora Irra Jira"
+    }
+  }
+}

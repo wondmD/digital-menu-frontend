@@ -1,0 +1,140 @@
+{
+  "common": {
+    "language": "Deutsch",
+    "logo": "MenuVista",
+    "home": "Startseite",
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "profile": "Profil",
+    "settings": "Einstellungen",
+    "dashboard": "Dashboard",
+    "menu": "Menü",
+    "restaurant": "Restaurant",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "add": "Hinzufügen",
+    "close": "Schließen",
+    "search": "Suchen",
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "warning": "Warnung",
+    "info": "Information",
+    "help": "Kann Ihre Operationen optimieren"
+  },
+  "navigation": {
+    "home": "Startseite",
+    "menu": "Menü",
+    "restaurant": "Restaurant",
+    "packages": "Pakete",
+    "blog": "Blog",
+    "contact": "Kontaktieren Sie uns",
+    "dashboard": "Mein Dashboard",
+    "admin": "Verwaltung",
+    "partner": "Partner"
+  },
+  "hero": {
+    "title": "Digitale Menülösungen für Ihr Restaurant",
+    "subtitle": "Transformieren Sie das Dining-Erlebnis mit unserer modernen Plattform",
+    "cta": "Heute Beginnen"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "email": "E-Mail-Adresse",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "rememberMe": "Anmeldedaten speichern",
+    "forgotPassword": "Passwort vergessen?",
+    "noAccount": "Kein Konto?",
+    "haveAccount": "Bereits ein Konto?",
+    "signUp": "Registrieren",
+    "signIn": "Anmelden",
+    "resetPassword": "Passwort zurücksetzen",
+    "verifyEmail": "E-Mail bestätigen"
+  },
+  "errors": {
+    "required": "Dieses Feld ist erforderlich",
+    "invalidEmail": "Bitte geben Sie eine gültige E-Mail ein",
+    "passwordTooShort": "Das Passwort muss mindestens 8 Zeichen lang sein",
+    "passwordMismatch": "Passwörter stimmen nicht überein",
+    "unauthorized": "Nicht autorisierter Zugriff",
+    "notFound": "Seite nicht gefunden",
+    "serverError": "Serverfehler",
+    "networkError": "Netzwerkfehler. Bitte versuchen Sie es erneut."
+  },
+  "messages": {
+    "welcome": "Willkommen bei MenuVista",
+    "loginSuccess": "Anmeldung erfolgreich",
+    "logoutSuccess": "Sie wurden abgemeldet",
+    "saved": "Änderungen gespeichert",
+    "deleted": "Element gelöscht"
+  },
+  "home": {
+    "nav": {
+      "features": "Funktionen",
+      "demo": "Demo",
+      "login": "Anmelden",
+      "joinPlatform": "Plattform beitreten",
+      "signIn": "Einloggen",
+      "getStarted": "Loslegen"
+    },
+    "hero": {
+      "badge": "Die Zukunft des Essens",
+      "titleMain": "Finden. Scannen.",
+      "titleAccent": "Genießen.",
+      "subtitle": "Entdecken Sie hochwertige digitale Menüs Ihrer Lieblingsorte."
+    },
+    "search": {
+      "button": "Restaurants suchen",
+      "nearby": "In der Nähe",
+      "restaurants": "Restaurants",
+      "all": "Alle",
+      "locating": "Standort wird ermittelt...",
+      "restaurantMatches": "Restaurant-Treffer",
+      "noRestaurants": "Keine Restaurants gefunden für \"{query}\"",
+      "placeholders": {
+        "p1": "Premium-Restaurants suchen...",
+        "p2": "Geheime Menüs entdecken...",
+        "p3": "Gourmet-Steakhäuser erkunden...",
+        "p4": "Die besten Cafés in der Nähe finden...",
+        "p5": "Top-bewertete Orte durchsuchen..."
+      }
+    },
+    "features": {
+      "badge": "Sofortige Einrichtung",
+      "titleLine1": "Gebaut für",
+      "titleLine2": "bessere",
+      "titleLine3": "Conversion.",
+      "steps": {
+        "s1": {"title": "Marke gestalten", "desc": "Passen Sie Ihre digitale Präsenz in Minuten an."},
+        "s2": {"title": "Menüverwaltung", "desc": "Aktualisieren Sie Preise und Verfügbarkeit in Echtzeit."},
+        "s3": {"title": "Live gehen", "desc": "Veröffentlichen Sie Ihr Menü sofort mit QR."}
+      }
+    },
+    "cta": {
+      "badge": "Jetzt beitreten",
+      "titleLine1": "Definieren Sie Ihr",
+      "titleLine2": "digitales Erlebnis.",
+      "subtitle": "Schließen Sie sich führenden Hospitality-Unternehmen an.",
+      "createMenu": "Menü erstellen",
+      "exploreDemo": "Demo ansehen"
+    },
+    "dialog": {
+      "fallback": "Eine leckere Auswahl wartet auf Sie.",
+      "goToMenu": "Zum Menü",
+      "restaurantPage": "Restaurantseite"
+    },
+    "footer": {
+      "tagline": "Digitale Menüs für Hospitality: einfach, zuverlässig und elegant.",
+      "systemStatus": "Systemstatus: Online"
+    }
+  }
+}

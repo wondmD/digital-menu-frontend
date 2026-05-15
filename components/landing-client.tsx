@@ -23,6 +23,8 @@ import { apiFetch } from "@/lib/api-client"
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion"
 import { cn, getImageUrl } from "@/lib/utils"
 import { Logo } from "@/components/logo"
+import { useTranslations } from "next-intl"
+import Bilingual from "@/components/ui/Bilingual"
 
 const MotionLink = motion.create(Link)
 
@@ -248,6 +250,7 @@ function DishCard({
 }
 
 export default function LandingClient({ initialRestaurants = [] }: LandingClientProps) {
+  const t = useTranslations("home")
   const [restaurants, setRestaurants] = useState<Restaurant[]>(initialRestaurants)
   const [dishes, setDishes] = useState<Dish[]>([])
   const [loading, setLoading] = useState(initialRestaurants.length === 0)
@@ -257,6 +260,14 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
   const [isLocating, setIsLocating] = useState(false)
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null)
   const [placeholderIndex, setPlaceholderIndex] = useState(0)
+
+  const restaurantPlaceholders = [
+    t("search.placeholders.p1"),
+    t("search.placeholders.p2"),
+    t("search.placeholders.p3"),
+    t("search.placeholders.p4"),
+    t("search.placeholders.p5"),
+  ]
   
   const heroRef = useRef(null)
   const { scrollYProgress } = useScroll({
@@ -269,11 +280,11 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const placeholders = RESTAURANT_PLACEHOLDERS
+      const placeholders = restaurantPlaceholders
       setPlaceholderIndex((prev) => (prev + 1) % placeholders.length)
     }, 3000)
     return () => clearInterval(interval)
-  }, [])
+  }, [restaurantPlaceholders])
 
   useEffect(() => {
     if (initialRestaurants.length > 0) {
@@ -432,15 +443,15 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                 className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-6 shadow-sm border border-primary/20"
               >
                 <Zap className="h-3 w-3 fill-primary" />
-                The Future of Dining
+                {t("hero.badge")}
               </motion.div>
               
               <h1 className="font-serif text-[clamp(2rem,8vw,5.5rem)] leading-none tracking-tighter mb-6 md:mb-8">
-                Find. Scan. <span className="text-primary italic font-normal">Savor.</span>
+                {t("hero.titleMain")} <span className="text-primary italic font-normal">{t("hero.titleAccent")}</span>
               </h1>
               
               <p className="max-w-2xl mx-auto text-base md:text-xl text-muted-foreground mb-8 md:mb-12 leading-relaxed font-medium px-4">
-                Explore premium digital menus from your favorite local spots. High-performance contactless dining technology at your fingertips.
+                {t("hero.subtitle")}
               </p>
               
               {/* HERO SEARCH - CENTRALIZED */}
@@ -464,7 +475,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                           exit={{ opacity: 0, y: -10 }}
                           className="absolute inset-x-0 pl-3 md:pl-5 text-sm md:text-xl font-medium text-muted-foreground pointer-events-none whitespace-nowrap overflow-hidden text-left"
                         >
-                          {RESTAURANT_PLACEHOLDERS[placeholderIndex]}
+                          {restaurantPlaceholders[placeholderIndex]}
                         </motion.p>
                       )}
                     </AnimatePresence>
@@ -476,7 +487,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                     </div>
                   </div>
                   <Button className="w-full md:w-auto rounded-xl md:rounded-[1.8rem] bg-primary hover:bg-primary/90 font-black px-6 md:px-10 h-11 md:h-14 shadow-xl shadow-primary/20 text-white text-xs md:text-lg uppercase tracking-widest">
-                    Search Restaurants
+                    <Bilingual ns="home" id="search.button" />
                   </Button>
                 </div>
               </motion.div>
@@ -490,8 +501,8 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8 px-2 md:px-4">
                     <div className="flex flex-wrap items-center gap-4">
-                      <h3 className="text-lg md:text-2xl font-serif italic text-foreground flex items-center gap-3">
-                        <span className="not-italic font-bold text-primary">Nearby</span> Restaurants
+                      <h3 className="text-lg md:text-2xl font-serif italic text-foreground">
+                        {t("search.restaurants")}
                       </h3>
                       <div className="flex items-center gap-2">
                         <button
@@ -504,7 +515,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                               : "bg-muted text-muted-foreground hover:text-foreground"
                           )}
                         >
-                          All
+                          {t("search.all")}
                         </button>
                         <button
                           type="button"
@@ -516,10 +527,10 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                               : "bg-muted text-muted-foreground hover:text-foreground"
                           )}
                         >
-                          Nearby
+                          {t("search.nearby")}
                         </button>
                         {restaurantFilter === "nearby" && isLocating && (
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Locating...</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t("search.locating")}</span>
                         )}
                       </div>
                     </div>
@@ -544,7 +555,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                         <div className="space-y-12">
                           {visibleRestaurants.length > 0 && (
                             <div className="space-y-6">
-                              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Restaurant Matches</h4>
+                              <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">{t("search.restaurantMatches")}</h4>
                               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                                 {visibleRestaurants.slice(0, 8).map((restaurant, i) => (
                                   <RestaurantCard
@@ -559,14 +570,14 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                           )}
                           {!visibleRestaurants.length && (
                              <div className="py-20 text-center bg-card/20 rounded-[3rem] border-2 border-dashed border-white/5">
-                                <p className="text-muted-foreground italic">No restaurants found for "{searchQuery}"</p>
+                                <p className="text-muted-foreground italic">{t("search.noRestaurants", { query: searchQuery })}</p>
                              </div>
                           )}
                         </div>
                     ) : (
                         <div className="space-y-12">
                           <div className="space-y-6">
-                            <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">Restaurants</h4>
+                            <h4 className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground ml-2">{t("search.restaurants")}</h4>
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                               {visibleRestaurants.slice(0, 8).map((restaurant, i) => (
                                 <RestaurantCard
@@ -598,15 +609,15 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                       className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-secondary/10 text-secondary text-[10px] md:text-xs font-black uppercase tracking-widest mb-8 md:mb-10"
                     >
                       <Zap className="h-4 w-4 fill-secondary" />
-                      Instant Set up
+                      {t("features.badge")}
                     </motion.div>
-                    <h2 className="text-5xl md:text-8xl font-serif mb-10 md:mb-12 tracking-tight leading-none text-foreground">Built for <br /> <span className="italic font-normal">Superior</span> <br /> Conversion.</h2>
+                    <h2 className="text-5xl md:text-8xl font-serif mb-10 md:mb-12 tracking-tight leading-none text-foreground">{t("features.titleLine1")} <br /> <span className="italic font-normal">{t("features.titleLine2")}</span> <br /> {t("features.titleLine3")}</h2>
                     
                     <div className="space-y-8 md:space-y-12">
                        {[
-                         { step: "01", title: "Design Your Brand", desc: "Customize your digital menu presence within minutes. Our smart-theming engine adapts to your restaurant's style." },
-                         { step: "02", title: "Menu Management", desc: "Real-time menu updates. Change prices, availability, and visuals instantly across all guest devices." },
-                         { step: "03", title: "Go Live", desc: "Instantly publish your menu with high-res QR integration. No hardware needed, just powerful software." }
+                         { step: "01", title: t("features.steps.s1.title"), desc: t("features.steps.s1.desc") },
+                         { step: "02", title: t("features.steps.s2.title"), desc: t("features.steps.s2.desc") },
+                         { step: "03", title: t("features.steps.s3.title"), desc: t("features.steps.s3.desc") }
                        ].map((item, i) => (
                          <motion.div 
                            key={i}
@@ -675,15 +686,15 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                    className="inline-flex items-center gap-2 md:gap-3 px-5 md:px-6 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-md text-white text-[10px] md:text-xs font-black uppercase tracking-[0.4em] mb-8 md:mb-12 shadow-2xl"
                  >
                     <Sparkles className="h-3 md:h-4 w-3 md:w-4 fill-white" />
-                    Join Now
+                      {t("cta.badge")}
                  </motion.div>
 
                  <h2 className="text-4xl sm:text-6xl md:text-9xl font-serif text-white mb-8 md:mb-14 tracking-tight leading-none">
-                    Define Your <br /><span className="italic block mt-2 md:mt-4 font-normal text-white">Digital Experience.</span>
+                      {t("cta.titleLine1")} <br /><span className="italic block mt-2 md:mt-4 font-normal text-white">{t("cta.titleLine2")}</span>
                  </h2>
 
                  <p className="text-white text-lg md:text-3xl mb-12 md:mb-20 max-w-3xl mx-auto leading-relaxed font-serif italic">
-                    Join leading hospitality businesses redefining the intersection of taste and technology.
+                      {t("cta.subtitle")}
                  </p>
 
                  <div className="mb-10 md:mb-14 flex flex-col items-center gap-2 text-white/95 text-sm md:text-base font-medium">
@@ -712,7 +723,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                          whileTap={{ scale: 0.95 }}
                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
                        >
-                         Create Your Menu
+                         <Bilingual ns="home" id="cta.createMenu" />
                        </MotionLink>
                     </Button>
                     <Button 
@@ -727,7 +738,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                          whileTap={{ scale: 0.95 }}
                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
                        >
-                         Explore Demo <ArrowRight className="h-6 w-6 md:h-8 md:w-8" />
+                         <Bilingual ns="home" id="cta.exploreDemo" /> <ArrowRight className="h-6 w-6 md:h-8 md:w-8" />
                        </MotionLink>
                     </Button>
                  </div>
@@ -753,7 +764,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                 <DialogHeader className="space-y-2 text-left">
                   <DialogTitle className="text-2xl font-serif">{selectedDish.name}</DialogTitle>
                   <DialogDescription className="text-sm text-muted-foreground">
-                    {selectedDish.description || "A delicious menu selection waiting for you."}
+                    {selectedDish.description || t("dialog.fallback")}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -765,16 +776,16 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                  <Button asChild className="sm:flex-1 rounded-xl">
-                    <Link href={`/${selectedDish.restaurant_slug}/list`} prefetch={false}>
-                      Go to Menu
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="sm:flex-1 rounded-xl">
-                    <Link href={`/${selectedDish.restaurant_slug}`} prefetch={false}>
-                      Restaurant Page
-                    </Link>
-                  </Button>
+                    <Button asChild className="sm:flex-1 rounded-xl">
+                      <Link href={`/${selectedDish.restaurant_slug}/list`} prefetch={false}>
+                        <Bilingual ns="home" id="dialog.goToMenu" />
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="sm:flex-1 rounded-xl">
+                      <Link href={`/${selectedDish.restaurant_slug}`} prefetch={false}>
+                        <Bilingual ns="home" id="dialog.restaurantPage" />
+                      </Link>
+                    </Button>
                 </div>
               </div>
             </div>
@@ -793,7 +804,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                 <Logo width={140} height={44} />
               </Link>
               <p className="text-muted-foreground text-lg md:text-xl leading-relaxed italic">
-                Digital menus designed for hospitality! simple, reliable, and elegant.
+                {t("footer.tagline")}
               </p>
             </div>
            </div>
@@ -803,7 +814,7 @@ export default function LandingClient({ initialRestaurants = [] }: LandingClient
                 <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground italic text-center">© 2026 Agelgil (አገልግል)</span>
                 <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em] text-muted-foreground flex items-center gap-3">
                    <div className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-secondary animate-pulse" />
-                   System Status: Online
+                   {t("footer.systemStatus")}
                 </span>
              </div>
              

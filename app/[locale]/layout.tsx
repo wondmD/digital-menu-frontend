@@ -1,11 +1,14 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { NextIntlClientProvider } from "next-intl"
+import { getMessages } from "next-intl/server"
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Toaster } from "@/components/ui/toaster"
 import { AuthSessionProvider } from "@/components/auth-session-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { FreeTrialBanner } from "@/components/free-trial-banner"
+import { LocaleProvider } from "@/components/locale-provider"
 import { getSiteUrl } from "@/lib/site-url"
 import "./globals.css"
 // Ensure process-level unhandledRejection handler is registered on the server
@@ -93,17 +96,24 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode
+  params: Promise<{ locale: string }>
 }>) {
+  const { locale } = await params
+  const messages = await getMessages()
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body
         suppressHydrationWarning
         className="font-sans antialiased"
       >
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <LocaleProvider>
         <AuthSessionProvider>
           <ThemeProvider 
             attribute="class" 
@@ -118,6 +128,8 @@ export default function RootLayout({
             <SpeedInsights />
           </ThemeProvider>
         </AuthSessionProvider>
+          </LocaleProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

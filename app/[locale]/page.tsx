@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     title: "Agelgil | The Future of Digital Menus",
     description: "Elegant, high-performance digital menus designed for the next generation of hospitality.",
     images: [{
-      url: "/hotel.webp",
+      url: "/opengraph-image.png",
       width: 1200,
       height: 630,
       alt: "Agelgil Landing Page"
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Agelgil Digital Menus",
     description: "Contactless dining experience for hotels and cafes.",
-    images: ["/hotel.webp"],
+    images: ["/opengraph-image.png"],
   }
 }
 

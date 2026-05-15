@@ -1078,8 +1078,8 @@ export function TemplateFooterCTA({
 }: {
   theme: ResolvedTemplateTheme
   variant: MenuTemplateVariant
-  primaryLabel: string
-  homeLabel?: string
+  primaryLabel: React.ReactNode
+  homeLabel?: React.ReactNode | string
   onPrimary?: () => void
   homeHref?: string
 }) {
@@ -1119,7 +1119,7 @@ export function TemplateFooterCTA({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
+            <button
             type="button"
             onClick={onPrimary}
             className="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-transform hover:-translate-y-0.5"

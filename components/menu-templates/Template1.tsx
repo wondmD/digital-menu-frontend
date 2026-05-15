@@ -20,6 +20,7 @@ import {
   getCategorySectionId,
   resolveTemplateTheme,
 } from "./shared"
+import Bilingual from "@/components/ui/Bilingual"
 
 export default function Template1({
   hotel,
@@ -173,7 +174,7 @@ export default function Template1({
           <TemplateFooterCTA
             theme={resolvedTheme}
             variant="cafe"
-            primaryLabel="Back to top"
+            primaryLabel={<Bilingual ns="home" id="footer.backToTop" />}
             onPrimary={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             homeHref="/"
           />
