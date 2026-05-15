@@ -88,18 +88,19 @@ async function handleAuthProxy(req: NextRequest) {
 }
 
 export default async function proxy(request: NextRequest) {
-  const i18nResponse = handleI18nRouting(request);
   const {pathname} = request.nextUrl;
+
+  if (pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname.includes('.')) {
+    return NextResponse.next();
+  }
+
+  const i18nResponse = handleI18nRouting(request);
 
   const hasLocaleRoutingDecision =
     i18nResponse.headers.has('x-middleware-rewrite') ||
     i18nResponse.headers.has('location');
 
   if (hasLocaleRoutingDecision) {
-    return i18nResponse;
-  }
-
-  if (pathname.startsWith('/api') || pathname.startsWith('/_next') || pathname.includes('.')) {
     return i18nResponse;
   }
 

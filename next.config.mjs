@@ -1,7 +1,7 @@
-const projectRoot = new URL('.', import.meta.url).pathname
-import createNextIntlPlugin from 'next-intl/plugin';
+import path from 'node:path'
 
-const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
+const projectRoot = new URL('.', import.meta.url).pathname
+const nextIntlRequestPath = path.resolve(projectRoot, 'src/i18n/request.ts')
 
 function buildRemotePatterns() {
   const patterns = [
@@ -45,6 +45,13 @@ const nextConfig = {
   turbopack: {
     // Force turbopack to use this workspace so dependencies resolve correctly
     root: projectRoot,
+    resolveAlias: {
+      'next-intl/config': './src/i18n/request.ts',
+    },
+  },
+  webpack(config) {
+    config.resolve.alias['next-intl/config'] = nextIntlRequestPath
+    return config
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -68,4 +75,4 @@ const nextConfig = {
   },
 }
 
-export default withNextIntl(nextConfig)
+export default nextConfig
