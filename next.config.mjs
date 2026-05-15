@@ -1,7 +1,7 @@
 const projectRoot = new URL('.', import.meta.url).pathname
 import createNextIntlPlugin from 'next-intl/plugin';
 
-const withNextIntl = createNextIntlPlugin();
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 function buildRemotePatterns() {
   const patterns = [
