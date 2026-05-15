@@ -1,0 +1,140 @@
+{
+  "common": {
+    "language": "Français",
+    "logo": "MenuVista",
+    "home": "Accueil",
+    "about": "À propos",
+    "contact": "Contact",
+    "login": "Connexion",
+    "register": "S'inscrire",
+    "logout": "Déconnexion",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "dashboard": "Tableau de bord",
+    "menu": "Menu",
+    "restaurant": "Restaurant",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "close": "Fermer",
+    "search": "Rechercher",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "warning": "Avertissement",
+    "info": "Information",
+    "help": "Peut aider à rationaliser vos opérations"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "menu": "Menu",
+    "restaurant": "Restaurant",
+    "packages": "Forfaits",
+    "blog": "Blog",
+    "contact": "Nous contacter",
+    "dashboard": "Mon Tableau de bord",
+    "admin": "Administration",
+    "partner": "Partenaire"
+  },
+  "hero": {
+    "title": "Solutions de Menu Numérique pour Votre Restaurant",
+    "subtitle": "Transformez l'expérience de vos clients avec notre plateforme moderne",
+    "cta": "Commencer Maintenant"
+  },
+  "auth": {
+    "login": "Connexion",
+    "register": "S'inscrire",
+    "email": "Adresse E-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "firstName": "Prénom",
+    "lastName": "Nom de famille",
+    "rememberMe": "Se souvenir de moi",
+    "forgotPassword": "Mot de passe oublié?",
+    "noAccount": "Vous n'avez pas de compte?",
+    "haveAccount": "Vous avez déjà un compte?",
+    "signUp": "S'inscrire",
+    "signIn": "Se connecter",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "verifyEmail": "Vérifier l'e-mail"
+  },
+  "errors": {
+    "required": "Ce champ est obligatoire",
+    "invalidEmail": "Veuillez entrer une adresse e-mail valide",
+    "passwordTooShort": "Le mot de passe doit comporter au moins 8 caractères",
+    "passwordMismatch": "Les mots de passe ne correspondent pas",
+    "unauthorized": "Accès non autorisé",
+    "notFound": "Page non trouvée",
+    "serverError": "Erreur du serveur",
+    "networkError": "Erreur réseau. Réessayez."
+  },
+  "messages": {
+    "welcome": "Bienvenue sur MenuVista",
+    "loginSuccess": "Connexion réussie",
+    "logoutSuccess": "Vous avez été déconnecté",
+    "saved": "Modifications enregistrées",
+    "deleted": "Élément supprimé"
+  },
+  "home": {
+    "nav": {
+      "features": "Fonctionnalités",
+      "demo": "Démo",
+      "login": "Connexion",
+      "joinPlatform": "Rejoindre la plateforme",
+      "signIn": "Se connecter",
+      "getStarted": "Commencer"
+    },
+    "hero": {
+      "badge": "Le futur de la restauration",
+      "titleMain": "Trouvez. Scannez.",
+      "titleAccent": "Savourez.",
+      "subtitle": "Explorez des menus numériques premium de vos lieux favoris."
+    },
+    "search": {
+      "button": "Rechercher des restaurants",
+      "nearby": "À proximité",
+      "restaurants": "Restaurants",
+      "all": "Tous",
+      "locating": "Localisation...",
+      "restaurantMatches": "Correspondances de restaurants",
+      "noRestaurants": "Aucun restaurant trouvé pour \"{query}\"",
+      "placeholders": {
+        "p1": "Recherchez des restaurants premium...",
+        "p2": "Découvrez des menus secrets...",
+        "p3": "Explorez des steakhouses gastronomiques...",
+        "p4": "Trouvez les meilleurs cafés à proximité...",
+        "p5": "Parcourez les lieux les mieux notés..."
+      }
+    },
+    "features": {
+      "badge": "Configuration instantanée",
+      "titleLine1": "Conçu pour",
+      "titleLine2": "une meilleure",
+      "titleLine3": "conversion.",
+      "steps": {
+        "s1": {"title": "Créez votre marque", "desc": "Personnalisez votre présence numérique en quelques minutes."},
+        "s2": {"title": "Gestion du menu", "desc": "Mettez à jour les prix et la disponibilité en temps réel."},
+        "s3": {"title": "Mise en ligne", "desc": "Publiez votre menu instantanément avec QR."}
+      }
+    },
+    "cta": {
+      "badge": "Rejoignez-nous",
+      "titleLine1": "Définissez votre",
+      "titleLine2": "expérience numérique.",
+      "subtitle": "Rejoignez les leaders de l'hospitalité.",
+      "createMenu": "Créer votre menu",
+      "exploreDemo": "Explorer la démo"
+    },
+    "dialog": {
+      "fallback": "Une délicieuse sélection vous attend.",
+      "goToMenu": "Aller au menu",
+      "restaurantPage": "Page du restaurant"
+    },
+    "footer": {
+      "tagline": "Des menus numériques pour l'hospitalité: simples, fiables et élégants.",
+      "systemStatus": "État du système: En ligne"
+    }
+  }
+}

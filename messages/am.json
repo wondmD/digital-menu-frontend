@@ -1,0 +1,150 @@
+{
+  "common": {
+    "language": "ቋንቋ",
+    "logo": "MenuVista",
+    "home": "መነሻ",
+    "about": "ስለ እኛ",
+    "contact": "አግኙን",
+    "login": "ግባ",
+    "register": "ተመዝገብ",
+    "logout": "ውጣ",
+    "profile": "መገለጫ",
+    "settings": "ቅንብሮች",
+    "dashboard": "ዳሽቦርድ",
+    "menu": "ምናሌ",
+    "restaurant": "ሬስቶራንት",
+    "save": "አስቀምጥ",
+    "cancel": "ሰርዝ",
+    "delete": "አጥፋ",
+    "edit": "አርትዕ",
+    "add": "አክል",
+    "close": "ዝጋ",
+    "search": "ፈልግ",
+    "loading": "በመጫን ላይ...",
+    "error": "ስህተት",
+    "success": "ተሳክቷል",
+    "warning": "ማስጠንቀቂያ",
+    "info": "መረጃ",
+    "help": "እርዳታ"
+  },
+  "navigation": {
+    "home": "መነሻ",
+    "menu": "ምናሌ",
+    "restaurant": "ሬስቶራንት",
+    "packages": "ጥቅሎች",
+    "blog": "ብሎግ",
+    "contact": "አግኙን",
+    "dashboard": "ዋና ሰሌዳ",
+    "admin": "አስተዳዳሪ",
+    "partner": "አጋር"
+  },
+  "hero": {
+    "title": "ለሬስቶራንትዎ ዘመናዊ የዲጂታል ምናሌ",
+    "subtitle": "ቀልጣፋና ዘመናዊ የምናሌ መፍትሄዎችን ይለማመዱ",
+    "cta": "አሁኑኑ ይጀምሩ"
+  },
+  "auth": {
+    "login": "ግባ",
+    "register": "ተመዝገብ",
+    "email": "ኢሜይል",
+    "password": "የይለፍ ቃል",
+    "confirmPassword": "የይለፍ ቃል ያረጋግጡ",
+    "firstName": "ስም",
+    "lastName": "የአባት ስም",
+    "rememberMe": "አስታውሰኝ",
+    "forgotPassword": "የይለፍ ቃል ረሱ?",
+    "noAccount": "መለያ የለዎትም?",
+    "haveAccount": "መለያ አለዎት?",
+    "signUp": "ተመዝገብ",
+    "signIn": "ግባ",
+    "resetPassword": "የይለፍ ቃል ይቀይሩ",
+    "verifyEmail": "ኢሜይል ያረጋግጡ"
+  },
+  "errors": {
+    "required": "ይህ መሞላት ያለበት መስክ ነው",
+    "invalidEmail": "ትክክለኛ ኢሜይል ያስገቡ",
+    "passwordTooShort": "የይለፍ ቃል ቢያንስ 8 ፊደላት መሆን አለበት",
+    "passwordMismatch": "የይለፍ ቃሎቹ አይዛመዱም",
+    "unauthorized": "ፈቃድ የለዎትም",
+    "notFound": "ገጹ አልተገኘም",
+    "serverError": "የሰርቨር ስህተት ተከስቷል",
+    "networkError": "የኔትወርክ ስህተት። እባክዎ እንደገና ይሞክሩ።"
+  },
+  "messages": {
+    "welcome": "ወደ MenuVista እንኳን ደህና መጡ",
+    "loginSuccess": "በተሳካ ሁኔታ ገብተዋል",
+    "logoutSuccess": "በተሳካ ሁኔታ ወጥተዋል",
+    "saved": "ለውጦች ተቀምጠዋል",
+    "deleted": "ተሰርዟል"
+  },
+  "home": {
+    "nav": {
+      "features": "ባህሪያት",
+      "demo": "ማሳያ",
+      "login": "ግባ",
+      "joinPlatform": "መድረኩን ተቀላቀል",
+      "signIn": "ግባ",
+      "getStarted": "ጀምር"
+    },
+    "hero": {
+      "badge": "የምግብ አገልግሎት ወደፊት",
+      "titleMain": "ፈልግ። ስካን አድርግ።",
+      "titleAccent": "ተደሰት።",
+      "subtitle": "ከምትወዷቸው አካባቢያዊ ቦታዎች ዘመናዊ ዲጂታል ምናሌዎችን ያግኙ።"
+    },
+    "search": {
+      "button": "ሬስቶራንቶችን ፈልግ",
+      "nearby": "ቅርብ",
+      "restaurants": "ሬስቶራንቶች",
+      "all": "ሁሉም",
+      "locating": "እየፈለገ ነው...",
+      "restaurantMatches": "የተገኙ ሬስቶራንቶች",
+      "noRestaurants": "\"{query}\" ለሚለው ፍለጋ ሬስቶራንት አልተገኘም",
+      "placeholders": {
+        "p1": "የፕሪሚየም ሬስቶራንቶችን ፈልግ...",
+        "p2": "ልዩ ምናሌዎችን አግኝ...",
+        "p3": "የጎርሜ ስቴክ ሀውስ ፈልግ...",
+        "p4": "በአቅራቢያ ያሉ ካፌዎችን ፈልግ...",
+        "p5": "ከፍተኛ ደረጃ ያላቸውን ቦታዎች አስስ..."
+      }
+    },
+    "features": {
+      "badge": "ፈጣን ማዋቀር",
+      "titleLine1": "ለ",
+      "titleLine2": "ከፍተኛ",
+      "titleLine3": "ውጤት የተሰራ።",
+      "steps": {
+        "s1": {
+          "title": "ብራንድዎን ንድፍ ያድርጉ",
+          "desc": "በጥቂት ደቂቃዎች ውስጥ የዲጂታል ምናሌዎን ያስተካክሉ።"
+        },
+        "s2": {
+          "title": "የምናሌ አስተዳደር",
+          "desc": "ዋጋ፣ አቅርቦት እና ምስል በቅጽበት ያዘምኑ።"
+        },
+        "s3": {
+          "title": "በቀጥታ አስጀምር",
+          "desc": "ከፍተኛ ጥራት ያለው QR በመጠቀም ምናሌዎን ወዲያውኑ ያሳትሙ።"
+        }
+      }
+    },
+    "cta": {
+      "badge": "አሁን ተቀላቀል",
+      "titleLine1": "የእርስዎን",
+      "titleLine2": "ዲጂታል ተሞክሮ ያቀናብሩ።",
+      "subtitle": "ቴክኖሎጂን እና ጣዕምን የሚያጣምሩ ንግዶችን ይቀላቀሉ።",
+      "createMenu": "ምናሌዎን ይፍጠሩ",
+      "exploreDemo": "ማሳያ ይመልከቱ"
+    },
+    "dialog": {
+      "fallback": "ጣፋጭ የምናሌ ምርጫ እየጠበቀዎት ነው።",
+      "goToMenu": "ወደ ምናሌ ሂድ",
+      "restaurantPage": "የሬስቶራንት ገጽ"
+    },
+    "footer": {
+      "tagline": "ለመስተንግዶ የተዘጋጀ ዲጂታል ምናሌ። ቀላል፣ አስተማማኝ እና ውብ።",
+      "systemStatus": "የስርዓት ሁኔታ፡ በመስመር ላይ",
+      "backToTop": "ወደ ላይ ተመለስ"
+    }
+  }
+}

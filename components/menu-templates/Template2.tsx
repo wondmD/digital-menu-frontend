@@ -201,18 +201,15 @@ export default function Template2({
           )}
         </main>
 
-        <footer
-          className="sticky bottom-4 z-30 mt-10 space-y-3 rounded-4xl border p-3 shadow-[0_12px_32px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:p-4"
-          style={{ borderColor: resolvedTheme.borderColor, backgroundColor: resolvedTheme.surfaceColor }}
-        >
-          <TemplateFooterCTA
-            theme={resolvedTheme}
-            variant="restaurant"
-            primaryLabel="Back to top"
-            onPrimary={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            homeHref="/"
-          />
-        </footer>
+            <footer className="sticky bottom-4 z-30 mt-10 space-y-3 rounded-4xl border p-3 shadow-[0_12px_32px_rgba(0,0,0,0.2)] backdrop-blur-xl sm:p-4" style={{ borderColor: resolvedTheme.borderColor, backgroundColor: resolvedTheme.surfaceColor }}>
+              <TemplateFooterCTA
+                theme={resolvedTheme}
+                variant="restaurant"
+                primaryLabel={<Bilingual ns="home" id="footer.backToTop" />}
+                onPrimary={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                homeHref="/"
+              />
+            </footer>
       </div>
     </TemplateShell>
   )

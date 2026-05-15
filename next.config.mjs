@@ -1,4 +1,7 @@
 const projectRoot = new URL('.', import.meta.url).pathname
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin();
 
 function buildRemotePatterns() {
   const patterns = [
@@ -65,4 +68,4 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+export default withNextIntl(nextConfig)

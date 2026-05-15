@@ -125,11 +125,14 @@ async function handle(request: Request, context: { params: any }) {
           "RestaurantID", "CategoryID", "RestaurantSlug"
         ]
         
-        keysToDelete.forEach(key => {
-          if (key in rawBody) {
-            delete rawBody[key]
-          }
-        })
+        // Only attempt to delete keys if rawBody is a plain object
+        if (typeof rawBody === 'object' && rawBody !== null && !Array.isArray(rawBody)) {
+          keysToDelete.forEach(key => {
+            if (key in rawBody) {
+              delete rawBody[key]
+            }
+          })
+        }
       
         // Do not inject IDs from path into JSON body for create endpoints.
         body = rawText ? JSON.stringify(rawBody) : null

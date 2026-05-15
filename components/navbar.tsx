@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import { Link } from "@/lib/i18n/navigation"
 import { Button } from "@/components/ui/button"
 import { Menu, X, Coffee, Leaf, ChefHat } from "lucide-react"
 import { useState, useEffect } from "react"
@@ -8,8 +8,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Logo } from "@/components/logo"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { useTranslations } from "next-intl"
 
 export function Navbar() {
+  const t = useTranslations("home.nav")
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
 
@@ -24,7 +27,7 @@ export function Navbar() {
   return (
     <nav 
       className={cn(
-        "fixed top-0 z-[100] w-full transition-all duration-500",
+        "fixed top-0 z-100 w-full transition-all duration-500",
         isScrolled 
           ? "py-4 bg-background/80 backdrop-blur-2xl border-b border-border" 
           : "py-8 bg-transparent"
@@ -38,14 +41,14 @@ export function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex md:items-center space-x-12">
-          {["Features", "Demo"].map((item) => (
+          {[{ key: "features", href: "/#features" }, { key: "demo", href: "/demo" }].map((item) => (
             <Link
-              key={item}
-              href={item === "Demo" ? "/demo" : `/#${item.toLowerCase()}`}
+              key={item.key}
+              href={item.href}
               className="text-[11px] font-black tracking-[0.3em] uppercase text-muted-foreground transition-all hover:text-primary relative group"
             >
-              {item}
-              <span className="absolute -bottom-2 left-0 w-0 h-[2px] bg-primary transition-all duration-500 group-hover:w-full" />
+              {t(item.key)}
+              <span className="absolute -bottom-2 left-0 w-0 h-0.5 bg-primary transition-all duration-500 group-hover:w-full" />
             </Link>
           ))}
           
@@ -54,20 +57,22 @@ export function Navbar() {
               href="/login" 
               className="text-[11px] font-black tracking-[0.3em] uppercase text-foreground hover:text-primary transition-colors"
             >
-              Login
+              {t("login")}
             </Link>
             <Button
               className="h-12 px-8 text-[11px] font-black tracking-[0.3em] uppercase rounded-2xl bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 transition-all active:scale-95 text-white"
               asChild
             >
-              <Link href="/register">Join Platform</Link>
+              <Link href="/register">{t("joinPlatform")}</Link>
             </Button>
+            <LanguageSwitcher />
             <ThemeToggle />
           </div>
         </div>
 
         {/* Mobile Toggle */}
         <div className="flex items-center gap-4 md:hidden">
+          <LanguageSwitcher />
           <ThemeToggle />
           <button
             className="flex items-center justify-center rounded-2xl h-12 w-12 bg-muted border border-border text-foreground hover:bg-muted/80 transition-colors"
@@ -88,31 +93,34 @@ export function Navbar() {
             className="fixed inset-x-0 top-0 z-[-1] pt-32 pb-12 bg-background border-b border-border px-8 shadow-2xl md:hidden flex flex-col gap-10"
           >
             <div className="flex flex-col gap-6">
-              {["Features", "Demo"].map((item) => (
+              {[{ key: "features", href: "/#features" }, { key: "demo", href: "/demo" }].map((item) => (
                 <Link
-                  key={item}
-                  href={item === "Demo" ? "/demo" : `/#${item.toLowerCase()}`}
+                  key={item.key}
+                  href={item.href}
                   className="text-4xl font-serif text-foreground hover:text-primary transition-colors"
                   onClick={() => setIsOpen(false)}
                 >
-                  {item}
+                  {t(item.key)}
                 </Link>
               ))}
             </div>
             
             <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-end pb-2">
+                <LanguageSwitcher />
+              </div>
               <Button
                 variant="outline"
                 className="w-full h-16 rounded-2xl border-border text-foreground text-lg font-bold bg-muted/50"
                 asChild
               >
                 <Link href="/login" onClick={() => setIsOpen(false)}>
-                  Sign In
+                  {t("signIn")}
                 </Link>
               </Button>
               <Button className="w-full h-16 rounded-2xl text-lg font-bold bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/20 text-white" asChild>
                 <Link href="/register" onClick={() => setIsOpen(false)}>
-                  Get Started
+                  {t("getStarted")}
                 </Link>
               </Button>
             </div>

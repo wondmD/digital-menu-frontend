@@ -1,0 +1,140 @@
+{
+  "common": {
+    "language": "Español",
+    "logo": "MenuVista",
+    "home": "Inicio",
+    "about": "Acerca de",
+    "contact": "Contacto",
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "logout": "Cerrar sesión",
+    "profile": "Perfil",
+    "settings": "Configuración",
+    "dashboard": "Panel de control",
+    "menu": "Menú",
+    "restaurant": "Restaurante",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Añadir",
+    "close": "Cerrar",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "info": "Información",
+    "help": "Puede ayudar a optimizar sus operaciones"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "menu": "Menú",
+    "restaurant": "Restaurante",
+    "packages": "Paquetes",
+    "blog": "Blog",
+    "contact": "Contáctanos",
+    "dashboard": "Mi Panel",
+    "admin": "Administración",
+    "partner": "Socio"
+  },
+  "hero": {
+    "title": "Soluciones de Menú Digital para tu Restaurante",
+    "subtitle": "Transforma la experiencia de tus clientes con nuestra plataforma moderna",
+    "cta": "Comienza Hoy"
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "email": "Correo Electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar Contraseña",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "rememberMe": "Recuérdame",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "noAccount": "¿No tienes cuenta?",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "signUp": "Registrarse",
+    "signIn": "Iniciar sesión",
+    "resetPassword": "Restablecer Contraseña",
+    "verifyEmail": "Verificar Correo"
+  },
+  "errors": {
+    "required": "Este campo es obligatorio",
+    "invalidEmail": "Por favor ingresa un correo válido",
+    "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+    "passwordMismatch": "Las contraseñas no coinciden",
+    "unauthorized": "Acceso no autorizado",
+    "notFound": "Página no encontrada",
+    "serverError": "Error del servidor",
+    "networkError": "Error de red. Intenta de nuevo."
+  },
+  "messages": {
+    "welcome": "Bienvenido a MenuVista",
+    "loginSuccess": "Inicio de sesión exitoso",
+    "logoutSuccess": "Ha cerrado sesión",
+    "saved": "Cambios guardados",
+    "deleted": "Elemento eliminado"
+  },
+  "home": {
+    "nav": {
+      "features": "Características",
+      "demo": "Demo",
+      "login": "Iniciar sesión",
+      "joinPlatform": "Unirse a la plataforma",
+      "signIn": "Entrar",
+      "getStarted": "Comenzar"
+    },
+    "hero": {
+      "badge": "El futuro de la experiencia gastronómica",
+      "titleMain": "Encuentra. Escanea.",
+      "titleAccent": "Disfruta.",
+      "subtitle": "Explora menús digitales premium de tus lugares favoritos."
+    },
+    "search": {
+      "button": "Buscar restaurantes",
+      "nearby": "Cercanos",
+      "restaurants": "Restaurantes",
+      "all": "Todos",
+      "locating": "Ubicando...",
+      "restaurantMatches": "Coincidencias de restaurantes",
+      "noRestaurants": "No se encontraron restaurantes para \"{query}\"",
+      "placeholders": {
+        "p1": "Busca restaurantes premium...",
+        "p2": "Descubre menús secretos...",
+        "p3": "Explora asadores gourmet...",
+        "p4": "Encuentra los mejores cafés cercanos...",
+        "p5": "Descubre los lugares mejor valorados..."
+      }
+    },
+    "features": {
+      "badge": "Configuración instantánea",
+      "titleLine1": "Construido para",
+      "titleLine2": "una mejor",
+      "titleLine3": "conversión.",
+      "steps": {
+        "s1": {"title": "Diseña tu marca", "desc": "Personaliza tu presencia digital en minutos."},
+        "s2": {"title": "Gestión del menú", "desc": "Actualiza precios, disponibilidad y visuales en tiempo real."},
+        "s3": {"title": "Publica", "desc": "Publica tu menú al instante con integración QR."}
+      }
+    },
+    "cta": {
+      "badge": "Únete ahora",
+      "titleLine1": "Define tu",
+      "titleLine2": "experiencia digital.",
+      "subtitle": "Únete a negocios líderes de hospitalidad.",
+      "createMenu": "Crear tu menú",
+      "exploreDemo": "Explorar demo"
+    },
+    "dialog": {
+      "fallback": "Una deliciosa selección de menú te espera.",
+      "goToMenu": "Ir al menú",
+      "restaurantPage": "Página del restaurante"
+    },
+    "footer": {
+      "tagline": "Menús digitales para hospitalidad: simples, confiables y elegantes.",
+      "systemStatus": "Estado del sistema: En línea"
+    }
+  }
+}
