@@ -909,7 +909,7 @@ export function MenuItemCard({
                 {price.discountLabel}
               </span>
             )}
-            {(Number(item.rating || 0) > 0 || Number(item.rating_count || 0) > 0) && (
+            {Number(item.rating || 0) > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]" style={{ borderColor: theme.borderColor, color: theme.mutedTextColor }}>
                 <Star className="h-3.5 w-3.5 fill-current" />
                 {Number(item.rating || 0).toFixed(1)}
@@ -966,7 +966,7 @@ export function MenuItemCard({
               {price.discountLabel}
             </span>
           )}
-          {(item.rating || item.rating_count) && (
+          {Number(item.rating || 0) > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em]" style={{ borderColor: theme.borderColor, color: theme.mutedTextColor }}>
               <Star className="h-3.5 w-3.5 fill-current" />
               {Number(item.rating || 0).toFixed(1)}
